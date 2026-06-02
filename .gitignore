@@ -33,3 +33,8 @@ Thumbs.db
 *.tmp
 *.log
 paper_bak_*/
+
+# === git bundle / 大型封存（勿入庫）===
+*.bundle
+*.zip
+*.tar.gz
