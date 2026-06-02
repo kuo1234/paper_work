@@ -1,0 +1,287 @@
+{
+  "description": "Policy-gradient MAML baseline on latent navigation task",
+  "k_values": [
+    0,
+    1,
+    2,
+    3,
+    5
+  ],
+  "metrics": {
+    "7": {
+      "meta_loss": -0.13068868219852448,
+      "support_return": -68.57657060763877,
+      "query_return": -72.59046829953462
+    },
+    "13": {
+      "meta_loss": -0.02280905470252037,
+      "support_return": -70.99713422827293,
+      "query_return": -65.02636599416262
+    },
+    "23": {
+      "meta_loss": -0.14180299639701843,
+      "support_return": -58.55895678082826,
+      "query_return": -55.27472340999944
+    }
+  },
+  "training_curves": {
+    "7": [
+      {
+        "iteration": 1.0,
+        "meta_loss": -0.10579206049442291,
+        "support_return": -69.00319907846752,
+        "query_return": -72.42231400842093
+      },
+      {
+        "iteration": 2.0,
+        "meta_loss": -0.07887875288724899,
+        "support_return": -76.06281042391018,
+        "query_return": -81.08948383616809
+      },
+      {
+        "iteration": 3.0,
+        "meta_loss": -0.04995299503207207,
+        "support_return": -60.214723268456495,
+        "query_return": -55.96307782230432
+      },
+      {
+        "iteration": 4.0,
+        "meta_loss": -0.06754948198795319,
+        "support_return": -58.45663959787435,
+        "query_return": -70.00058150795442
+      },
+      {
+        "iteration": 5.0,
+        "meta_loss": 0.04121526703238487,
+        "support_return": -67.85311367602782,
+        "query_return": -55.151230886873776
+      },
+      {
+        "iteration": 6.0,
+        "meta_loss": -0.07396368682384491,
+        "support_return": -56.383211224113545,
+        "query_return": -46.201690151892855
+      },
+      {
+        "iteration": 7.0,
+        "meta_loss": -0.05743768811225891,
+        "support_return": -60.697869337317506,
+        "query_return": -55.90220574236494
+      },
+      {
+        "iteration": 8.0,
+        "meta_loss": -0.13976138830184937,
+        "support_return": -67.51977876407253,
+        "query_return": -67.01981230645653
+      },
+      {
+        "iteration": 9.0,
+        "meta_loss": -0.19976402819156647,
+        "support_return": -79.60518206143666,
+        "query_return": -85.83082296590342
+      },
+      {
+        "iteration": 10.0,
+        "meta_loss": -0.13068868219852448,
+        "support_return": -68.57657060763877,
+        "query_return": -72.59046829953462
+      }
+    ],
+    "13": [
+      {
+        "iteration": 1.0,
+        "meta_loss": 0.017539132386446,
+        "support_return": -56.351997717725496,
+        "query_return": -66.73560132426164
+      },
+      {
+        "iteration": 2.0,
+        "meta_loss": -0.12176655977964401,
+        "support_return": -44.07742872308227,
+        "query_return": -38.05315727633082
+      },
+      {
+        "iteration": 3.0,
+        "meta_loss": 0.04557204991579056,
+        "support_return": -77.7437316040203,
+        "query_return": -80.80304054502018
+      },
+      {
+        "iteration": 4.0,
+        "meta_loss": -0.022938605397939682,
+        "support_return": -49.25684038909534,
+        "query_return": -63.009638496881195
+      },
+      {
+        "iteration": 5.0,
+        "meta_loss": -0.029627036303281784,
+        "support_return": -50.302026507718,
+        "query_return": -51.62370230127387
+      },
+      {
+        "iteration": 6.0,
+        "meta_loss": -0.02239367552101612,
+        "support_return": -83.98622656929498,
+        "query_return": -81.93455078866585
+      },
+      {
+        "iteration": 7.0,
+        "meta_loss": 0.03858472406864166,
+        "support_return": -60.14956576596963,
+        "query_return": -62.79647521990014
+      },
+      {
+        "iteration": 8.0,
+        "meta_loss": 0.07667353749275208,
+        "support_return": -43.760480872175904,
+        "query_return": -51.10807214725433
+      },
+      {
+        "iteration": 9.0,
+        "meta_loss": -0.08673840016126633,
+        "support_return": -49.39933269920666,
+        "query_return": -50.061956906501585
+      },
+      {
+        "iteration": 10.0,
+        "meta_loss": -0.02280905470252037,
+        "support_return": -70.99713422827293,
+        "query_return": -65.02636599416262
+      }
+    ],
+    "23": [
+      {
+        "iteration": 1.0,
+        "meta_loss": -0.01586090587079525,
+        "support_return": -33.524657769181964,
+        "query_return": -34.445032166359425
+      },
+      {
+        "iteration": 2.0,
+        "meta_loss": -0.07452405244112015,
+        "support_return": -48.75491208189039,
+        "query_return": -37.36434068266384
+      },
+      {
+        "iteration": 3.0,
+        "meta_loss": 0.032284632325172424,
+        "support_return": -51.321885341335374,
+        "query_return": -52.18535055830489
+      },
+      {
+        "iteration": 4.0,
+        "meta_loss": -0.006373218260705471,
+        "support_return": -62.6851260328694,
+        "query_return": -67.29034317421956
+      },
+      {
+        "iteration": 5.0,
+        "meta_loss": -0.05910030007362366,
+        "support_return": -31.252332422876215,
+        "query_return": -33.573080497557484
+      },
+      {
+        "iteration": 6.0,
+        "meta_loss": -0.009150415658950806,
+        "support_return": -44.350271804540455,
+        "query_return": -38.79271250840182
+      },
+      {
+        "iteration": 7.0,
+        "meta_loss": -0.11680249869823456,
+        "support_return": -78.49307714123918,
+        "query_return": -72.893236457202
+      },
+      {
+        "iteration": 8.0,
+        "meta_loss": -0.061646122485399246,
+        "support_return": -47.98555436549969,
+        "query_return": -54.59543387354543
+      },
+      {
+        "iteration": 9.0,
+        "meta_loss": 0.015890639275312424,
+        "support_return": -57.88027695850716,
+        "query_return": -51.606431558618965
+      },
+      {
+        "iteration": 10.0,
+        "meta_loss": -0.14180299639701843,
+        "support_return": -58.55895678082826,
+        "query_return": -55.27472340999944
+      }
+    ]
+  },
+  "results": [
+    {
+      "seed": 7,
+      "method": "MAML-PG",
+      "curve": {
+        "0": -78.92617843663876,
+        "1": -82.30727806038712,
+        "2": -89.97134253301066,
+        "3": -87.83825505377767,
+        "5": -87.92691699759919
+      }
+    },
+    {
+      "seed": 13,
+      "method": "MAML-PG",
+      "curve": {
+        "0": -53.86381558897849,
+        "1": -53.13539787597948,
+        "2": -52.52245473107494,
+        "3": -54.43522124950088,
+        "5": -65.4282057521665
+      }
+    },
+    {
+      "seed": 23,
+      "method": "MAML-PG",
+      "curve": {
+        "0": -63.52494828778523,
+        "1": -60.286658596162866,
+        "2": -54.198782419381416,
+        "3": -53.96408757656904,
+        "5": -48.07593847628528
+      }
+    }
+  ],
+  "summary": [
+    {
+      "method": "MAML-PG",
+      "k": 0,
+      "mean_return": -65.4383141044675,
+      "std_return": 10.320731060613928,
+      "seed_count": 3
+    },
+    {
+      "method": "MAML-PG",
+      "k": 1,
+      "mean_return": -65.24311151084315,
+      "std_return": 12.414359091926329,
+      "seed_count": 3
+    },
+    {
+      "method": "MAML-PG",
+      "k": 2,
+      "mean_return": -65.56419322782233,
+      "std_return": 17.272024037615697,
+      "seed_count": 3
+    },
+    {
+      "method": "MAML-PG",
+      "k": 3,
+      "mean_return": -65.41252129328254,
+      "std_return": 15.858554847082825,
+      "seed_count": 3
+    },
+    {
+      "method": "MAML-PG",
+      "k": 5,
+      "mean_return": -67.14368707535033,
+      "std_return": 16.31425306093213,
+      "seed_count": 3
+    }
+  ]
+}

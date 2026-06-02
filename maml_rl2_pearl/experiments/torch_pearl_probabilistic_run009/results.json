@@ -1,0 +1,127 @@
+{
+  "description": "Run 006 probabilistic PEARL-style online SAC experiment",
+  "k_values": [
+    0,
+    1,
+    2,
+    3,
+    5
+  ],
+  "horizon": 60,
+  "metrics": {
+    "7": {
+      "last_critic_loss": 0.3702203035354614,
+      "last_actor_loss": 3.0043811798095703,
+      "last_kl_loss": 1.2731385231018066,
+      "last_latent_loss": 0.1315818727016449,
+      "last_bc_loss": 0.002126634120941162,
+      "last_z_action_loss": 0.0002642967738211155,
+      "diagnostic_latent_mse": 0.24472522791475057,
+      "diagnostic_posterior_var": 0.7212721407413483,
+      "diagnostic_actor_z_sensitivity": 0.010399281233549117,
+      "mean_recent_collection_return": -51.93723347281935,
+      "mean_all_collection_return": -51.1430997164104,
+      "transitions_per_task_mean": 1320
+    },
+    "13": {
+      "last_critic_loss": 0.31858402490615845,
+      "last_actor_loss": 3.1231963634490967,
+      "last_kl_loss": 4.070453643798828,
+      "last_latent_loss": 0.2205682098865509,
+      "last_bc_loss": 0.001812645816244185,
+      "last_z_action_loss": 0.00022608597646467388,
+      "diagnostic_latent_mse": 0.511892706155777,
+      "diagnostic_posterior_var": 0.44509088695049287,
+      "diagnostic_actor_z_sensitivity": 0.008958355570212007,
+      "mean_recent_collection_return": -41.92068186669924,
+      "mean_all_collection_return": -45.709756688343155,
+      "transitions_per_task_mean": 1320
+    },
+    "23": {
+      "last_critic_loss": 1.0668959617614746,
+      "last_actor_loss": 3.131627321243286,
+      "last_kl_loss": 1.5490697622299194,
+      "last_latent_loss": 0.10007475316524506,
+      "last_bc_loss": 0.0015846987953409553,
+      "last_z_action_loss": 0.00010733101225923747,
+      "diagnostic_latent_mse": 0.25110694020986557,
+      "diagnostic_posterior_var": 2.816143934428692,
+      "diagnostic_actor_z_sensitivity": 0.02288556471467018,
+      "mean_recent_collection_return": -64.7225346744853,
+      "mean_all_collection_return": -58.4445524207271,
+      "transitions_per_task_mean": 1320
+    }
+  },
+  "results": [
+    {
+      "seed": 7,
+      "method": "PEARL-probabilistic",
+      "curve": {
+        "0": -52.7677507053791,
+        "1": -51.97614600217531,
+        "2": -51.95069857326665,
+        "3": -51.46170285059291,
+        "5": -52.56686601565063
+      }
+    },
+    {
+      "seed": 13,
+      "method": "PEARL-probabilistic",
+      "curve": {
+        "0": -45.21826300822206,
+        "1": -47.481436778766586,
+        "2": -47.83944832745748,
+        "3": -47.477783666854165,
+        "5": -48.357021449611636
+      }
+    },
+    {
+      "seed": 23,
+      "method": "PEARL-probabilistic",
+      "curve": {
+        "0": -51.0581531838369,
+        "1": -59.319599369031266,
+        "2": -59.57710830545043,
+        "3": -56.905034940514085,
+        "5": -60.59893340821691
+      }
+    }
+  ],
+  "summary": [
+    {
+      "method": "PEARL-probabilistic",
+      "k": 0,
+      "mean_return": -49.68138896581269,
+      "std_return": 3.2321613930830915,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-probabilistic",
+      "k": 1,
+      "mean_return": -52.925727383324386,
+      "std_return": 4.879330690299937,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-probabilistic",
+      "k": 2,
+      "mean_return": -53.12241840205819,
+      "std_return": 4.862979947702287,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-probabilistic",
+      "k": 3,
+      "mean_return": -51.94817381932039,
+      "std_return": 3.8640011341217826,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-probabilistic",
+      "k": 5,
+      "mean_return": -53.840940291159725,
+      "std_return": 5.078290463347956,
+      "seed_count": 3
+    }
+  ]
+}

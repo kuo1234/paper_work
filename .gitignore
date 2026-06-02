@@ -1,0 +1,35 @@
+# === 虛擬環境 / 套件 ===
+.venv/
+.venv-py312/
+venv/
+env/
+*.egg-info/
+__pycache__/
+*.py[cod]
+*.so
+
+# === 訓練產物 / 快取 ===
+wandb/
+logs/
+results/
+checkpoints/
+*.ckpt
+*.pth
+*.pt
+.ipynb_checkpoints/
+
+# === 作業系統 / 編輯器 ===
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+
+# === Obsidian 工作區設定（保留 vault 內容，排除個人 workspace 快取）===
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache/
+
+# === 臨時檔 ===
+*.tmp
+*.log
+paper_bak_*/

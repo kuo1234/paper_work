@@ -1,0 +1,1193 @@
+{
+  "description": "Faithful PEARL scaffold: no latent labels, no BC, no oracle probes",
+  "k_values": [
+    0,
+    1,
+    2,
+    3,
+    5
+  ],
+  "metrics": {
+    "7": {
+      "q_loss": 4.617441654205322,
+      "v_loss": 0.39223289489746094,
+      "policy_loss": 10.75814437866211,
+      "kl_loss": 2.9210100173950195,
+      "mean_transitions_per_task": 5760
+    },
+    "13": {
+      "q_loss": 4.6404571533203125,
+      "v_loss": 0.23021653294563293,
+      "policy_loss": 12.073585510253906,
+      "kl_loss": 3.076784610748291,
+      "mean_transitions_per_task": 5760
+    },
+    "23": {
+      "q_loss": 2.6421070098876953,
+      "v_loss": 0.061765819787979126,
+      "policy_loss": 7.590043067932129,
+      "kl_loss": 2.0842537879943848,
+      "mean_transitions_per_task": 5760
+    }
+  },
+  "training_curves": {
+    "7": [
+      {
+        "iteration": 1.0,
+        "q_loss": 0.509868323802948,
+        "v_loss": 0.005885043181478977,
+        "policy_loss": 1.7541437149047852,
+        "kl_loss": 7.315189838409424,
+        "mean_transitions_per_task": 480
+      },
+      {
+        "iteration": 2.0,
+        "q_loss": 0.44274553656578064,
+        "v_loss": 0.0015270212898030877,
+        "policy_loss": 1.752342700958252,
+        "kl_loss": 5.694695472717285,
+        "mean_transitions_per_task": 600
+      },
+      {
+        "iteration": 3.0,
+        "q_loss": 0.4986141324043274,
+        "v_loss": 0.0010503947269171476,
+        "policy_loss": 1.7570338249206543,
+        "kl_loss": 4.518195152282715,
+        "mean_transitions_per_task": 720
+      },
+      {
+        "iteration": 4.0,
+        "q_loss": 0.3004828691482544,
+        "v_loss": 0.004189009312540293,
+        "policy_loss": 2.0792274475097656,
+        "kl_loss": 3.3355751037597656,
+        "mean_transitions_per_task": 840
+      },
+      {
+        "iteration": 5.0,
+        "q_loss": 0.2661716938018799,
+        "v_loss": 0.02111891657114029,
+        "policy_loss": 2.685271739959717,
+        "kl_loss": 2.6984102725982666,
+        "mean_transitions_per_task": 960
+      },
+      {
+        "iteration": 6.0,
+        "q_loss": 0.38628387451171875,
+        "v_loss": 0.008485246449708939,
+        "policy_loss": 2.6250452995300293,
+        "kl_loss": 2.2982230186462402,
+        "mean_transitions_per_task": 1080
+      },
+      {
+        "iteration": 7.0,
+        "q_loss": 0.33703309297561646,
+        "v_loss": 0.2497980147600174,
+        "policy_loss": 4.119598388671875,
+        "kl_loss": 2.7465920448303223,
+        "mean_transitions_per_task": 1200
+      },
+      {
+        "iteration": 8.0,
+        "q_loss": 0.38595086336135864,
+        "v_loss": 0.015109287574887276,
+        "policy_loss": 2.905587673187256,
+        "kl_loss": 2.191185474395752,
+        "mean_transitions_per_task": 1320
+      },
+      {
+        "iteration": 9.0,
+        "q_loss": 0.3585277199745178,
+        "v_loss": 0.015386506915092468,
+        "policy_loss": 3.7299580574035645,
+        "kl_loss": 2.202399969100952,
+        "mean_transitions_per_task": 1440
+      },
+      {
+        "iteration": 10.0,
+        "q_loss": 0.5178309679031372,
+        "v_loss": 0.013121422380208969,
+        "policy_loss": 3.304067373275757,
+        "kl_loss": 2.335540533065796,
+        "mean_transitions_per_task": 1560
+      },
+      {
+        "iteration": 11.0,
+        "q_loss": 0.6754108667373657,
+        "v_loss": 0.06192685663700104,
+        "policy_loss": 3.6013803482055664,
+        "kl_loss": 2.0276660919189453,
+        "mean_transitions_per_task": 1680
+      },
+      {
+        "iteration": 12.0,
+        "q_loss": 0.40216904878616333,
+        "v_loss": 0.026322435587644577,
+        "policy_loss": 4.838079929351807,
+        "kl_loss": 2.173980474472046,
+        "mean_transitions_per_task": 1800
+      },
+      {
+        "iteration": 13.0,
+        "q_loss": 1.0862665176391602,
+        "v_loss": 0.037665121257305145,
+        "policy_loss": 4.580706596374512,
+        "kl_loss": 2.266852617263794,
+        "mean_transitions_per_task": 1920
+      },
+      {
+        "iteration": 14.0,
+        "q_loss": 0.8623093366622925,
+        "v_loss": 0.01527964137494564,
+        "policy_loss": 4.912432670593262,
+        "kl_loss": 2.558947801589966,
+        "mean_transitions_per_task": 2040
+      },
+      {
+        "iteration": 15.0,
+        "q_loss": 1.3333611488342285,
+        "v_loss": 0.010911086574196815,
+        "policy_loss": 4.1608781814575195,
+        "kl_loss": 1.8128634691238403,
+        "mean_transitions_per_task": 2160
+      },
+      {
+        "iteration": 16.0,
+        "q_loss": 1.544010877609253,
+        "v_loss": 0.09004382789134979,
+        "policy_loss": 6.438811779022217,
+        "kl_loss": 3.0738251209259033,
+        "mean_transitions_per_task": 2280
+      },
+      {
+        "iteration": 17.0,
+        "q_loss": 1.0725030899047852,
+        "v_loss": 0.08487595617771149,
+        "policy_loss": 6.50443172454834,
+        "kl_loss": 2.3031392097473145,
+        "mean_transitions_per_task": 2400
+      },
+      {
+        "iteration": 18.0,
+        "q_loss": 1.0313985347747803,
+        "v_loss": 0.4187699854373932,
+        "policy_loss": 7.454404830932617,
+        "kl_loss": 2.5720810890197754,
+        "mean_transitions_per_task": 2520
+      },
+      {
+        "iteration": 19.0,
+        "q_loss": 2.227375030517578,
+        "v_loss": 0.14934106171131134,
+        "policy_loss": 6.433780193328857,
+        "kl_loss": 2.59633207321167,
+        "mean_transitions_per_task": 2640
+      },
+      {
+        "iteration": 20.0,
+        "q_loss": 2.0025429725646973,
+        "v_loss": 0.03176133334636688,
+        "policy_loss": 6.625658988952637,
+        "kl_loss": 2.7332191467285156,
+        "mean_transitions_per_task": 2760
+      },
+      {
+        "iteration": 21.0,
+        "q_loss": 1.8464922904968262,
+        "v_loss": 0.05172831937670708,
+        "policy_loss": 6.8138747215271,
+        "kl_loss": 2.572291374206543,
+        "mean_transitions_per_task": 2880
+      },
+      {
+        "iteration": 22.0,
+        "q_loss": 1.5357047319412231,
+        "v_loss": 0.19270123541355133,
+        "policy_loss": 5.915095329284668,
+        "kl_loss": 2.2684900760650635,
+        "mean_transitions_per_task": 3000
+      },
+      {
+        "iteration": 23.0,
+        "q_loss": 1.6693501472473145,
+        "v_loss": 0.02559373527765274,
+        "policy_loss": 5.747048854827881,
+        "kl_loss": 1.9746344089508057,
+        "mean_transitions_per_task": 3120
+      },
+      {
+        "iteration": 24.0,
+        "q_loss": 2.3043088912963867,
+        "v_loss": 0.0254219900816679,
+        "policy_loss": 8.03857421875,
+        "kl_loss": 2.8432326316833496,
+        "mean_transitions_per_task": 3240
+      },
+      {
+        "iteration": 25.0,
+        "q_loss": 1.7736644744873047,
+        "v_loss": 0.04075862467288971,
+        "policy_loss": 6.694144248962402,
+        "kl_loss": 1.950512409210205,
+        "mean_transitions_per_task": 3360
+      },
+      {
+        "iteration": 26.0,
+        "q_loss": 1.8301604986190796,
+        "v_loss": 0.014488417655229568,
+        "policy_loss": 7.03862190246582,
+        "kl_loss": 1.734403133392334,
+        "mean_transitions_per_task": 3480
+      },
+      {
+        "iteration": 27.0,
+        "q_loss": 1.8856666088104248,
+        "v_loss": 0.03346524387598038,
+        "policy_loss": 8.414342880249023,
+        "kl_loss": 2.5864453315734863,
+        "mean_transitions_per_task": 3600
+      },
+      {
+        "iteration": 28.0,
+        "q_loss": 5.8385467529296875,
+        "v_loss": 0.056187063455581665,
+        "policy_loss": 8.70890998840332,
+        "kl_loss": 2.610888957977295,
+        "mean_transitions_per_task": 3720
+      },
+      {
+        "iteration": 29.0,
+        "q_loss": 3.330357551574707,
+        "v_loss": 0.03373090922832489,
+        "policy_loss": 7.475066661834717,
+        "kl_loss": 2.5004725456237793,
+        "mean_transitions_per_task": 3840
+      },
+      {
+        "iteration": 30.0,
+        "q_loss": 1.7929855585098267,
+        "v_loss": 0.08839350938796997,
+        "policy_loss": 7.695760726928711,
+        "kl_loss": 2.287278652191162,
+        "mean_transitions_per_task": 3960
+      },
+      {
+        "iteration": 31.0,
+        "q_loss": 4.292171001434326,
+        "v_loss": 0.04005301743745804,
+        "policy_loss": 7.958444118499756,
+        "kl_loss": 2.3458974361419678,
+        "mean_transitions_per_task": 4080
+      },
+      {
+        "iteration": 32.0,
+        "q_loss": 2.2858572006225586,
+        "v_loss": 0.013394313864409924,
+        "policy_loss": 7.849278450012207,
+        "kl_loss": 2.8736605644226074,
+        "mean_transitions_per_task": 4200
+      },
+      {
+        "iteration": 33.0,
+        "q_loss": 4.618440628051758,
+        "v_loss": 0.16852985322475433,
+        "policy_loss": 8.358379364013672,
+        "kl_loss": 2.6007940769195557,
+        "mean_transitions_per_task": 4320
+      },
+      {
+        "iteration": 34.0,
+        "q_loss": 4.051468372344971,
+        "v_loss": 0.02036169171333313,
+        "policy_loss": 9.733662605285645,
+        "kl_loss": 3.6317081451416016,
+        "mean_transitions_per_task": 4440
+      },
+      {
+        "iteration": 35.0,
+        "q_loss": 4.882011890411377,
+        "v_loss": 0.13402223587036133,
+        "policy_loss": 8.182748794555664,
+        "kl_loss": 2.4240689277648926,
+        "mean_transitions_per_task": 4560
+      },
+      {
+        "iteration": 36.0,
+        "q_loss": 2.6470015048980713,
+        "v_loss": 0.12722007930278778,
+        "policy_loss": 10.654077529907227,
+        "kl_loss": 3.7190141677856445,
+        "mean_transitions_per_task": 4680
+      },
+      {
+        "iteration": 37.0,
+        "q_loss": 3.2594265937805176,
+        "v_loss": 0.04443305730819702,
+        "policy_loss": 8.05328369140625,
+        "kl_loss": 2.330565929412842,
+        "mean_transitions_per_task": 4800
+      },
+      {
+        "iteration": 38.0,
+        "q_loss": 0.9189811944961548,
+        "v_loss": 0.04933562129735947,
+        "policy_loss": 7.236597061157227,
+        "kl_loss": 2.464153528213501,
+        "mean_transitions_per_task": 4920
+      },
+      {
+        "iteration": 39.0,
+        "q_loss": 8.05710220336914,
+        "v_loss": 0.017683107405900955,
+        "policy_loss": 8.442509651184082,
+        "kl_loss": 2.0425961017608643,
+        "mean_transitions_per_task": 5040
+      },
+      {
+        "iteration": 40.0,
+        "q_loss": 1.201538324356079,
+        "v_loss": 0.046181194484233856,
+        "policy_loss": 7.76734733581543,
+        "kl_loss": 2.2646448612213135,
+        "mean_transitions_per_task": 5160
+      },
+      {
+        "iteration": 41.0,
+        "q_loss": 2.9870121479034424,
+        "v_loss": 0.06745336949825287,
+        "policy_loss": 9.492103576660156,
+        "kl_loss": 3.3343727588653564,
+        "mean_transitions_per_task": 5280
+      },
+      {
+        "iteration": 42.0,
+        "q_loss": 8.652761459350586,
+        "v_loss": 0.16678506135940552,
+        "policy_loss": 10.047932624816895,
+        "kl_loss": 3.924360752105713,
+        "mean_transitions_per_task": 5400
+      },
+      {
+        "iteration": 43.0,
+        "q_loss": 1.0157740116119385,
+        "v_loss": 0.034470826387405396,
+        "policy_loss": 10.13618278503418,
+        "kl_loss": 2.395150661468506,
+        "mean_transitions_per_task": 5520
+      },
+      {
+        "iteration": 44.0,
+        "q_loss": 5.450889587402344,
+        "v_loss": 0.1495867669582367,
+        "policy_loss": 10.953737258911133,
+        "kl_loss": 3.428027868270874,
+        "mean_transitions_per_task": 5640
+      },
+      {
+        "iteration": 45.0,
+        "q_loss": 4.617441654205322,
+        "v_loss": 0.39223289489746094,
+        "policy_loss": 10.75814437866211,
+        "kl_loss": 2.9210100173950195,
+        "mean_transitions_per_task": 5760
+      }
+    ],
+    "13": [
+      {
+        "iteration": 1.0,
+        "q_loss": 0.3807883858680725,
+        "v_loss": 0.0039160847663879395,
+        "policy_loss": 1.4864046573638916,
+        "kl_loss": 6.365781784057617,
+        "mean_transitions_per_task": 480
+      },
+      {
+        "iteration": 2.0,
+        "q_loss": 0.2812594771385193,
+        "v_loss": 0.004419037140905857,
+        "policy_loss": 1.5352329015731812,
+        "kl_loss": 5.140529632568359,
+        "mean_transitions_per_task": 600
+      },
+      {
+        "iteration": 3.0,
+        "q_loss": 0.22377589344978333,
+        "v_loss": 0.02292782813310623,
+        "policy_loss": 1.651275634765625,
+        "kl_loss": 3.916322946548462,
+        "mean_transitions_per_task": 720
+      },
+      {
+        "iteration": 4.0,
+        "q_loss": 0.256957471370697,
+        "v_loss": 0.017902657389640808,
+        "policy_loss": 1.988115668296814,
+        "kl_loss": 3.0304131507873535,
+        "mean_transitions_per_task": 840
+      },
+      {
+        "iteration": 5.0,
+        "q_loss": 0.3571857810020447,
+        "v_loss": 0.015240414068102837,
+        "policy_loss": 2.638878345489502,
+        "kl_loss": 2.687434196472168,
+        "mean_transitions_per_task": 960
+      },
+      {
+        "iteration": 6.0,
+        "q_loss": 0.3539263904094696,
+        "v_loss": 0.05441054329276085,
+        "policy_loss": 2.6781063079833984,
+        "kl_loss": 2.371890068054199,
+        "mean_transitions_per_task": 1080
+      },
+      {
+        "iteration": 7.0,
+        "q_loss": 0.19920092821121216,
+        "v_loss": 0.01027727872133255,
+        "policy_loss": 2.7331321239471436,
+        "kl_loss": 2.3096556663513184,
+        "mean_transitions_per_task": 1200
+      },
+      {
+        "iteration": 8.0,
+        "q_loss": 0.7083984613418579,
+        "v_loss": 0.012191583402454853,
+        "policy_loss": 3.210817813873291,
+        "kl_loss": 2.699263095855713,
+        "mean_transitions_per_task": 1320
+      },
+      {
+        "iteration": 9.0,
+        "q_loss": 0.3773995637893677,
+        "v_loss": 0.0932566374540329,
+        "policy_loss": 3.8170852661132812,
+        "kl_loss": 2.4265904426574707,
+        "mean_transitions_per_task": 1440
+      },
+      {
+        "iteration": 10.0,
+        "q_loss": 0.5371852517127991,
+        "v_loss": 0.017273686826229095,
+        "policy_loss": 3.7114362716674805,
+        "kl_loss": 2.1013996601104736,
+        "mean_transitions_per_task": 1560
+      },
+      {
+        "iteration": 11.0,
+        "q_loss": 0.7855614423751831,
+        "v_loss": 0.04268229007720947,
+        "policy_loss": 4.17473030090332,
+        "kl_loss": 2.4707865715026855,
+        "mean_transitions_per_task": 1680
+      },
+      {
+        "iteration": 12.0,
+        "q_loss": 0.318464070558548,
+        "v_loss": 0.01668008603155613,
+        "policy_loss": 3.881143569946289,
+        "kl_loss": 2.150510787963867,
+        "mean_transitions_per_task": 1800
+      },
+      {
+        "iteration": 13.0,
+        "q_loss": 0.81460040807724,
+        "v_loss": 0.02286524884402752,
+        "policy_loss": 5.143363952636719,
+        "kl_loss": 2.477107286453247,
+        "mean_transitions_per_task": 1920
+      },
+      {
+        "iteration": 14.0,
+        "q_loss": 0.7513762712478638,
+        "v_loss": 0.008452391251921654,
+        "policy_loss": 3.5411360263824463,
+        "kl_loss": 1.908665418624878,
+        "mean_transitions_per_task": 2040
+      },
+      {
+        "iteration": 15.0,
+        "q_loss": 0.34103965759277344,
+        "v_loss": 0.03593180328607559,
+        "policy_loss": 4.033021926879883,
+        "kl_loss": 1.7079463005065918,
+        "mean_transitions_per_task": 2160
+      },
+      {
+        "iteration": 16.0,
+        "q_loss": 0.43807560205459595,
+        "v_loss": 0.01244298554956913,
+        "policy_loss": 4.751505374908447,
+        "kl_loss": 1.7964859008789062,
+        "mean_transitions_per_task": 2280
+      },
+      {
+        "iteration": 17.0,
+        "q_loss": 1.245361328125,
+        "v_loss": 0.02195422351360321,
+        "policy_loss": 5.156217098236084,
+        "kl_loss": 1.7627456188201904,
+        "mean_transitions_per_task": 2400
+      },
+      {
+        "iteration": 18.0,
+        "q_loss": 1.0723854303359985,
+        "v_loss": 0.043290864676237106,
+        "policy_loss": 6.929545879364014,
+        "kl_loss": 2.6287238597869873,
+        "mean_transitions_per_task": 2520
+      },
+      {
+        "iteration": 19.0,
+        "q_loss": 0.9814348816871643,
+        "v_loss": 0.028708089143037796,
+        "policy_loss": 6.417694091796875,
+        "kl_loss": 2.141396999359131,
+        "mean_transitions_per_task": 2640
+      },
+      {
+        "iteration": 20.0,
+        "q_loss": 1.5117766857147217,
+        "v_loss": 0.15948697924613953,
+        "policy_loss": 7.446366310119629,
+        "kl_loss": 2.858410358428955,
+        "mean_transitions_per_task": 2760
+      },
+      {
+        "iteration": 21.0,
+        "q_loss": 1.7339966297149658,
+        "v_loss": 0.036960627883672714,
+        "policy_loss": 6.083200931549072,
+        "kl_loss": 2.0148987770080566,
+        "mean_transitions_per_task": 2880
+      },
+      {
+        "iteration": 22.0,
+        "q_loss": 1.7532058954238892,
+        "v_loss": 0.08522529900074005,
+        "policy_loss": 6.16215181350708,
+        "kl_loss": 1.7402877807617188,
+        "mean_transitions_per_task": 3000
+      },
+      {
+        "iteration": 23.0,
+        "q_loss": 1.1056874990463257,
+        "v_loss": 0.017476964741945267,
+        "policy_loss": 5.944689750671387,
+        "kl_loss": 1.956127405166626,
+        "mean_transitions_per_task": 3120
+      },
+      {
+        "iteration": 24.0,
+        "q_loss": 3.0811984539031982,
+        "v_loss": 0.03170183300971985,
+        "policy_loss": 6.063283443450928,
+        "kl_loss": 2.301389694213867,
+        "mean_transitions_per_task": 3240
+      },
+      {
+        "iteration": 25.0,
+        "q_loss": 1.0184720754623413,
+        "v_loss": 0.03380173444747925,
+        "policy_loss": 6.35340690612793,
+        "kl_loss": 1.9231181144714355,
+        "mean_transitions_per_task": 3360
+      },
+      {
+        "iteration": 26.0,
+        "q_loss": 1.6728732585906982,
+        "v_loss": 0.03425164520740509,
+        "policy_loss": 5.66312837600708,
+        "kl_loss": 1.6669316291809082,
+        "mean_transitions_per_task": 3480
+      },
+      {
+        "iteration": 27.0,
+        "q_loss": 2.185973882675171,
+        "v_loss": 0.028186241164803505,
+        "policy_loss": 7.36664342880249,
+        "kl_loss": 1.8445361852645874,
+        "mean_transitions_per_task": 3600
+      },
+      {
+        "iteration": 28.0,
+        "q_loss": 3.175745964050293,
+        "v_loss": 0.13732540607452393,
+        "policy_loss": 5.4491424560546875,
+        "kl_loss": 1.6877214908599854,
+        "mean_transitions_per_task": 3720
+      },
+      {
+        "iteration": 29.0,
+        "q_loss": 1.6066917181015015,
+        "v_loss": 0.05430110916495323,
+        "policy_loss": 8.095276832580566,
+        "kl_loss": 2.441020965576172,
+        "mean_transitions_per_task": 3840
+      },
+      {
+        "iteration": 30.0,
+        "q_loss": 1.7392606735229492,
+        "v_loss": 0.054105453193187714,
+        "policy_loss": 6.435674667358398,
+        "kl_loss": 1.721099853515625,
+        "mean_transitions_per_task": 3960
+      },
+      {
+        "iteration": 31.0,
+        "q_loss": 1.1613233089447021,
+        "v_loss": 0.019005749374628067,
+        "policy_loss": 9.05900764465332,
+        "kl_loss": 2.7797691822052,
+        "mean_transitions_per_task": 4080
+      },
+      {
+        "iteration": 32.0,
+        "q_loss": 2.1232428550720215,
+        "v_loss": 0.25459688901901245,
+        "policy_loss": 7.270415306091309,
+        "kl_loss": 2.0167598724365234,
+        "mean_transitions_per_task": 4200
+      },
+      {
+        "iteration": 33.0,
+        "q_loss": 2.3417367935180664,
+        "v_loss": 0.05800356715917587,
+        "policy_loss": 7.902371406555176,
+        "kl_loss": 1.8305346965789795,
+        "mean_transitions_per_task": 4320
+      },
+      {
+        "iteration": 34.0,
+        "q_loss": 1.833165168762207,
+        "v_loss": 0.2707974314689636,
+        "policy_loss": 7.771056175231934,
+        "kl_loss": 2.1447067260742188,
+        "mean_transitions_per_task": 4440
+      },
+      {
+        "iteration": 35.0,
+        "q_loss": 5.0377349853515625,
+        "v_loss": 0.09774823486804962,
+        "policy_loss": 7.905178070068359,
+        "kl_loss": 2.226954460144043,
+        "mean_transitions_per_task": 4560
+      },
+      {
+        "iteration": 36.0,
+        "q_loss": 7.9767374992370605,
+        "v_loss": 0.17196576297283173,
+        "policy_loss": 8.950355529785156,
+        "kl_loss": 2.6733932495117188,
+        "mean_transitions_per_task": 4680
+      },
+      {
+        "iteration": 37.0,
+        "q_loss": 4.002955436706543,
+        "v_loss": 0.1444847285747528,
+        "policy_loss": 9.139225959777832,
+        "kl_loss": 2.7840042114257812,
+        "mean_transitions_per_task": 4800
+      },
+      {
+        "iteration": 38.0,
+        "q_loss": 1.8199574947357178,
+        "v_loss": 0.02440347895026207,
+        "policy_loss": 8.02336311340332,
+        "kl_loss": 1.8565970659255981,
+        "mean_transitions_per_task": 4920
+      },
+      {
+        "iteration": 39.0,
+        "q_loss": 1.1806309223175049,
+        "v_loss": 0.0564902201294899,
+        "policy_loss": 8.515317916870117,
+        "kl_loss": 2.2729568481445312,
+        "mean_transitions_per_task": 5040
+      },
+      {
+        "iteration": 40.0,
+        "q_loss": 3.0596773624420166,
+        "v_loss": 0.018320729956030846,
+        "policy_loss": 8.371112823486328,
+        "kl_loss": 2.080070972442627,
+        "mean_transitions_per_task": 5160
+      },
+      {
+        "iteration": 41.0,
+        "q_loss": 2.945061683654785,
+        "v_loss": 0.07090099900960922,
+        "policy_loss": 8.471390724182129,
+        "kl_loss": 1.971817135810852,
+        "mean_transitions_per_task": 5280
+      },
+      {
+        "iteration": 42.0,
+        "q_loss": 4.270428657531738,
+        "v_loss": 0.23924654722213745,
+        "policy_loss": 8.994222640991211,
+        "kl_loss": 2.3335304260253906,
+        "mean_transitions_per_task": 5400
+      },
+      {
+        "iteration": 43.0,
+        "q_loss": 2.7481584548950195,
+        "v_loss": 0.06477053463459015,
+        "policy_loss": 7.611651420593262,
+        "kl_loss": 1.8964807987213135,
+        "mean_transitions_per_task": 5520
+      },
+      {
+        "iteration": 44.0,
+        "q_loss": 4.933121681213379,
+        "v_loss": 0.03922521695494652,
+        "policy_loss": 8.071475982666016,
+        "kl_loss": 1.8266931772232056,
+        "mean_transitions_per_task": 5640
+      },
+      {
+        "iteration": 45.0,
+        "q_loss": 4.6404571533203125,
+        "v_loss": 0.23021653294563293,
+        "policy_loss": 12.073585510253906,
+        "kl_loss": 3.076784610748291,
+        "mean_transitions_per_task": 5760
+      }
+    ],
+    "23": [
+      {
+        "iteration": 1.0,
+        "q_loss": 0.5983443260192871,
+        "v_loss": 0.016982045024633408,
+        "policy_loss": 1.6346080303192139,
+        "kl_loss": 7.153407096862793,
+        "mean_transitions_per_task": 480
+      },
+      {
+        "iteration": 2.0,
+        "q_loss": 0.2651277780532837,
+        "v_loss": 0.01464146375656128,
+        "policy_loss": 1.5454185009002686,
+        "kl_loss": 5.90150260925293,
+        "mean_transitions_per_task": 600
+      },
+      {
+        "iteration": 3.0,
+        "q_loss": 0.48351505398750305,
+        "v_loss": 0.02829875983297825,
+        "policy_loss": 1.5705565214157104,
+        "kl_loss": 4.66065788269043,
+        "mean_transitions_per_task": 720
+      },
+      {
+        "iteration": 4.0,
+        "q_loss": 0.2269129455089569,
+        "v_loss": 0.0062779514119029045,
+        "policy_loss": 1.7951009273529053,
+        "kl_loss": 4.010884761810303,
+        "mean_transitions_per_task": 840
+      },
+      {
+        "iteration": 5.0,
+        "q_loss": 0.30315423011779785,
+        "v_loss": 0.0056296950206160545,
+        "policy_loss": 1.9988950490951538,
+        "kl_loss": 3.2714667320251465,
+        "mean_transitions_per_task": 960
+      },
+      {
+        "iteration": 6.0,
+        "q_loss": 0.3719979524612427,
+        "v_loss": 0.011776931583881378,
+        "policy_loss": 2.3368258476257324,
+        "kl_loss": 3.063232183456421,
+        "mean_transitions_per_task": 1080
+      },
+      {
+        "iteration": 7.0,
+        "q_loss": 0.38694167137145996,
+        "v_loss": 0.00647754967212677,
+        "policy_loss": 2.34425687789917,
+        "kl_loss": 2.7139647006988525,
+        "mean_transitions_per_task": 1200
+      },
+      {
+        "iteration": 8.0,
+        "q_loss": 0.27994316816329956,
+        "v_loss": 0.015573980286717415,
+        "policy_loss": 2.899568796157837,
+        "kl_loss": 2.663292407989502,
+        "mean_transitions_per_task": 1320
+      },
+      {
+        "iteration": 9.0,
+        "q_loss": 0.3379017114639282,
+        "v_loss": 0.01107039488852024,
+        "policy_loss": 3.104663848876953,
+        "kl_loss": 2.157205581665039,
+        "mean_transitions_per_task": 1440
+      },
+      {
+        "iteration": 10.0,
+        "q_loss": 0.3249218165874481,
+        "v_loss": 0.010719042271375656,
+        "policy_loss": 2.8665566444396973,
+        "kl_loss": 2.371384620666504,
+        "mean_transitions_per_task": 1560
+      },
+      {
+        "iteration": 11.0,
+        "q_loss": 0.4860098659992218,
+        "v_loss": 0.02588384598493576,
+        "policy_loss": 3.1435694694519043,
+        "kl_loss": 2.324678659439087,
+        "mean_transitions_per_task": 1680
+      },
+      {
+        "iteration": 12.0,
+        "q_loss": 0.7106993198394775,
+        "v_loss": 0.12295947223901749,
+        "policy_loss": 4.177212715148926,
+        "kl_loss": 2.57565975189209,
+        "mean_transitions_per_task": 1800
+      },
+      {
+        "iteration": 13.0,
+        "q_loss": 0.4759298861026764,
+        "v_loss": 0.026554707437753677,
+        "policy_loss": 4.572537422180176,
+        "kl_loss": 2.3851840496063232,
+        "mean_transitions_per_task": 1920
+      },
+      {
+        "iteration": 14.0,
+        "q_loss": 0.42831552028656006,
+        "v_loss": 0.020994946360588074,
+        "policy_loss": 4.161513328552246,
+        "kl_loss": 2.4080209732055664,
+        "mean_transitions_per_task": 2040
+      },
+      {
+        "iteration": 15.0,
+        "q_loss": 1.9170759916305542,
+        "v_loss": 0.13801297545433044,
+        "policy_loss": 4.505921840667725,
+        "kl_loss": 2.2536282539367676,
+        "mean_transitions_per_task": 2160
+      },
+      {
+        "iteration": 16.0,
+        "q_loss": 1.6770204305648804,
+        "v_loss": 0.04136214405298233,
+        "policy_loss": 4.639826774597168,
+        "kl_loss": 2.086498498916626,
+        "mean_transitions_per_task": 2280
+      },
+      {
+        "iteration": 17.0,
+        "q_loss": 1.1645184755325317,
+        "v_loss": 0.030110936611890793,
+        "policy_loss": 4.290032863616943,
+        "kl_loss": 1.9184587001800537,
+        "mean_transitions_per_task": 2400
+      },
+      {
+        "iteration": 18.0,
+        "q_loss": 0.6947744488716125,
+        "v_loss": 0.027659853920340538,
+        "policy_loss": 5.306557655334473,
+        "kl_loss": 2.218576431274414,
+        "mean_transitions_per_task": 2520
+      },
+      {
+        "iteration": 19.0,
+        "q_loss": 0.7098896503448486,
+        "v_loss": 0.025151632726192474,
+        "policy_loss": 4.501280307769775,
+        "kl_loss": 2.0529098510742188,
+        "mean_transitions_per_task": 2640
+      },
+      {
+        "iteration": 20.0,
+        "q_loss": 1.740659236907959,
+        "v_loss": 0.07497124373912811,
+        "policy_loss": 5.181092262268066,
+        "kl_loss": 2.6453349590301514,
+        "mean_transitions_per_task": 2760
+      },
+      {
+        "iteration": 21.0,
+        "q_loss": 2.5093941688537598,
+        "v_loss": 0.14421887695789337,
+        "policy_loss": 5.594592094421387,
+        "kl_loss": 2.4129605293273926,
+        "mean_transitions_per_task": 2880
+      },
+      {
+        "iteration": 22.0,
+        "q_loss": 0.34479179978370667,
+        "v_loss": 0.10501892864704132,
+        "policy_loss": 5.478611946105957,
+        "kl_loss": 2.200212001800537,
+        "mean_transitions_per_task": 3000
+      },
+      {
+        "iteration": 23.0,
+        "q_loss": 1.7981070280075073,
+        "v_loss": 0.026143301278352737,
+        "policy_loss": 6.213709831237793,
+        "kl_loss": 2.1556103229522705,
+        "mean_transitions_per_task": 3120
+      },
+      {
+        "iteration": 24.0,
+        "q_loss": 1.1019927263259888,
+        "v_loss": 0.02528027445077896,
+        "policy_loss": 7.012080669403076,
+        "kl_loss": 3.1678993701934814,
+        "mean_transitions_per_task": 3240
+      },
+      {
+        "iteration": 25.0,
+        "q_loss": 1.8898191452026367,
+        "v_loss": 0.02032197266817093,
+        "policy_loss": 6.505659103393555,
+        "kl_loss": 3.030691623687744,
+        "mean_transitions_per_task": 3360
+      },
+      {
+        "iteration": 26.0,
+        "q_loss": 2.8897452354431152,
+        "v_loss": 0.02732948400080204,
+        "policy_loss": 7.896605014801025,
+        "kl_loss": 2.7199647426605225,
+        "mean_transitions_per_task": 3480
+      },
+      {
+        "iteration": 27.0,
+        "q_loss": 1.1311626434326172,
+        "v_loss": 0.030324317514896393,
+        "policy_loss": 7.432120323181152,
+        "kl_loss": 2.8078737258911133,
+        "mean_transitions_per_task": 3600
+      },
+      {
+        "iteration": 28.0,
+        "q_loss": 1.0236026048660278,
+        "v_loss": 0.0240410678088665,
+        "policy_loss": 5.28840970993042,
+        "kl_loss": 1.8993253707885742,
+        "mean_transitions_per_task": 3720
+      },
+      {
+        "iteration": 29.0,
+        "q_loss": 1.1586599349975586,
+        "v_loss": 0.012164909392595291,
+        "policy_loss": 7.574602127075195,
+        "kl_loss": 1.9191569089889526,
+        "mean_transitions_per_task": 3840
+      },
+      {
+        "iteration": 30.0,
+        "q_loss": 2.3817861080169678,
+        "v_loss": 0.019803836941719055,
+        "policy_loss": 7.244363307952881,
+        "kl_loss": 2.0062122344970703,
+        "mean_transitions_per_task": 3960
+      },
+      {
+        "iteration": 31.0,
+        "q_loss": 3.116060256958008,
+        "v_loss": 0.21513879299163818,
+        "policy_loss": 8.054679870605469,
+        "kl_loss": 2.589141607284546,
+        "mean_transitions_per_task": 4080
+      },
+      {
+        "iteration": 32.0,
+        "q_loss": 4.826398849487305,
+        "v_loss": 0.10972674190998077,
+        "policy_loss": 8.617877960205078,
+        "kl_loss": 3.12229323387146,
+        "mean_transitions_per_task": 4200
+      },
+      {
+        "iteration": 33.0,
+        "q_loss": 2.7637381553649902,
+        "v_loss": 0.11212333291769028,
+        "policy_loss": 6.40235710144043,
+        "kl_loss": 1.999565601348877,
+        "mean_transitions_per_task": 4320
+      },
+      {
+        "iteration": 34.0,
+        "q_loss": 1.5014019012451172,
+        "v_loss": 0.025640074163675308,
+        "policy_loss": 6.760927200317383,
+        "kl_loss": 1.9759225845336914,
+        "mean_transitions_per_task": 4440
+      },
+      {
+        "iteration": 35.0,
+        "q_loss": 3.262986660003662,
+        "v_loss": 0.22515322268009186,
+        "policy_loss": 8.604409217834473,
+        "kl_loss": 2.6239914894104004,
+        "mean_transitions_per_task": 4560
+      },
+      {
+        "iteration": 36.0,
+        "q_loss": 1.3246251344680786,
+        "v_loss": 0.059713609516620636,
+        "policy_loss": 6.9821014404296875,
+        "kl_loss": 1.7858824729919434,
+        "mean_transitions_per_task": 4680
+      },
+      {
+        "iteration": 37.0,
+        "q_loss": 2.771111249923706,
+        "v_loss": 0.03843064233660698,
+        "policy_loss": 8.461769104003906,
+        "kl_loss": 2.629892110824585,
+        "mean_transitions_per_task": 4800
+      },
+      {
+        "iteration": 38.0,
+        "q_loss": 1.07577383518219,
+        "v_loss": 0.044339075684547424,
+        "policy_loss": 6.81733512878418,
+        "kl_loss": 1.8661619424819946,
+        "mean_transitions_per_task": 4920
+      },
+      {
+        "iteration": 39.0,
+        "q_loss": 3.5529956817626953,
+        "v_loss": 0.07354144752025604,
+        "policy_loss": 9.976537704467773,
+        "kl_loss": 2.587249994277954,
+        "mean_transitions_per_task": 5040
+      },
+      {
+        "iteration": 40.0,
+        "q_loss": 1.8796753883361816,
+        "v_loss": 0.03999224677681923,
+        "policy_loss": 8.254552841186523,
+        "kl_loss": 2.3750154972076416,
+        "mean_transitions_per_task": 5160
+      },
+      {
+        "iteration": 41.0,
+        "q_loss": 1.7683799266815186,
+        "v_loss": 0.035925883799791336,
+        "policy_loss": 6.729252815246582,
+        "kl_loss": 2.1601388454437256,
+        "mean_transitions_per_task": 5280
+      },
+      {
+        "iteration": 42.0,
+        "q_loss": 1.5815861225128174,
+        "v_loss": 0.08243905752897263,
+        "policy_loss": 7.999143600463867,
+        "kl_loss": 2.205455780029297,
+        "mean_transitions_per_task": 5400
+      },
+      {
+        "iteration": 43.0,
+        "q_loss": 1.8832507133483887,
+        "v_loss": 0.09386162459850311,
+        "policy_loss": 8.170225143432617,
+        "kl_loss": 2.4374771118164062,
+        "mean_transitions_per_task": 5520
+      },
+      {
+        "iteration": 44.0,
+        "q_loss": 2.9484333992004395,
+        "v_loss": 0.3511999845504761,
+        "policy_loss": 10.444857597351074,
+        "kl_loss": 2.5442299842834473,
+        "mean_transitions_per_task": 5640
+      },
+      {
+        "iteration": 45.0,
+        "q_loss": 2.6421070098876953,
+        "v_loss": 0.061765819787979126,
+        "policy_loss": 7.590043067932129,
+        "kl_loss": 2.0842537879943848,
+        "mean_transitions_per_task": 5760
+      }
+    ]
+  },
+  "results": [
+    {
+      "seed": 7,
+      "method": "PEARL-faithful",
+      "curve": {
+        "0": -45.837589609595845,
+        "1": -44.02259199034595,
+        "2": -45.60781398084601,
+        "3": -46.01635294817029,
+        "5": -45.30227726765415
+      }
+    },
+    {
+      "seed": 13,
+      "method": "PEARL-faithful",
+      "curve": {
+        "0": -48.56600012982934,
+        "1": -51.8875950944579,
+        "2": -50.86159339955419,
+        "3": -50.42285167793432,
+        "5": -49.41620517569996
+      }
+    },
+    {
+      "seed": 23,
+      "method": "PEARL-faithful",
+      "curve": {
+        "0": -44.485540327309025,
+        "1": -43.6147898939365,
+        "2": -45.99821664266053,
+        "3": -45.41355035466115,
+        "5": -45.31360293829799
+      }
+    }
+  ],
+  "summary": [
+    {
+      "method": "PEARL-faithful",
+      "k": 0,
+      "mean_return": -46.2963766889114,
+      "std_return": 1.6971352800344095,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-faithful",
+      "k": 1,
+      "mean_return": -46.508325659580116,
+      "std_return": 3.8073595730039065,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-faithful",
+      "k": 2,
+      "mean_return": -47.48920800768691,
+      "std_return": 2.3899569010127677,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-faithful",
+      "k": 3,
+      "mean_return": -47.28425166025525,
+      "std_return": 2.2329278679074576,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-faithful",
+      "k": 5,
+      "mean_return": -46.67736179388403,
+      "std_return": 1.9366602473143564,
+      "seed_count": 3
+    }
+  ]
+}

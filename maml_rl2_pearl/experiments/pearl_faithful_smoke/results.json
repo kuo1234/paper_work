@@ -1,0 +1,105 @@
+{
+  "description": "Faithful PEARL scaffold: no latent labels, no BC, no oracle probes",
+  "k_values": [
+    0,
+    1,
+    2,
+    3,
+    5
+  ],
+  "metrics": {
+    "7": {
+      "q_loss": 5.132293701171875,
+      "v_loss": 0.004745286889374256,
+      "policy_loss": 0.26897770166397095,
+      "kl_loss": 4.2622971534729,
+      "mean_transitions_per_task": 180
+    },
+    "13": {
+      "q_loss": 2.9796547889709473,
+      "v_loss": 0.00655022170394659,
+      "policy_loss": 0.24661816656589508,
+      "kl_loss": 4.23118782043457,
+      "mean_transitions_per_task": 180
+    },
+    "23": {
+      "q_loss": 3.1579103469848633,
+      "v_loss": 0.0067534856498241425,
+      "policy_loss": 0.2541571855545044,
+      "kl_loss": 4.237282752990723,
+      "mean_transitions_per_task": 180
+    }
+  },
+  "results": [
+    {
+      "seed": 7,
+      "method": "PEARL-faithful",
+      "curve": {
+        "0": -70.8810433952733,
+        "1": -75.99339414902207,
+        "2": -74.70897887584842,
+        "3": -75.94279919584788,
+        "5": -73.79783496273853
+      }
+    },
+    {
+      "seed": 13,
+      "method": "PEARL-faithful",
+      "curve": {
+        "0": -66.445342710536,
+        "1": -66.18061091622032,
+        "2": -60.18162414149682,
+        "3": -71.11804395808682,
+        "5": -65.3355615366689
+      }
+    },
+    {
+      "seed": 23,
+      "method": "PEARL-faithful",
+      "curve": {
+        "0": -72.09878280931053,
+        "1": -73.35344932719875,
+        "2": -71.45569629015306,
+        "3": -74.40783260522329,
+        "5": -74.15192988414888
+      }
+    }
+  ],
+  "summary": [
+    {
+      "method": "PEARL-faithful",
+      "k": 0,
+      "mean_return": -69.80838963837327,
+      "std_return": 2.429442432500615,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-faithful",
+      "k": 1,
+      "mean_return": -71.84248479748038,
+      "std_return": 4.146077588198198,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-faithful",
+      "k": 2,
+      "mean_return": -68.7820997691661,
+      "std_return": 6.224794382799436,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-faithful",
+      "k": 3,
+      "mean_return": -73.82289191971932,
+      "std_return": 2.0126570299389637,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-faithful",
+      "k": 5,
+      "mean_return": -71.09510879451878,
+      "std_return": 4.07517969050827,
+      "seed_count": 3
+    }
+  ]
+}

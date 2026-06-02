@@ -1,0 +1,6 @@
+method,k,mean_return,std_return,seed_count
+PEARL-probabilistic,0,-64.613295,0.000000,1
+PEARL-probabilistic,1,-68.343964,0.000000,1
+PEARL-probabilistic,2,-66.342488,0.000000,1
+PEARL-probabilistic,3,-66.144824,0.000000,1
+PEARL-probabilistic,5,-64.151681,0.000000,1

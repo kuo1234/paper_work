@@ -1,0 +1,6 @@
+method,k,mean_return,std_return,seed_count
+RL2-recurrent,0,-64.534893,6.768824,3
+RL2-recurrent,1,-65.597379,6.965966,3
+RL2-recurrent,2,-65.693117,6.957223,3
+RL2-recurrent,3,-65.699274,6.955089,3
+RL2-recurrent,5,-65.699755,6.954840,3

@@ -1,0 +1,6 @@
+method,k,mean_return,std_return,seed_count
+PEARL-faithful,0,-60.968799,0.000000,1
+PEARL-faithful,1,-60.951384,0.000000,1
+PEARL-faithful,2,-64.632442,0.000000,1
+PEARL-faithful,3,-68.464211,0.000000,1
+PEARL-faithful,5,-66.862271,0.000000,1

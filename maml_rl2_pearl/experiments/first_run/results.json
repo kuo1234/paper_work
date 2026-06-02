@@ -1,0 +1,439 @@
+{
+  "description": "First-version 2D Goal Navigation lite experiment",
+  "k_values": [
+    0,
+    1,
+    2,
+    3,
+    5
+  ],
+  "horizon": 50,
+  "results": [
+    {
+      "seed": 7,
+      "method": "Random",
+      "hyperparameters": {
+        "seeded": 7
+      },
+      "validation_score_k2": null,
+      "curve": {
+        "0": -53.02112045941512,
+        "1": -39.92405592574098,
+        "2": -49.97382058451259,
+        "3": -50.15167664674409,
+        "5": -43.07650902009003
+      }
+    },
+    {
+      "seed": 7,
+      "method": "Goal-direction oracle",
+      "hyperparameters": {
+        "uses_hidden_goal": "debug_only"
+      },
+      "validation_score_k2": null,
+      "curve": {
+        "0": -3.2807938989132275,
+        "1": -3.2807938989132275,
+        "2": -3.2807938989132275,
+        "3": -3.2807938989132275,
+        "5": -3.2807938989132275
+      }
+    },
+    {
+      "seed": 7,
+      "method": "MAML-lite",
+      "hyperparameters": {
+        "initial_goal": "train_mean",
+        "learning_rate": 0.4,
+        "steps": 20
+      },
+      "validation_score_k2": -6.494294315015425,
+      "curve": {
+        "0": -38.632708438648265,
+        "1": -11.640520425511234,
+        "2": -5.904984390528414,
+        "3": -4.373371819506113,
+        "5": -3.5212665166416848
+      }
+    },
+    {
+      "seed": 7,
+      "method": "RL2-lite",
+      "hyperparameters": {
+        "initial_goal": "train_mean",
+        "learning_rate": 0.2,
+        "steps": 20,
+        "memory_rate": 1.0
+      },
+      "validation_score_k2": -13.018787490347671,
+      "curve": {
+        "0": -38.632708438648265,
+        "1": -18.5263616572391,
+        "2": -11.545540401195352,
+        "3": -7.7304671048735845,
+        "5": -4.967348343228724
+      }
+    },
+    {
+      "seed": 7,
+      "method": "PEARL-lite",
+      "hyperparameters": {
+        "initial_goal": "train_mean",
+        "candidate_count": 329,
+        "temperature": 0.001,
+        "prior_weight": 0.0
+      },
+      "validation_score_k2": -4.512754805272168,
+      "curve": {
+        "0": -38.632708438648265,
+        "1": -4.620430751517201,
+        "2": -4.620430751517201,
+        "3": -4.620430751517201,
+        "5": -4.620430751517201
+      }
+    },
+    {
+      "seed": 13,
+      "method": "Random",
+      "hyperparameters": {
+        "seeded": 13
+      },
+      "validation_score_k2": null,
+      "curve": {
+        "0": -42.95899823445695,
+        "1": -42.60663271518665,
+        "2": -49.10054992636066,
+        "3": -48.786706758985105,
+        "5": -46.535062780346856
+      }
+    },
+    {
+      "seed": 13,
+      "method": "Goal-direction oracle",
+      "hyperparameters": {
+        "uses_hidden_goal": "debug_only"
+      },
+      "validation_score_k2": null,
+      "curve": {
+        "0": -3.1036402486581265,
+        "1": -3.1036402486581265,
+        "2": -3.1036402486581265,
+        "3": -3.1036402486581265,
+        "5": -3.1036402486581265
+      }
+    },
+    {
+      "seed": 13,
+      "method": "MAML-lite",
+      "hyperparameters": {
+        "initial_goal": "train_mean",
+        "learning_rate": 0.4,
+        "steps": 20
+      },
+      "validation_score_k2": -2.475843208598453,
+      "curve": {
+        "0": -38.773752319522224,
+        "1": -10.063167910369105,
+        "2": -5.567081485051082,
+        "3": -4.18309900715057,
+        "5": -3.3497319949315623
+      }
+    },
+    {
+      "seed": 13,
+      "method": "RL2-lite",
+      "hyperparameters": {
+        "initial_goal": "train_mean",
+        "learning_rate": 0.2,
+        "steps": 20,
+        "memory_rate": 1.0
+      },
+      "validation_score_k2": -3.868286364120455,
+      "curve": {
+        "0": -38.773752319522224,
+        "1": -15.610904894173194,
+        "2": -10.05158358963342,
+        "3": -7.1097469294083195,
+        "5": -4.746816323649653
+      }
+    },
+    {
+      "seed": 13,
+      "method": "PEARL-lite",
+      "hyperparameters": {
+        "initial_goal": "train_mean",
+        "candidate_count": 329,
+        "temperature": 0.005,
+        "prior_weight": 0.0
+      },
+      "validation_score_k2": -2.477128903926909,
+      "curve": {
+        "0": -38.773752319522224,
+        "1": -4.2556769216418955,
+        "2": -4.255676921641896,
+        "3": -4.255676921641895,
+        "5": -4.255676921641895
+      }
+    },
+    {
+      "seed": 23,
+      "method": "Random",
+      "hyperparameters": {
+        "seeded": 23
+      },
+      "validation_score_k2": null,
+      "curve": {
+        "0": -35.36252980406571,
+        "1": -38.47553666666052,
+        "2": -43.90185343745404,
+        "3": -43.89835101972731,
+        "5": -36.09791907726101
+      }
+    },
+    {
+      "seed": 23,
+      "method": "Goal-direction oracle",
+      "hyperparameters": {
+        "uses_hidden_goal": "debug_only"
+      },
+      "validation_score_k2": null,
+      "curve": {
+        "0": -2.148512602228777,
+        "1": -2.148512602228777,
+        "2": -2.148512602228777,
+        "3": -2.148512602228777,
+        "5": -2.148512602228777
+      }
+    },
+    {
+      "seed": 23,
+      "method": "MAML-lite",
+      "hyperparameters": {
+        "initial_goal": "train_mean",
+        "learning_rate": 0.4,
+        "steps": 20
+      },
+      "validation_score_k2": -6.2788595877507065,
+      "curve": {
+        "0": -32.213874431121255,
+        "1": -7.021045385268008,
+        "2": -3.868714364768264,
+        "3": -2.8752521920272205,
+        "5": -2.3222473355773374
+      }
+    },
+    {
+      "seed": 23,
+      "method": "RL2-lite",
+      "hyperparameters": {
+        "initial_goal": "train_mean",
+        "learning_rate": 0.2,
+        "steps": 20,
+        "memory_rate": 1.0
+      },
+      "validation_score_k2": -13.72558512371381,
+      "curve": {
+        "0": -32.213874431121255,
+        "1": -11.65422292098896,
+        "2": -7.022130335130738,
+        "3": -4.972319585011263,
+        "5": -3.2604874099536447
+      }
+    },
+    {
+      "seed": 23,
+      "method": "PEARL-lite",
+      "hyperparameters": {
+        "initial_goal": "train_mean",
+        "candidate_count": 329,
+        "temperature": 0.005,
+        "prior_weight": 0.0
+      },
+      "validation_score_k2": -4.129259057608358,
+      "curve": {
+        "0": -32.213874431121255,
+        "1": -2.8693175831029993,
+        "2": -2.8693175831029984,
+        "3": -2.869317583103,
+        "5": -2.8693175831029984
+      }
+    }
+  ],
+  "summary": [
+    {
+      "method": "Goal-direction oracle",
+      "k": 0,
+      "mean_return": -2.8443155832667104,
+      "std_return": 0.4972941418420509,
+      "seed_count": 3
+    },
+    {
+      "method": "Goal-direction oracle",
+      "k": 1,
+      "mean_return": -2.8443155832667104,
+      "std_return": 0.4972941418420509,
+      "seed_count": 3
+    },
+    {
+      "method": "Goal-direction oracle",
+      "k": 2,
+      "mean_return": -2.8443155832667104,
+      "std_return": 0.4972941418420509,
+      "seed_count": 3
+    },
+    {
+      "method": "Goal-direction oracle",
+      "k": 3,
+      "mean_return": -2.8443155832667104,
+      "std_return": 0.4972941418420509,
+      "seed_count": 3
+    },
+    {
+      "method": "Goal-direction oracle",
+      "k": 5,
+      "mean_return": -2.8443155832667104,
+      "std_return": 0.4972941418420509,
+      "seed_count": 3
+    },
+    {
+      "method": "MAML-lite",
+      "k": 0,
+      "mean_return": -36.540111729763915,
+      "std_return": 3.0596535988254403,
+      "seed_count": 3
+    },
+    {
+      "method": "MAML-lite",
+      "k": 1,
+      "mean_return": -9.574911240382782,
+      "std_return": 1.9172347002383647,
+      "seed_count": 3
+    },
+    {
+      "method": "MAML-lite",
+      "k": 2,
+      "mean_return": -5.113593413449253,
+      "std_return": 0.8910059774457818,
+      "seed_count": 3
+    },
+    {
+      "method": "MAML-lite",
+      "k": 3,
+      "mean_return": -3.810574339561301,
+      "std_return": 0.6659187015100495,
+      "seed_count": 3
+    },
+    {
+      "method": "MAML-lite",
+      "k": 5,
+      "mean_return": -3.064415282383528,
+      "std_return": 0.5294437137124636,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-lite",
+      "k": 0,
+      "mean_return": -36.540111729763915,
+      "std_return": 3.0596535988254403,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-lite",
+      "k": 1,
+      "mean_return": -3.9151417520873655,
+      "std_return": 0.7543529162693262,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-lite",
+      "k": 2,
+      "mean_return": -3.9151417520873655,
+      "std_return": 0.7543529162693268,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-lite",
+      "k": 3,
+      "mean_return": -3.915141752087365,
+      "std_return": 0.7543529162693259,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-lite",
+      "k": 5,
+      "mean_return": -3.9151417520873646,
+      "std_return": 0.7543529162693265,
+      "seed_count": 3
+    },
+    {
+      "method": "RL2-lite",
+      "k": 0,
+      "mean_return": -36.540111729763915,
+      "std_return": 3.0596535988254403,
+      "seed_count": 3
+    },
+    {
+      "method": "RL2-lite",
+      "k": 1,
+      "mean_return": -15.263829824133751,
+      "std_return": 2.816252655657819,
+      "seed_count": 3
+    },
+    {
+      "method": "RL2-lite",
+      "k": 2,
+      "mean_return": -9.539751441986503,
+      "std_return": 1.881805651843872,
+      "seed_count": 3
+    },
+    {
+      "method": "RL2-lite",
+      "k": 3,
+      "mean_return": -6.604177873097722,
+      "std_return": 1.1813959224450707,
+      "seed_count": 3
+    },
+    {
+      "method": "RL2-lite",
+      "k": 5,
+      "mean_return": -4.3248840256106735,
+      "std_return": 0.7580077877706838,
+      "seed_count": 3
+    },
+    {
+      "method": "Random",
+      "k": 0,
+      "mean_return": -43.78088283264593,
+      "std_return": 7.232476602236775,
+      "seed_count": 3
+    },
+    {
+      "method": "Random",
+      "k": 1,
+      "mean_return": -40.33540843586272,
+      "std_return": 1.7114120497851366,
+      "seed_count": 3
+    },
+    {
+      "method": "Random",
+      "k": 2,
+      "mean_return": -47.658741316109094,
+      "std_return": 2.68033646024602,
+      "seed_count": 3
+    },
+    {
+      "method": "Random",
+      "k": 3,
+      "mean_return": -47.6122448084855,
+      "std_return": 2.6845907204208634,
+      "seed_count": 3
+    },
+    {
+      "method": "Random",
+      "k": 5,
+      "mean_return": -41.903163625899296,
+      "std_return": 4.340971222377743,
+      "seed_count": 3
+    }
+  ]
+}

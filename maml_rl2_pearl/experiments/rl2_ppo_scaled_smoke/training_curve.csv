@@ -1,0 +1,3 @@
+seed,iteration,policy_loss,value_loss,entropy,approx_kl,mean_task_return
+7,1,-0.002556,1.915953,0.838477,0.001202,-149.702515
+7,2,-0.001830,1.180790,0.838639,0.001612,-123.518669

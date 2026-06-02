@@ -1,0 +1,3 @@
+seed,iteration,policy_loss,value_loss,mean_task_return
+7,1,-0.202380,1.007701,-146.463359
+7,2,-0.129325,1.000182,-123.649625

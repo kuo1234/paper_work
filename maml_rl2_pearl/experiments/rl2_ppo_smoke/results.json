@@ -1,0 +1,89 @@
+{
+  "description": "PPO-style RL2 recurrent baseline on latent navigation task",
+  "k_values": [
+    0,
+    1,
+    2,
+    3,
+    5
+  ],
+  "metrics": {
+    "7": {
+      "policy_loss": -0.0017599554266780615,
+      "value_loss": 540.1661987304688,
+      "entropy": 0.8386239409446716,
+      "approx_kl": 0.00156574253924191,
+      "mean_task_return": -123.41190845836272
+    }
+  },
+  "training_curves": {
+    "7": [
+      {
+        "iteration": 1.0,
+        "policy_loss": -0.002498836489394307,
+        "value_loss": 820.3262329101562,
+        "entropy": 0.8384771943092346,
+        "approx_kl": 0.001241436693817377,
+        "mean_task_return": -149.7025151723452
+      },
+      {
+        "iteration": 2.0,
+        "policy_loss": -0.0017599554266780615,
+        "value_loss": 540.1661987304688,
+        "entropy": 0.8386239409446716,
+        "approx_kl": 0.00156574253924191,
+        "mean_task_return": -123.41190845836272
+      }
+    ]
+  },
+  "results": [
+    {
+      "seed": 7,
+      "method": "RL2-PPO",
+      "curve": {
+        "0": -72.34349041971821,
+        "1": -72.5601432441305,
+        "2": -72.5614709861045,
+        "3": -72.5614773490689,
+        "5": -72.56147739815262
+      }
+    }
+  ],
+  "summary": [
+    {
+      "method": "RL2-PPO",
+      "k": 0,
+      "mean_return": -72.34349041971821,
+      "std_return": 0.0,
+      "seed_count": 1
+    },
+    {
+      "method": "RL2-PPO",
+      "k": 1,
+      "mean_return": -72.5601432441305,
+      "std_return": 0.0,
+      "seed_count": 1
+    },
+    {
+      "method": "RL2-PPO",
+      "k": 2,
+      "mean_return": -72.5614709861045,
+      "std_return": 0.0,
+      "seed_count": 1
+    },
+    {
+      "method": "RL2-PPO",
+      "k": 3,
+      "mean_return": -72.5614773490689,
+      "std_return": 0.0,
+      "seed_count": 1
+    },
+    {
+      "method": "RL2-PPO",
+      "k": 5,
+      "mean_return": -72.56147739815262,
+      "std_return": 0.0,
+      "seed_count": 1
+    }
+  ]
+}

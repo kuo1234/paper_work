@@ -1,0 +1,76 @@
+seed,method,k,return
+7,Random,0,-75.076361
+7,Random,1,-72.849261
+7,Random,2,-87.542431
+7,Random,3,-77.518081
+7,Random,5,-76.467517
+7,Latent oracle,0,-3.815311
+7,Latent oracle,1,-3.815311
+7,Latent oracle,2,-3.815311
+7,Latent oracle,3,-3.815311
+7,Latent oracle,5,-3.815311
+7,MAML-latent,0,-42.603282
+7,MAML-latent,1,-11.105441
+7,MAML-latent,2,-7.914069
+7,MAML-latent,3,-6.945710
+7,MAML-latent,5,-6.530200
+7,RL2-latent,0,-42.603282
+7,RL2-latent,1,-23.005991
+7,RL2-latent,2,-15.804266
+7,RL2-latent,3,-12.828973
+7,RL2-latent,5,-9.930384
+7,PEARL-latent,0,-42.603282
+7,PEARL-latent,1,-7.000074
+7,PEARL-latent,2,-7.000074
+7,PEARL-latent,3,-7.000074
+7,PEARL-latent,5,-7.000074
+13,Random,0,-64.699658
+13,Random,1,-63.023708
+13,Random,2,-75.020485
+13,Random,3,-62.198612
+13,Random,5,-69.797700
+13,Latent oracle,0,-3.824589
+13,Latent oracle,1,-3.824589
+13,Latent oracle,2,-3.824589
+13,Latent oracle,3,-3.824589
+13,Latent oracle,5,-3.824589
+13,MAML-latent,0,-48.270905
+13,MAML-latent,1,-8.366971
+13,MAML-latent,2,-4.861714
+13,MAML-latent,3,-4.134999
+13,MAML-latent,5,-3.856706
+13,RL2-latent,0,-48.270905
+13,RL2-latent,1,-21.830580
+13,RL2-latent,2,-15.664566
+13,RL2-latent,3,-11.471482
+13,RL2-latent,5,-6.834350
+13,PEARL-latent,0,-48.270905
+13,PEARL-latent,1,-7.109123
+13,PEARL-latent,2,-7.109123
+13,PEARL-latent,3,-7.109123
+13,PEARL-latent,5,-7.109123
+23,Random,0,-72.528568
+23,Random,1,-69.926261
+23,Random,2,-83.004531
+23,Random,3,-69.095740
+23,Random,5,-81.521621
+23,Latent oracle,0,-4.480589
+23,Latent oracle,1,-4.480589
+23,Latent oracle,2,-4.480589
+23,Latent oracle,3,-4.480589
+23,Latent oracle,5,-4.480589
+23,MAML-latent,0,-45.244537
+23,MAML-latent,1,-8.898719
+23,MAML-latent,2,-5.783752
+23,MAML-latent,3,-4.906527
+23,MAML-latent,5,-4.549523
+23,RL2-latent,0,-45.244537
+23,RL2-latent,1,-20.340724
+23,RL2-latent,2,-14.606696
+23,RL2-latent,3,-11.023750
+23,RL2-latent,5,-7.666321
+23,PEARL-latent,0,-45.244537
+23,PEARL-latent,1,-7.541920
+23,PEARL-latent,2,-7.541920
+23,PEARL-latent,3,-7.541920
+23,PEARL-latent,5,-7.541920

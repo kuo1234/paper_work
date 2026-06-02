@@ -1,0 +1,6 @@
+method,k,mean_return,std_return,seed_count
+PEARL-neural,0,-46.430588,0.695885,3
+PEARL-neural,1,-36.771217,3.198403,3
+PEARL-neural,2,-36.771217,3.198403,3
+PEARL-neural,3,-36.771217,3.198403,3
+PEARL-neural,5,-36.771217,3.198403,3

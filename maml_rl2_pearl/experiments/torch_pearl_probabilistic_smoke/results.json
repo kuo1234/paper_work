@@ -1,0 +1,73 @@
+{
+  "description": "Run 006 probabilistic PEARL-style online SAC experiment",
+  "k_values": [
+    0,
+    1,
+    2,
+    3,
+    5
+  ],
+  "horizon": 60,
+  "metrics": {
+    "7": {
+      "last_critic_loss": 1.7336137294769287,
+      "last_actor_loss": 0.5422528386116028,
+      "last_kl_loss": 0.09324002265930176,
+      "last_latent_loss": 0.20165032148361206,
+      "last_bc_loss": 0.0023966447915881872,
+      "mean_recent_collection_return": -63.83649988840441,
+      "mean_all_collection_return": -65.81616284557117,
+      "transitions_per_task_mean": 300
+    }
+  },
+  "results": [
+    {
+      "seed": 7,
+      "method": "PEARL-probabilistic",
+      "curve": {
+        "0": -64.61329517800156,
+        "1": -68.34396416434807,
+        "2": -66.34248804083559,
+        "3": -66.14482432948631,
+        "5": -64.15168052005791
+      }
+    }
+  ],
+  "summary": [
+    {
+      "method": "PEARL-probabilistic",
+      "k": 0,
+      "mean_return": -64.61329517800156,
+      "std_return": 0.0,
+      "seed_count": 1
+    },
+    {
+      "method": "PEARL-probabilistic",
+      "k": 1,
+      "mean_return": -68.34396416434807,
+      "std_return": 0.0,
+      "seed_count": 1
+    },
+    {
+      "method": "PEARL-probabilistic",
+      "k": 2,
+      "mean_return": -66.34248804083559,
+      "std_return": 0.0,
+      "seed_count": 1
+    },
+    {
+      "method": "PEARL-probabilistic",
+      "k": 3,
+      "mean_return": -66.14482432948631,
+      "std_return": 0.0,
+      "seed_count": 1
+    },
+    {
+      "method": "PEARL-probabilistic",
+      "k": 5,
+      "mean_return": -64.15168052005791,
+      "std_return": 0.0,
+      "seed_count": 1
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "description": "RL2 recurrent baseline on latent navigation task",
+  "k_values": [
+    0,
+    1,
+    2,
+    3,
+    5
+  ],
+  "metrics": {
+    "7": {
+      "policy_loss": -0.1293252408504486,
+      "value_loss": 1.0001821517944336,
+      "mean_task_return": -123.64962528092771
+    }
+  },
+  "training_curves": {
+    "7": [
+      {
+        "iteration": 1.0,
+        "policy_loss": -0.20238034427165985,
+        "value_loss": 1.0077005624771118,
+        "mean_task_return": -146.46335867343305
+      },
+      {
+        "iteration": 2.0,
+        "policy_loss": -0.1293252408504486,
+        "value_loss": 1.0001821517944336,
+        "mean_task_return": -123.64962528092771
+      }
+    ]
+  },
+  "results": [
+    {
+      "seed": 7,
+      "method": "RL2-recurrent",
+      "curve": {
+        "0": -72.4713394318731,
+        "1": -72.61944840438098,
+        "2": -72.62026358274821,
+        "3": -72.62026599255896,
+        "5": -72.62026598677419
+      }
+    }
+  ],
+  "summary": [
+    {
+      "method": "RL2-recurrent",
+      "k": 0,
+      "mean_return": -72.4713394318731,
+      "std_return": 0.0,
+      "seed_count": 1
+    },
+    {
+      "method": "RL2-recurrent",
+      "k": 1,
+      "mean_return": -72.61944840438098,
+      "std_return": 0.0,
+      "seed_count": 1
+    },
+    {
+      "method": "RL2-recurrent",
+      "k": 2,
+      "mean_return": -72.62026358274821,
+      "std_return": 0.0,
+      "seed_count": 1
+    },
+    {
+      "method": "RL2-recurrent",
+      "k": 3,
+      "mean_return": -72.62026599255896,
+      "std_return": 0.0,
+      "seed_count": 1
+    },
+    {
+      "method": "RL2-recurrent",
+      "k": 5,
+      "mean_return": -72.62026598677419,
+      "std_return": 0.0,
+      "seed_count": 1
+    }
+  ]
+}

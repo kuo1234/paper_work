@@ -1,0 +1,224 @@
+{
+  "main": {
+    "id": "e30d6771011e95ed",
+    "type": "split",
+    "children": [
+      {
+        "id": "fbf5663c7bcf7277",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "e3fd8978fcc7997a",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "doc/results.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "results"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "8a33ffa33f7142a8",
+    "type": "split",
+    "children": [
+      {
+        "id": "822b9df0b10cb23b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "8ddb5a62a0798d9e",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "檔案瀏覽器"
+            }
+          },
+          {
+            "id": "ab982659c2ea59cf",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜尋"
+            }
+          },
+          {
+            "id": "084cd4e64de079f2",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "書籤"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "0e31b822682b4a00",
+    "type": "split",
+    "children": [
+      {
+        "id": "680e3a6dc2706b44",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7e62d59e94f2f8fd",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "doc/results.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "results 的反向連結"
+            }
+          },
+          {
+            "id": "36316ec21f09ec91",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "doc/results.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "results 的對外連結"
+            }
+          },
+          {
+            "id": "1245d107505a6474",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "標籤"
+            }
+          },
+          {
+            "id": "3cf426f4e62f0407",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "所有屬性"
+            }
+          },
+          {
+            "id": "c966b314edddb2c2",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "doc/results.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "results 的大綱"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:開啟快速切換": false,
+      "graph:查看關聯圖": false,
+      "canvas:建立新畫布": false,
+      "daily-notes:開啟今天的每日筆記": false,
+      "templates:插入模板": false,
+      "command-palette:開啟命令面板": false,
+      "bases:建立新的 base": false
+    }
+  },
+  "active": "e3fd8978fcc7997a",
+  "lastOpenFiles": [
+    "src/__pycache__/torch_rl2_ppo_experiment.cpython-312.pyc",
+    "src/__pycache__/torch_rl2_baseline_experiment.cpython-312.pyc",
+    "src/__pycache__/torch_pearl_sac_experiment.cpython-312.pyc",
+    "src/__pycache__/torch_pearl_probabilistic_experiment.cpython-312.pyc",
+    "src/__pycache__/torch_pearl_online_sac_experiment.cpython-312.pyc",
+    "src/__pycache__/torch_pearl_faithful_experiment.cpython-312.pyc",
+    "src/__pycache__/torch_pearl_experiment.cpython-312.pyc",
+    "src/__pycache__/torch_maml_baseline_experiment.cpython-312.pyc",
+    "src/__pycache__/run_latent_experiment.cpython-312.pyc",
+    "src/__pycache__/run_experiment.cpython-312.pyc",
+    "src/__pycache__/latent_navigation.cpython-312.pyc",
+    "doc/experiment_run_017_pearl_posterior_diagnostics.md",
+    "doc/experiment_run_016_faithful_pearl_longer.md",
+    "doc/experiment_run_015_rl2_ppo_baseline.md",
+    "doc/experiment_run_013_maml_baseline.md",
+    "doc/experiment_run_012_rl2_baseline.md",
+    "doc/experiment_run_011_faithful_pearl_long.md",
+    "doc/experiment_run_010_faithful_pearl.md",
+    "doc/faithful_pearl_roadmap.md",
+    "doc/innovation_notes.md",
+    "doc/experiment_run_001.md",
+    "doc/experiment_run_009.md",
+    "doc/experiment_run_007.md",
+    "doc/experiment_run_006.md",
+    "doc/experiment_run_005.md",
+    "doc/experiment_run_004.md",
+    "doc/experiment_run_003.md",
+    "doc/experiment_run_002.md",
+    "doc/process_issues.md",
+    "doc/results.md",
+    "doc/README.md",
+    "doc/experiment_design.md",
+    "doc/conclusion.md",
+    "doc/code_notes.md",
+    "plan.md"
+  ]
+}

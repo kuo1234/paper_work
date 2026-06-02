@@ -1,0 +1,115 @@
+{
+  "description": "Run 006 probabilistic PEARL-style online SAC experiment",
+  "k_values": [
+    0,
+    1,
+    2,
+    3,
+    5
+  ],
+  "horizon": 60,
+  "metrics": {
+    "7": {
+      "last_critic_loss": 0.4423554539680481,
+      "last_actor_loss": 3.3974416255950928,
+      "last_kl_loss": 3.5474557876586914,
+      "last_latent_loss": 0.30689746141433716,
+      "last_bc_loss": 0.0023576023522764444,
+      "mean_recent_collection_return": -45.38111491596522,
+      "mean_all_collection_return": -50.553106920514004,
+      "transitions_per_task_mean": 1320
+    },
+    "13": {
+      "last_critic_loss": 0.2694975733757019,
+      "last_actor_loss": 2.934267282485962,
+      "last_kl_loss": 3.1512818336486816,
+      "last_latent_loss": 0.24634310603141785,
+      "last_bc_loss": 0.0022803647443652153,
+      "mean_recent_collection_return": -41.2400600151951,
+      "mean_all_collection_return": -44.780791974211496,
+      "transitions_per_task_mean": 1320
+    },
+    "23": {
+      "last_critic_loss": 0.7388863563537598,
+      "last_actor_loss": 2.647812604904175,
+      "last_kl_loss": 2.4072442054748535,
+      "last_latent_loss": 0.2007155418395996,
+      "last_bc_loss": 0.002174581866711378,
+      "mean_recent_collection_return": -50.47915876932832,
+      "mean_all_collection_return": -49.69452814623743,
+      "transitions_per_task_mean": 1320
+    }
+  },
+  "results": [
+    {
+      "seed": 7,
+      "method": "PEARL-probabilistic",
+      "curve": {
+        "0": -53.03641211169436,
+        "1": -51.250183245918684,
+        "2": -53.64948619119385,
+        "3": -49.04284314282916,
+        "5": -51.410863253208085
+      }
+    },
+    {
+      "seed": 13,
+      "method": "PEARL-probabilistic",
+      "curve": {
+        "0": -46.11127058170158,
+        "1": -48.025706269631954,
+        "2": -47.34630486886136,
+        "3": -46.68046908933083,
+        "5": -49.07005702694273
+      }
+    },
+    {
+      "seed": 23,
+      "method": "PEARL-probabilistic",
+      "curve": {
+        "0": -50.23844845227209,
+        "1": -80.01764380716531,
+        "2": -75.68866982684742,
+        "3": -64.96034971147854,
+        "5": -68.50527486011474
+      }
+    }
+  ],
+  "summary": [
+    {
+      "method": "PEARL-probabilistic",
+      "k": 0,
+      "mean_return": -49.79537704855601,
+      "std_return": 2.8444836091636367,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-probabilistic",
+      "k": 1,
+      "mean_return": -59.764511107571984,
+      "std_return": 14.381500873301396,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-probabilistic",
+      "k": 2,
+      "mean_return": -58.89482029563421,
+      "std_return": 12.150653212984693,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-probabilistic",
+      "k": 3,
+      "mean_return": -53.56122064787951,
+      "std_return": 8.117894240446088,
+      "seed_count": 3
+    },
+    {
+      "method": "PEARL-probabilistic",
+      "k": 5,
+      "mean_return": -56.32873171342185,
+      "std_return": 8.662986232613857,
+      "seed_count": 3
+    }
+  ]
+}

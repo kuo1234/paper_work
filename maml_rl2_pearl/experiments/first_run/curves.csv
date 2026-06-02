@@ -1,0 +1,76 @@
+seed,method,k,return
+7,Random,0,-53.021120
+7,Random,1,-39.924056
+7,Random,2,-49.973821
+7,Random,3,-50.151677
+7,Random,5,-43.076509
+7,Goal-direction oracle,0,-3.280794
+7,Goal-direction oracle,1,-3.280794
+7,Goal-direction oracle,2,-3.280794
+7,Goal-direction oracle,3,-3.280794
+7,Goal-direction oracle,5,-3.280794
+7,MAML-lite,0,-38.632708
+7,MAML-lite,1,-11.640520
+7,MAML-lite,2,-5.904984
+7,MAML-lite,3,-4.373372
+7,MAML-lite,5,-3.521267
+7,RL2-lite,0,-38.632708
+7,RL2-lite,1,-18.526362
+7,RL2-lite,2,-11.545540
+7,RL2-lite,3,-7.730467
+7,RL2-lite,5,-4.967348
+7,PEARL-lite,0,-38.632708
+7,PEARL-lite,1,-4.620431
+7,PEARL-lite,2,-4.620431
+7,PEARL-lite,3,-4.620431
+7,PEARL-lite,5,-4.620431
+13,Random,0,-42.958998
+13,Random,1,-42.606633
+13,Random,2,-49.100550
+13,Random,3,-48.786707
+13,Random,5,-46.535063
+13,Goal-direction oracle,0,-3.103640
+13,Goal-direction oracle,1,-3.103640
+13,Goal-direction oracle,2,-3.103640
+13,Goal-direction oracle,3,-3.103640
+13,Goal-direction oracle,5,-3.103640
+13,MAML-lite,0,-38.773752
+13,MAML-lite,1,-10.063168
+13,MAML-lite,2,-5.567081
+13,MAML-lite,3,-4.183099
+13,MAML-lite,5,-3.349732
+13,RL2-lite,0,-38.773752
+13,RL2-lite,1,-15.610905
+13,RL2-lite,2,-10.051584
+13,RL2-lite,3,-7.109747
+13,RL2-lite,5,-4.746816
+13,PEARL-lite,0,-38.773752
+13,PEARL-lite,1,-4.255677
+13,PEARL-lite,2,-4.255677
+13,PEARL-lite,3,-4.255677
+13,PEARL-lite,5,-4.255677
+23,Random,0,-35.362530
+23,Random,1,-38.475537
+23,Random,2,-43.901853
+23,Random,3,-43.898351
+23,Random,5,-36.097919
+23,Goal-direction oracle,0,-2.148513
+23,Goal-direction oracle,1,-2.148513
+23,Goal-direction oracle,2,-2.148513
+23,Goal-direction oracle,3,-2.148513
+23,Goal-direction oracle,5,-2.148513
+23,MAML-lite,0,-32.213874
+23,MAML-lite,1,-7.021045
+23,MAML-lite,2,-3.868714
+23,MAML-lite,3,-2.875252
+23,MAML-lite,5,-2.322247
+23,RL2-lite,0,-32.213874
+23,RL2-lite,1,-11.654223
+23,RL2-lite,2,-7.022130
+23,RL2-lite,3,-4.972320
+23,RL2-lite,5,-3.260487
+23,PEARL-lite,0,-32.213874
+23,PEARL-lite,1,-2.869318
+23,PEARL-lite,2,-2.869318
+23,PEARL-lite,3,-2.869318
+23,PEARL-lite,5,-2.869318
