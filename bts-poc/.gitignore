@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 可重新生成的產物（資料集 / checkpoint / 結果圖），不進版控
+# 注意：只擋生成出的資料子目錄，保留 data/ 下的 *.py 程式碼
+/data/tiny/
+/data/gridworld_mixed/
+runs/
+*.pt

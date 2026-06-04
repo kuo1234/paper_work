@@ -1,0 +1,16 @@
+seed: 0
+size: 7
+horizon: 15
+n_objects: 4
+n_episodes: 20000
+spec_mode: mixed
+test_holdout_tasks: green_triangle
+
+train:
+  epochs: 15
+  batch_size: 256
+  lr: 0.0003
+  lambda_belief: 0.5
+  d_model: 128
+  layers: 4
+  heads: 4
