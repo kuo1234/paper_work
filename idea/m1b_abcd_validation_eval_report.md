@@ -9,10 +9,10 @@ tags:
   - 3D-Diffuser-Actor
   - GB10
   - eval
-summary: "M1b 以 HTTP Range 從 555GB task_ABC_D.zip 只抽取 validation (~28.8GB)，並在正式 task_ABC_D/validation 上跑 3D-DA 10-sequence eval smoke 成功。結果：1/5=40%, 2/5=30%, 3/5=10%, 4/5=10%, 5/5=0%。"
+summary: "M1b 以 HTTP Range 從 555GB task_ABC_D.zip 只抽取 validation (~28.8GB)，並在正式 task_ABC_D/validation 上跑 3D-DA eval smoke 成功。10-seq 結果：1/5=40%, 2/5=30%, 3/5=10%, 4/5=10%, 5/5=0%；50-seq 結果：1/5=48%, 2/5=22%, 3/5=14%, 4/5=8%, 5/5=2%。"
 ---
 
-# M1b：正式 task_ABC_D validation partial extract + 10-seq eval smoke（2026-06-07）
+# M1b：正式 task_ABC_D validation partial extract + eval smoke（2026-06-07）
 
 > 上游：[[m1a_calvin_smoke_report]]
 > 目的：不直接下載 555GB 全包，先取得正式 ABC→D validation，跑小批量 eval smoke，檢查速度與穩定性。
@@ -22,7 +22,7 @@ summary: "M1b 以 HTTP Range 從 555GB task_ABC_D.zip 只抽取 validation (~28.
 
 ## 0. 結論 ✅
 
-M1b 成功完成兩件事：
+M1b 成功完成三件事：
 
 1. **只從 555GB `task_ABC_D.zip` 抽出 validation**，不用下載整包：
    - ZIP server 支援 HTTP Range；
@@ -38,7 +38,16 @@ disconnecting id 0 from server
 Destroy EGL OpenGL window.
 ```
 
-這不是論文完整數字（只 10 sequences），但足以證明：**正式 validation 資料 + partial extraction + GB10 EGL + 3D-DA checkpoint 的 eval pipeline 可穩定跑完。**
+3. **正式 `task_ABC_D/validation` 50-sequence eval smoke 也跑完**：
+
+```text
+Load 50/1000 episodes...
+1/5 : 48.0% | 2/5 : 22.0% | 3/5 : 14.0% | 4/5 : 8.0% | 5/5 : 2.0% ||
+disconnecting id 0 from server
+Destroy EGL OpenGL window.
+```
+
+50-seq 比 10-seq 更穩，且全程無 crash；速度約 3.4–3.7 step/s。
 
 ---
 
@@ -142,22 +151,28 @@ commit: 0c6685b fix(calvin): make eval smoke work on GB10 aarch64
 
 ---
 
-## 4. 10-seq eval smoke 結果
+## 4. Eval smoke 結果（10-seq + 50-seq）
 
-使用：
+共同設定：
 
 ```text
 checkpoint: diffuser_actor_calvin.pth (released CALVIN old w/history)
 dataset:    task_ABC_D/validation (partial extracted)
-NUM_SEQUENCES=10
 GPU:        GB10, EGL render
 ```
 
-中間/最終 summary：
+10-sequence summary：
 
 ```text
 Load 10/1000 episodes...
 1/5 : 40.0% | 2/5 : 30.0% | 3/5 : 10.0% | 4/5 : 10.0% | 5/5 : 0.0% ||
+```
+
+50-sequence summary（更穩定）：
+
+```text
+Load 50/1000 episodes...
+1/5 : 48.0% | 2/5 : 22.0% | 3/5 : 14.0% | 4/5 : 8.0% | 5/5 : 2.0% ||
 ```
 
 部分 task log 顯示 eval 確實跑在正式 validation 任務上，例如：
@@ -172,7 +187,7 @@ task: use the switch to turn on the light bulb
 ...
 ```
 
-速度：單 sequence 60 steps 約 17 秒，約 **3.5 step/s**。10 sequences 約數分鐘完成。
+速度：單 sequence 60 steps 約 17 秒，約 **3.4–3.7 step/s**。50 sequences 約 16–20 分鐘量級完成。
 
 ---
 
@@ -181,10 +196,10 @@ task: use the switch to turn on the light bulb
 **只用來判斷 pipeline，不用來宣稱性能。**
 
 原因：
-- 只跑 10/1000 sequences，統計太小；
+- 50/1000 sequences 仍偏小，統計還不足以對論文數字；
 - 使用 released `diffuser_actor_calvin.pth`（README 稱 old w/history），不是 2024-08 no-history 新權重；
 - 有 compatibility patch（DGL FPS CPU fallback）但理論上只影響速度，不應改行為；
-- official script 原本 6 GPU / 1000 sequences，此處 1 GPU / 10 sequences。
+- official script 原本 6 GPU / 1000 sequences，此處 1 GPU / 50 sequences。
 
 但此 smoke 成功代表：
 **正式 ABC→D validation eval pipeline 已可在 GB10 上跑完。**
@@ -193,12 +208,13 @@ task: use the switch to turn on the light bulb
 
 ## 6. 下一步建議
 
-### 6.1 先跑 50 或 100 sequences
-不要直接 1000。先跑：
+### 6.1 先跑 100 sequences，再考慮 1000
+不要直接 1000。已完成 50-seq；下一步建議：
 
-- `NUM_SEQUENCES=50`：預估 ~15–20 min；
-- 若穩定，再 `NUM_SEQUENCES=100`：預估 ~30–40 min；
-- 最後才考慮 1000。
+- `NUM_SEQUENCES=100`：預估 ~30–40 min；
+- 若穩定，再考慮完整 `NUM_SEQUENCES=1000`。
+
+50-seq 結果已足以證明 pipeline 穩定；100-seq 用來得到較穩定的初步性能估計。
 
 ### 6.2 下載 / 測試新 no-history checkpoint
 README 2024-08 提到新的 CALVIN no-history checkpoint：
