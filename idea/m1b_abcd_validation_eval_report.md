@@ -9,7 +9,7 @@ tags:
   - 3D-Diffuser-Actor
   - GB10
   - eval
-summary: "M1b 以 HTTP Range 從 555GB task_ABC_D.zip 只抽取 validation (~28.8GB)，並在正式 task_ABC_D/validation 上跑 3D-DA eval smoke 成功。10-seq 結果：1/5=40%, 2/5=30%, 3/5=10%, 4/5=10%, 5/5=0%；50-seq 結果：1/5=48%, 2/5=22%, 3/5=14%, 4/5=8%, 5/5=2%。"
+summary: "M1b 以 HTTP Range 從 555GB task_ABC_D.zip 只抽取 validation (~28.8GB)，並在正式 task_ABC_D/validation 上跑 3D-DA eval smoke 成功。old checkpoint 50-seq：1/5=48%, 2/5=22%, 3/5=14%, 4/5=8%, 5/5=2%；no-history checkpoint 50-seq：1/5=48%, 2/5=20%, 3/5=12%, 4/5=6%, 5/5=4%。no-history 未明顯優於 old。"
 ---
 
 # M1b：正式 task_ABC_D validation partial extract + eval smoke（2026-06-07）
@@ -48,6 +48,29 @@ Destroy EGL OpenGL window.
 ```
 
 50-seq 比 10-seq 更穩，且全程無 crash；速度約 3.4–3.7 step/s。
+
+4. **no-history checkpoint 也完成 10-seq + 50-seq 對照**：
+
+README 2024-08 釋出的 `diffuser_actor_calvin_nohistory.pth` 實測對應 `num_history=1`（不是 0）。結果：
+
+```text
+# no-history, 10 seq
+Load 10/1000 episodes...
+1/5 : 50.0% | 2/5 : 30.0% | 3/5 : 20.0% | 4/5 : 10.0% | 5/5 : 0.0% ||
+
+# no-history, 50 seq
+Load 50/1000 episodes...
+1/5 : 48.0% | 2/5 : 20.0% | 3/5 : 12.0% | 4/5 : 6.0% | 5/5 : 4.0% ||
+```
+
+與 old w/history 50-seq 相比：
+
+```text
+old 50-seq:        48 / 22 / 14 /  8 / 2
+no-history 50-seq: 48 / 20 / 12 /  6 / 4
+```
+
+結論：**no-history 沒有明顯優於 old checkpoint**。1/5 相同，2–4 step 略低，5-step 略高但樣本小。下一步若要跑 100/1000，優先用 old 或兩者都跑 100 作正式比較。
 
 ---
 
@@ -175,6 +198,18 @@ Load 50/1000 episodes...
 1/5 : 48.0% | 2/5 : 22.0% | 3/5 : 14.0% | 4/5 : 8.0% | 5/5 : 2.0% ||
 ```
 
+No-history checkpoint 對照（`diffuser_actor_calvin_nohistory.pth`, `num_history=1`）：
+
+```text
+# 10 seq
+1/5 : 50.0% | 2/5 : 30.0% | 3/5 : 20.0% | 4/5 : 10.0% | 5/5 : 0.0% ||
+
+# 50 seq
+1/5 : 48.0% | 2/5 : 20.0% | 3/5 : 12.0% | 4/5 : 6.0% | 5/5 : 4.0% ||
+```
+
+No-history 10-seq 看似較好，但 50-seq 收斂後沒有明顯勝過 old checkpoint。
+
 部分 task log 顯示 eval 確實跑在正式 validation 任務上，例如：
 
 ```text
@@ -216,14 +251,22 @@ task: use the switch to turn on the light bulb
 
 50-seq 結果已足以證明 pipeline 穩定；100-seq 用來得到較穩定的初步性能估計。
 
-### 6.2 下載 / 測試新 no-history checkpoint
-README 2024-08 提到新的 CALVIN no-history checkpoint：
+### 6.2 no-history checkpoint 已測，未明顯優於 old
+README 2024-08 提到的新 CALVIN no-history checkpoint 已下載並測試：
 
 ```text
 diffuser_actor_calvin_nohistory.pth
+num_history=1
 ```
 
-可能比目前 old w/history 權重更好，且 script 可能用 `train_trajectory_calvin_nohistory.sh` 對應不同參數（`num_history=0` 或類似）。建議在跑長 eval 前先比較兩個 checkpoint 的設定。
+50-seq 對照：
+
+```text
+old:        48 / 22 / 14 /  8 / 2
+no-history: 48 / 20 / 12 /  6 / 4
+```
+
+因此下一輪較大 eval 不必優先切 no-history；若要嚴謹比較，可兩者各跑 100-seq。若只選一個繼續，old checkpoint 目前 2–4 step 略好。
 
 ### 6.3 正式化環境
 M1a/M1b 仍有手動 hotfix。M2 前應轉成：
