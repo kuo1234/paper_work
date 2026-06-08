@@ -1177,3 +1177,117 @@ Use native LIBERO stack first, or use OpenVLA's LIBERO requirements first?
 ```
 
 Current recommendation: native LIBERO first for diagnostics/BDDL inspection; OpenVLA stack second for VLA comparison.
+
+
+---
+
+## 21. LIBERO Docker build and render smoke passed（2026-06-09）
+
+Build retry result:
+
+- First build failed because `torch==2.1.2` is unavailable for ARM64 CUDA 11.8 index.
+- Fixed to ARM64-compatible pins:
+
+```text
+torch==2.0.1
+torchvision==0.15.2
+torchaudio==2.0.2
+```
+
+Docker image built:
+
+```text
+image: bts_libero:latest
+image id: 66dfb4bba6b5
+size: 11.8GB
+container: bts_libero
+status: Up
+```
+
+Import smoke initially hit LIBERO's interactive config prompt. Runtime fix:
+
+```text
+/root/.libero/config.yaml
+```
+
+Preseeded paths:
+
+```yaml
+assets: /workspace/LIBERO/libero/libero/assets
+bddl_files: /workspace/LIBERO/libero/libero/bddl_files
+benchmark_root: /workspace/LIBERO/libero/libero
+datasets: /workspace/LIBERO/libero/datasets
+init_states: /workspace/LIBERO/libero/libero/init_files
+```
+
+Dockerfile was updated to create this config during build.
+
+### LIBERO-Object metadata smoke
+
+```text
+suite: libero_object
+n_tasks: 10
+```
+
+First tasks:
+
+```text
+0 pick_up_the_alphabet_soup_and_place_it_in_the_basket
+1 pick_up_the_cream_cheese_and_place_it_in_the_basket
+2 pick_up_the_salad_dressing_and_place_it_in_the_basket
+```
+
+Each task has fixed init states:
+
+```text
+init_states shape: (50, 110)
+```
+
+### OffScreenRenderEnv smoke
+
+LIBERO render/env smoke passed in `bts_libero`:
+
+```text
+env = OffScreenRenderEnv(... camera_heights=128, camera_widths=128)
+obs = env.reset()
+obs, reward, done, info = env.step([0.0] * 7)
+```
+
+Observed image keys:
+
+```text
+agentview_image             (128, 128, 3) uint8
+robot0_eye_in_hand_image    (128, 128, 3) uint8
+```
+
+State/diagnostic keys include object states:
+
+```text
+alphabet_soup_1_pos / quat / to_robot0_eef_*
+basket_1_pos / quat / to_robot0_eef_*
+cream_cheese_1_pos / ...
+object-state                (98,)
+robot0_proprio-state        (39,)
+```
+
+Step smoke:
+
+```text
+reward=0.0
+done=False
+info={}
+```
+
+Important caveat:
+
+```text
+torch.cuda.is_available() == False inside bts_libero
+```
+
+Likely due GB10 / CUDA runtime compatibility with CUDA 11.8 container. Native LIBERO CPU/EGL smoke still works. For OpenVLA/GPU, use a separate newer CUDA/torch stack or lab A6000.
+
+Next fix:
+
+```text
+Build LIBERO diagnostic parser over task.language + BDDL + object-state keys.
+```

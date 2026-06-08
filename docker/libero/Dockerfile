@@ -16,9 +16,9 @@ ENV PATH=/opt/libero-venv/bin:$PATH
 
 RUN python -m pip install --upgrade pip setuptools wheel
 
-# Pin a modern-but-not-latest torch stack compatible with CUDA 11.8.
+# ARM64 CUDA 11.8 PyTorch index currently exposes torch up to 2.0.1.
 RUN pip install --index-url https://download.pytorch.org/whl/cu118 \
-    torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2
+    torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2
 
 WORKDIR /workspace
 RUN git clone https://github.com/Lifelong-Robot-Learning/LIBERO.git /workspace/LIBERO
@@ -28,6 +28,16 @@ WORKDIR /workspace/LIBERO
 RUN pip install -r requirements.txt || true
 RUN pip install -e .
 
-ENV PYTHONPATH=/workspace/LIBERO:$PYTHONPATH
+ENV PYTHONPATH=/workspace/LIBERO:${PYTHONPATH:-}
+
+# Preseed LIBERO config to avoid interactive import prompts in headless runs.
+RUN mkdir -p /root/.libero /workspace/LIBERO/libero/datasets && \
+    cat > /root/.libero/config.yaml <<'YAML'
+assets: /workspace/LIBERO/libero/libero/assets
+bddl_files: /workspace/LIBERO/libero/libero/bddl_files
+benchmark_root: /workspace/LIBERO/libero/libero
+datasets: /workspace/LIBERO/libero/datasets
+init_states: /workspace/LIBERO/libero/libero/init_files
+YAML
 
 CMD ["bash"]
