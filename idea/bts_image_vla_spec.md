@@ -1129,3 +1129,51 @@ Next fix:
 ```text
 Add a multi-seed report script that runs the key controlled benchmark experiments and emits a compact table/JSON for paper-style reporting.
 ```
+
+
+---
+
+## 20. Spark LIBERO setup feasibility check（2026-06-09）
+
+Checked spark host:
+
+```text
+host: spark-3994
+python3: /usr/bin/python3, Python 3.12.3
+GPU: NVIDIA GB10
+storage: /dev/nvme0n1p2 3.7T total, 2.9T available
+available env managers: no conda, no micromamba, no uv, no python3.8/3.9/3.10
+Docker: available
+existing container: bts_m1
+```
+
+Checked `bts_m1` container:
+
+```text
+Python 3.12.3
+no micromamba/conda/uv/python3.8 visible
+```
+
+Decision:
+
+- Do **not** install LIBERO into `bts_m1`; it risks damaging the working CALVIN/3D-DA environment and LIBERO wants older Python-style dependencies.
+- Use a separate Docker image/container for LIBERO, or first install micromamba/conda on host.
+- Given Docker is available and disk is ample, preferred route is a new isolated `bts_libero` Docker image.
+
+Next concrete setup plan:
+
+```text
+1. Create Dockerfile/libero or scripted docker run.
+2. Base image with Python 3.8/3.10-compatible MuJoCo/robosuite stack.
+3. Install LIBERO in isolation.
+4. Run LIBERO-Object minimal import + OffScreenRenderEnv smoke.
+5. Only after native LIBERO works, separately test OpenVLA eval stack.
+```
+
+Open question:
+
+```text
+Use native LIBERO stack first, or use OpenVLA's LIBERO requirements first?
+```
+
+Current recommendation: native LIBERO first for diagnostics/BDDL inspection; OpenVLA stack second for VLA comparison.
