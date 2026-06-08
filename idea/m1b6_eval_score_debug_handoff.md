@@ -329,3 +329,66 @@ reset env 到 validation `.npz` 的 `robot_obs`/`scene_obs` 後 live render 與 
 3. **比較對象可能不是這個 checkpoint/公開腳本的可重現結果**，需向作者 issue/成功環境索取精確 env lock 或 checkpoint checksum。
 
 若繼續本機 debug，下一個最有資訊量的是：修 `/tmp/dump_first_traj.py`（補 `interpolation_length=20`）dump failure/success 的 19-waypoint absolute action path + gripper，判斷模型是否輸出「合理但 physics/oracle 失敗」還是「模型本身語義/動作就很差」。
+
+---
+
+## 11. 外部 GPT fix plan review + action replay sanity（2026-06-08）
+
+使用者提供 `C:\Users\kuo\Downloads\3d_da_calvin_low_score_fix_plan.md`，重點建議轉向 CALVIN env / controller / pybullet / metadata。審稿結論：**大方向對，但前兩個高優先修法需降權**。
+
+### 11.1 `scene_info` 修補包：不應視為高機率主因
+遠端 read-only 檢查：
+```text
+validation/scene_info.npy: 不存在
+scene_info_fix/task_ABC_D_scene_info.zip: bytes=525, names=['training/scene_info.npy']
+```
+
+3D-DA online eval 的 `scene_info` 來源是 runtime：
+```python
+env = hydra.utils.instantiate(render_conf.env, ..., use_scene_info=True)
+start_info = env.get_info()   # env.scene.get_info()
+```
+並不是讀 `validation/scene_info.npy`。官方 fix zip 只補 `training/scene_info.npy`，對目前 online eval 大概率**沒有影響**（除非有其他離線 training/data path）。
+
+### 11.2 `use_nullspace` 已經是 true
+```text
+/workspace/bts/calvin/dataset/task_ABC_D/validation/.hydra/merged_config.yaml
+85:  use_nullspace: true
+```
+所以 GPT plan 的「修 `use_nullspace: true`」已排除。
+
+### 11.3 dataset action replay sanity：支持 env/action/controller 線，但需小心解讀
+寫了 `/tmp/action_replay_sanity.py` 與 `/tmp/action_replay_modes.py`：
+- 從 `auto_lang_ann.npy` 取前 10 個 unique task language windows；
+- reset 到起始 frame 的 `robot_obs`/`scene_obs`；
+- replay validation `.npz` 的 expert actions；
+- 用 `new_playtable_tasks.yaml` task oracle 檢查 target task；
+- 比較 live next obs vs stored next frame。
+
+官方 replay convention 參考：`calvin_env/scripts/record_video_icra.py` 使用 `np.split(data['actions'], [3,6])` 作 absolute action；`reset_env_rendered_episode.py` 也有 `rel_actions` reset-every-32 variant。因此測了多種 mode：
+```text
+stored_start_end_hit: 1/10
+abs action, reset at segment start: 3/10
+abs action, reset every 32 frames: 4/10
+rel action, reset at segment start: 3/10
+rel action, reset every 32 frames: 4/10
+```
+成功例：open_drawer、turn_on_led、close_drawer，另 place_in_slider 在 reset32 下成功。多數 block/slider/lightbulb task 不 hit。
+
+**判讀**：這是目前第一個直接支持「問題在 CALVIN env/action/controller/oracle/dataset protocol」的實驗：expert action replay 也不穩。但仍不能過度斷言 pybullet 壞，因為 `auto_lang_ann` frame range 與 task oracle 的 exact start/end 可能不完全對齊（stored start/end 只有 1/10 hit 也提示 annotation window 不是完美 oracle segment）。
+
+### 11.4 更新後的下一步優先序
+在沒有第二台 GPU 的限制下，下一步不再優先 scene_info/use_nullspace，而是：
+1. **找官方 CALVIN replay/eval protocol 的正確 segment source**：不要只用 `auto_lang_ann.info.indx`，查官方 benchmark eval / dataset replay 是否有 `ep_start_end_ids`、`episode_lookup`、或 task-specific successful segments。
+2. **跑官方 CALVIN baseline / scripted oracle sanity（若有 checkpoint/script）**：切分「CALVIN env 本身低」vs「3D-DA wrapper 低」。
+3. **更嚴謹的 action replay**：用官方 script 的 chunking/prev_info 邏輯，輸出 all-task oracle detections，而不是只檢查 annotation target task。
+4. **dump 3D-DA predicted 19-waypoint action path + 對照 dataset expert action distribution**：看 policy 輸出是語義錯，還是合理 action 被 env/controller/oracle 吃掉。
+
+遠端產物：
+```text
+/tmp/action_replay_sanity.py
+/tmp/action_replay_modes.py
+/tmp/action_replay_sanity.out   (local tee copy in shell cwd if preserved)
+/tmp/action_replay_modes.out    (local tee copy in shell cwd if preserved)
+```
+
