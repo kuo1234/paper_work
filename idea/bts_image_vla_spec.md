@@ -1572,3 +1572,75 @@ Next fix:
 ```text
 Extend target_reach horizon/action scale or add target_nearest heuristic to validate the stricter nearest-object metric.
 ```
+
+
+---
+
+## 26. LIBERO strict nearest-object metric validated（2026-06-09）
+
+Updated:
+
+```text
+bts-poc/experiments/libero_object_rollout_diagnostics.py
+```
+
+Added policy:
+
+```text
+target_reach_fast
+```
+
+Difference from `target_reach`:
+
+```text
+gain: 2.0 -> 5.0
+clip: 0.08 -> 0.20
+steps: tested with 60
+```
+
+Command:
+
+```bash
+MUJOCO_GL=egl MUJOCO_EGL_DEVICE_ID=0 python /workspace/libero_object_rollout_diagnostics.py   --tasks 3 --inits 2 --steps 60 --policy target_reach_fast   --out /workspace/bts/libero_object_rollout_diag_target_reach_fast.json
+```
+
+Result over 6 rollouts:
+
+```text
+success_count = 0
+mean_target_dist_drop = 0.2437
+mean_nearest_target_fraction = 0.3722
+first_nearest_target_rate = 0.0
+```
+
+Per-rollout nearest target fraction:
+
+```text
+alphabet_soup init0:     0.2667, drop 0.2278
+alphabet_soup init1:     0.2167, drop 0.2331
+cream_cheese init0:      0.3500, drop 0.2361
+cream_cheese init1:      0.2833, drop 0.2467
+salad_dressing init0:    0.5833, drop 0.2586
+salad_dressing init1:    0.5333, drop 0.2599
+```
+
+Interpretation:
+
+- The stricter nearest-object metric is now validated: when the policy approaches the target aggressively enough, the target becomes nearest for a substantial fraction of the trajectory.
+- `first_nearest_target_rate` remains 0 because all tested rollouts start with a distractor closer than the target, which is expected and useful for wrong-object diagnostics.
+- Full task success remains 0 because this heuristic still does not grasp/place.
+
+Diagnostic hierarchy is now empirically validated:
+
+```text
+weak approach:      target_dist_drop
+strong approach:    nearest_target_fraction
+initial ambiguity:  first_nearest_target_rate
+full task:          success
+```
+
+Next engineering target:
+
+```text
+Add a compact LIBERO diagnostics report comparing noop/random/target_reach/target_reach_fast.
+```

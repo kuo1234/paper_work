@@ -116,14 +116,16 @@ def rollout_task(task_id: int, init_id: int, steps: int, policy: str, camera_siz
         elif policy == "random":
             action = rng.normal(0.0, 0.05, size=7).tolist()
             action[-1] = 0.0
-        elif policy == "target_reach":
+        elif policy in {"target_reach", "target_reach_fast"}:
             # Simple object-state heuristic: move end-effector toward parsed target object.
             # This is diagnostic-only, not a task policy. It verifies that target-distance
             # metrics respond to behavior and that parsed target keys are actionable.
             action = [0.0] * 7
             if target_key and "robot0_eef_pos" in obs:
                 delta = np.asarray(obs[target_key]) - np.asarray(obs["robot0_eef_pos"])
-                action[:3] = np.clip(2.0 * delta, -0.08, 0.08).tolist()
+                gain = 2.0 if policy == "target_reach" else 5.0
+                clip = 0.08 if policy == "target_reach" else 0.20
+                action[:3] = np.clip(gain * delta, -clip, clip).tolist()
             action[-1] = 0.0
         else:
             raise ValueError(policy)
@@ -155,7 +157,7 @@ def main():
     ap.add_argument("--tasks", type=int, default=3)
     ap.add_argument("--inits", type=int, default=2)
     ap.add_argument("--steps", type=int, default=10)
-    ap.add_argument("--policy", choices=["noop", "random", "target_reach"], default="noop")
+    ap.add_argument("--policy", choices=["noop", "random", "target_reach", "target_reach_fast"], default="noop")
     ap.add_argument("--camera-size", type=int, default=128)
     ap.add_argument("--out", type=Path, default=Path("runs/libero_object_rollout_diag.json"))
     args = ap.parse_args()
