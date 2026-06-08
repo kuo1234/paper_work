@@ -1365,3 +1365,68 @@ Next fix:
 ```text
 Build a small LIBERO-Object random/noop rollout logger that records target distance, nearest object to gripper, and success over init states.
 ```
+
+
+---
+
+## 23. LIBERO-Object rollout diagnostics v0（2026-06-09）
+
+Implemented:
+
+```text
+bts-poc/experiments/libero_object_rollout_diagnostics.py
+```
+
+Ran in `bts_libero`:
+
+```bash
+MUJOCO_GL=egl MUJOCO_EGL_DEVICE_ID=0 python /workspace/libero_object_rollout_diagnostics.py   --tasks 3 --inits 2 --steps 10 --policy noop   --out /workspace/bts/libero_object_rollout_diag_noop.json
+
+MUJOCO_GL=egl MUJOCO_EGL_DEVICE_ID=0 python /workspace/libero_object_rollout_diagnostics.py   --tasks 3 --inits 2 --steps 10 --policy random   --out /workspace/bts/libero_object_rollout_diag_random.json
+```
+
+Both no-op and small random rollout diagnostics completed:
+
+```text
+n_rollouts: 6
+success_count: 0
+```
+
+Example initial diagnostics:
+
+```text
+task 0 target=alphabet_soup
+nearest0=cream_cheese_1, nearest_dist≈0.251
+target_dist_to_eef≈0.326
+
+task 1 target=cream_cheese
+nearest0=milk_1, nearest_dist≈0.250
+target_dist_to_eef≈0.345
+
+task 2 target=salad_dressing
+nearest0=tomato_sauce_1, nearest_dist≈0.247
+target_dist_to_eef≈0.318
+```
+
+What the logger records per step:
+
+```text
+target_dist_to_eef
+target_dist_to_receptacle
+nearest_object to gripper
+agentview_image shape
+wrist image shape
+success_seen
+```
+
+Interpretation:
+
+- LIBERO-Object is now connected to BTS-style diagnostics, not just import/render smoke.
+- The target object is often not the nearest object to the gripper initially, so wrong-object / nearest-distractor diagnostics are meaningful.
+- This scaffold can evaluate a real policy by logging whether first-contact / nearest approach goes to the correct target object.
+
+Next fix:
+
+```text
+Add a heuristic target-reaching policy using object-state positions to verify diagnostic success path and distance reduction before integrating learned policies.
+```
