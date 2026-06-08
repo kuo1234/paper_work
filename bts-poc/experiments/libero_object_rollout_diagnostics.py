@@ -55,6 +55,25 @@ def nearest_object(obs: Dict, object_names: List[str], eef_key: str = "robot0_ee
     return best
 
 
+def contact_object(env, object_names: List[str]):
+    """Return first object instance currently contacting robot/gripper geoms, if any."""
+    robot_tokens = ("gripper0", "robot0")
+    sim = env.sim
+    for i in range(sim.data.ncon):
+        c = sim.data.contact[i]
+        names = [sim.model.geom_id2name(c.geom1), sim.model.geom_id2name(c.geom2)]
+        if not all(names):
+            continue
+        has_robot = any(any(tok in n for tok in robot_tokens) for n in names)
+        if not has_robot:
+            continue
+        for n in names:
+            for obj in object_names:
+                if n.startswith(obj + "_") or n == obj:
+                    return {"object": obj, "geom": n, "contact_pair": names}
+    return None
+
+
 def summarize_trace(trace: List[Dict], target: str | None) -> Dict:
     nearest = [t.get("nearest_object") for t in trace if t.get("nearest_object")]
     nearest_names = [n.get("object") for n in nearest if n]
@@ -71,11 +90,17 @@ def summarize_trace(trace: List[Dict], target: str | None) -> Dict:
             first_target_nearest_t = i
             break
     dists = [t.get("target_dist_to_eef") for t in trace if t.get("target_dist_to_eef") is not None]
+    contacts = [t.get("contact_object") for t in trace if t.get("contact_object")]
+    first_contact = contacts[0] if contacts else None
+    first_contact_name = first_contact.get("object") if first_contact else None
+    first_contact_is_target = _is_target_name(first_contact_name)
     return {
         "first_nearest_object": first_nearest,
         "first_nearest_is_target": bool(is_target_nearest[0]) if is_target_nearest else False,
         "nearest_target_fraction": float(sum(is_target_nearest) / len(is_target_nearest)) if is_target_nearest else None,
         "first_target_nearest_t": first_target_nearest_t,
+        "first_contact_object": first_contact,
+        "first_contact_is_target": bool(first_contact_is_target),
         "target_dist_initial": dists[0] if dists else None,
         "target_dist_final": dists[-1] if dists else None,
         "target_dist_drop": (dists[0] - dists[-1]) if len(dists) >= 2 else None,
@@ -124,11 +149,13 @@ def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy
         if target_key and receptacle_key:
             target_to_receptacle = float(np.linalg.norm(np.asarray(obs[target_key]) - np.asarray(obs[receptacle_key])))
         near = nearest_object(obs, object_names)
+        contact = contact_object(env, object_names)
         trace.append({
             "t": t,
             "target_dist_to_eef": target_dist,
             "target_dist_to_receptacle": target_to_receptacle,
             "nearest_object": near,
+            "contact_object": contact,
             "agentview_shape": list(obs["agentview_image"].shape) if "agentview_image" in obs else None,
             "wrist_shape": list(obs["robot0_eye_in_hand_image"].shape) if "robot0_eye_in_hand_image" in obs else None,
         })

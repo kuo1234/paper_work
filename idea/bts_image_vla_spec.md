@@ -1795,3 +1795,100 @@ Next fix:
 ```text
 Add a relation-aware diagnostic report for LIBERO-Spatial and compare Object vs Spatial as BTS real-benchmark targets.
 ```
+
+
+---
+
+## 29. LIBERO first-contact diagnostics v0（2026-06-09）
+
+Updated:
+
+```text
+bts-poc/experiments/libero_object_rollout_diagnostics.py
+```
+
+Added MuJoCo contact extraction:
+
+```text
+contact_object(env, object_names)
+```
+
+It scans `env.sim.data.contact` and maps robot/gripper collision geoms to object instances.
+
+Robot/contact geoms observed:
+
+```text
+gripper0_hand_collision
+gripper0_finger1_collision
+gripper0_finger2_collision
+robot0_link*_collision
+```
+
+Object geoms use instance prefixes, e.g.:
+
+```text
+akita_black_bowl_1_g22
+akita_black_bowl_1_g29
+```
+
+Added per-step:
+
+```text
+contact_object
+```
+
+Added per-rollout:
+
+```text
+first_contact_object
+first_contact_is_target
+```
+
+### Short rollout result
+
+With `target_reach_fast`, 60 steps over 3 LIBERO-Spatial tasks × 2 init states produced no contacts. This is expected: the heuristic approaches but often does not physically touch within 60 steps.
+
+### Long single rollout validation
+
+Command:
+
+```bash
+MUJOCO_GL=egl MUJOCO_EGL_DEVICE_ID=0 python /workspace/libero_object_rollout_diagnostics.py   --suite libero_spatial --tasks 1 --inits 1 --steps 200   --policy target_reach_fast   --out /workspace/bts/libero_spatial_contact_long.json
+```
+
+Result for task 0 init 0:
+
+```text
+nearest_target_fraction = 0.805
+first_target_nearest_t = 39
+first_contact_object = akita_black_bowl_1
+first_contact_is_target = True
+target_dist_initial = 0.3335
+target_dist_final = 0.0210
+target_dist_drop = 0.3125
+contact_count = 108
+first contact around t=90
+```
+
+Example contact pair:
+
+```text
+akita_black_bowl_1_g22 <-> gripper0_finger1_collision
+```
+
+Interpretation:
+
+- First-contact extraction works.
+- It correctly identifies contact with the BDDL target instance, not just the generic class `black_bowl`.
+- This completes the key BTS real-benchmark diagnostic chain:
+
+```text
+language relation
+  -> BDDL target instance
+  -> target-distance approach
+  -> nearest-target fraction
+  -> first-contact object
+  -> wrong-object / wrong-instance metric
+```
+
+This is a major milestone for the image/VLA route.
