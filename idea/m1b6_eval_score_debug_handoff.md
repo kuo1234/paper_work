@@ -211,3 +211,33 @@ pipeline 對官方忠實、component 全清白 → 分數低**最可能是 GB10�
 /workspace/bts/eval_fpsexp_base3_logs/result.txt  factor=3 N=20 (sum19)
 /workspace/bts/eval_fpsexp_fps1_logs/result.txt   factor=1 N=20 (sum11)
 ```
+
+---
+
+## 8. 第三輪：選項 2 = fp32 + TF32-off 重跑（2026-06-08）— **精度也排除**
+
+在 GB10 上強制全程 fp32 重跑同 20 條 sequence，判別是否為 Blackwell 上的 fp16/TF32 數值問題。
+
+patch（`/tmp/run_eval_fp32.sh`，跑完自動還原 source）：
+```python
+with torch.cuda.amp.autocast(enabled=False):          # 關 fp16 autocast
+torch.backends.cuda.matmul.allow_tf32 = False         # 關 TF32 matmul
+torch.backends.cudnn.allow_tf32 = False               # 關 cudnn TF32
+torch.set_float32_matmul_precision('highest')
+```
+
+結果（同 20 條，apples-to-apples）：
+
+| run | 設定 | sum/20 | avg |
+|---|---|---|---|
+| base3 | fp16 + TF32 on | 19 | **0.95** |
+| **fp32** | **autocast off + TF32 off** | **18** | **0.90** |
+| fps1 | fp16, fps_factor=1 | 11 | 0.55 |
+
+→ **fp32 沒有回升（0.95→0.90，noise 等級，per-seq pattern 幾乎一致）。精度 / autocast / TF32 不是元兇。**
+
+**推論收窄**：三個同 subset 數據點 fp16=0.95 / fp32=0.90 / fps1=0.55，前兩者穩定 ~0.9 且 robust to precision。若仍屬硬體類（#102 的 V100-fail/4090-pass），機制**不是精度**，而是某 op 在 Blackwell/aarch64 上算錯（attention / scatter-gather / pytorch3d 旋轉 / dgl kernel），或根本不是硬體。
+
+**最決定性的剩餘實驗 = §7.4 選項 1：主流 GPU(4090/A100/x86 CUDA) 對照**。fp32 已排除精度後，GB10 上要再判別只能逐 op 比對參考卡，本質就等同跨硬體對照。建議優先安排一張 x86 CUDA 卡跑同 checkpoint + 同 20 條，一刀切開「GB10 硬體 vs 其他」。
+
+遠端產物：`/tmp/run_eval_fp32.sh`、`/workspace/bts/eval_fp32_run1_logs/result.txt`（sum18）。
