@@ -1,13 +1,47 @@
 # BTS PoC — 進度與接手紀錄（PROGRESS）
 
-> 這份是 single source of truth。新 session 接手請**先讀這份**，再讀 `HANDOFF_FOR_CLAUDE_CODE.md` / `README.md` / `REVIEW_NOTES.md`。
-> 最後更新：2026-06-04（v4 完成）
+> 這份是 single source of truth。新 session 接手請**先讀這份**，再讀 `experiments/REPORT.md`（完整實驗認識）、`HANDOFF_FOR_CLAUDE_CODE.md` / `README.md`。
+> 最後更新：2026-06-09（image/VLA route：controlled benchmark + LIBERO diagnostics scaffold）
 
 ---
 
 ## 0. 一句話現況
 
-三現象（P1/P2/P3）在 toy env 上**全部穩定成立**，核心假設鏈獲得支持。P3 在加入不對稱風險（v4）後從弱訊號變成中等訊號。**尚未上 CALVIN**（依設計，要先在 toy env 看到三現象才值得搬）。
+**主線已從舊 low-dimensional toy / 3D-DA CALVIN reproduction 轉到 image/VLA route。Controlled image-binding benchmark 已證明 structured object-attribute belief 可修 generic image policy 的 OOD wrong-object failure；LIBERO-Object/Spatial diagnostics scaffold 已跑通。**
+
+最新主要產物：
+
+- `../idea/bts_image_vla_spec.md` — image/VLA 完整 spec。
+- `experiments/CONTROLLED_IMAGE_BINDING_REPORT.md` — controlled benchmark 結果。
+- `experiments/LIBERO_OBJECT_DIAGNOSTICS_REPORT.md` — LIBERO-Object diagnostics。
+- `experiments/LIBERO_SPATIAL_DIAGNOSTICS_REPORT.md` — LIBERO-Spatial diagnostics。
+- `experiments/REPRODUCIBILITY.md` — 重跑命令。
+
+核心新結果：
+
+```text
+generic pixel_xy OOD success ≈ 0.244, wrong_object ≈ 0.756
+structured BTS OOD success = 1.000, wrong_object = 0.000
+learned evidence + BTS under corruption success ≈ 0.972-1.000
+```
+
+LIBERO scaffold：
+
+```text
+LIBERO Docker bts_libero builds on spark
+LIBERO-Object parser/render/rollout diagnostics pass
+LIBERO-Spatial parser/render/rollout diagnostics pass
+first-contact extraction works: first_contact_object = akita_black_bowl_1, first_contact_is_target=True in long spatial reach smoke
+```
+
+舊 toy conclusion（保留歷史）：
+
+**P1、P2 真實且穩健（5 seeds 驗證）；P3 在當前 fully-observable toy env 下未通過統計檢驗。**
+
+- P1（規格歧義 → belief 寬）、P2（觀察 → belief 收斂）：5 seeds 都穩，是真效應。
+- P3（belief-aware policy > single-point）：v5 的單 seed `+0.092` 被 v6 多 seed 證明是**噪音**——dual return_gap `−0.014 ± 0.072`（5 seeds 正負亂跳），且 ablation 顯示第二 hint 無因果貢獻。
+- 結論：核心推論鏈（spec=prior → observation=likelihood → belief 收斂）成立；但「belief 對**決策**有額外價值」在這個 fully-observable + BC + greedy 的 toy env **沒站住**（belief 對 single 是冗餘資訊，ctx 可繞過）。
+- **尚未上 CALVIN**。下一步方向未定（見 `experiments/REPORT.md` 第 6 節）。
 
 ---
 
@@ -24,20 +58,27 @@
 
 ---
 
-## 2. 三現象目前數字（v4，最新）
+## 2. 三現象目前數字（v6 多 seed，最新且為準）
 
-來源：`runs/bts_poc_compare/figs/*.json`
+來源：`experiments/summary.json`（5 seeds × {single, dual}，每組每 seed 重訓）
 
-| 現象 | 指標 | 結果 | 支持 |
-|---|---|---|:--:|
-| **P1** 歧義 spec → entropy 高 | exact `0.026` vs amb `1.074`，gap `+1.049` | 強 | ✅ |
-| **P2** 觀察 → entropy 收斂 | drop `+0.467`，slope `−0.040`，曲線單調降 | 強 | ✅ |
-| **P3** belief > single | success_gap `+0.029`；**return_gap `+0.054`**（主判準） | 中 | ✅ |
+| 現象 | single (n=5) | dual (n=5) | 結論 |
+|---|---|---|---|
+| **P1** 歧義→entropy 高 | `+1.023 ± 0.044` | `+0.986 ± 0.039` | ✅ 真實穩健 |
+| **P2** slope | `−0.027 ± 0.012` | `−0.035 ± 0.010` | ✅ 真實穩健 |
+| **P2** drop | `+0.441 ± 0.021` | `+0.535 ± 0.061` | ✅ 真實穩健 |
+| **P3** return_gap | `+0.011 ± 0.097` | `−0.014 ± 0.072` | ❌ 均值≈0、跨 seed 變號 |
 
-P3 細節（`phenomenon3_belief_vs_single.json`）：
-- belief success `0.216` / single `0.187`
-- belief avg_return `−0.389` / single `−0.444`
-- `return_gap` ≈ 1.9× `success_gap` → penalty 確實放大了 belief 的價值
+- dual return_gap 每 seed：`[−0.011, −0.104, +0.075, +0.033, −0.063]`（不同號）→ **無效應 + 噪音**。
+- ablation：dual（−0.014）未優於 single（+0.011），**第二 hint 無因果貢獻**。
+- **v5 的單 seed `+0.092` 已證明是 seed 噪音**（之前 v3→v4→v5 的上升趨勢是被單 seed 誤導）。
+
+詳見 `experiments/REPORT.md`。
+
+### 舊的單 seed 數字（v5，已被 v6 推翻，僅存查）
+- v5 dual 單 seed：P3 return_gap `+0.092`（n_eval=120）— 不可信，未跨 seed。
+
+歷代 P3 趨勢：v3 success_gap `+0.014` → v4 return_gap `+0.054` → **v5 return_gap `+0.092`**。
 
 ---
 
@@ -63,15 +104,33 @@ P3 細節（`phenomenon3_belief_vs_single.json`）：
 - **P3 加 avg_return**：json 同時有 success_rate 與 avg_return，主判準改 `return_gap`。
 - 結果：return_gap `+0.054` > success_gap `+0.029`，penalty 放大了差距。
 
+### v5（雙 hint：讓 2-peak 可再縮小）✅ 把 P3 推到中強訊號
+- 結構性診斷：v3/v4 單 hint 揭露單一屬性後殘留 2-peak **資訊上不可再縮小**（除非踩物件），belief 與 single 在「往哪走」無資訊差異 → P3 有天花板。
+- **改成兩個 hint tile**，揭露互補屬性（一 color、一 shape）；揭露 0/1/2 個 → 候選 4/2/1（驗證：揭兩個後 122/122 全收斂到 1）。
+- expert 改 `start → hint1 → hint2 → target`；`run.sh` horizon 15→20（雙 hint 路徑更長，避免 expert 截斷，從 53/122 降到 4/183）。
+- `vectorize_obs` 擴成兩組 hint 區塊（抽出 `_encode_hint` helper），obs_dim 再變 → **須重生資料 + 重訓**。
+- **沒動 `models/transformer.py`**：保留 single 吃 argmax one-hot 的弱點（這正是 gap 來源，改它就是 metric gaming）。
+- 結果：return_gap `+0.092`（≈2.2× success_gap `+0.042`），P2 變兩階段收斂、更漂亮。
+- ⚠️ **此 `+0.092` 後被 v6 證明是單 seed 噪音。**
+
+### v6（多 seed + single/dual ablation）❌ P3 未通過統計檢驗（關鍵 de-risk）
+- 動機：v5 是單 seed 且 train.py 根本沒設 torch seed（不可重現）；上 CALVIN 前先確認 P3 是真效應還是噪音。
+- 加 `--seed`（train.py 可重現）、`n_hints∈{1,2}` ablation 開關（single/dual 共用模型架構，obs_dim 不變）、`experiments/run_matrix.sh` + `summarize.py`。
+- 跑 5 seeds × {single, dual} = 20 訓練。
+- 結果：**P1/P2 跨 seed 穩健成立；P3 dual return_gap `−0.014 ± 0.072`（跨 seed 變號），ablation 顯示第二 hint 無貢獻。v5 的 `+0.092` 是噪音。**
+- 診斷：fully-observable + BC + greedy argmax 下，belief 對 single 是冗餘資訊（ctx 可繞過）→ P3 在此類 toy env 結構上難成立。
+- 沒動 `models/transformer.py`、loss、v4/v5 機制；新實驗寫到 `data/exp/`、`runs/exp/`，舊 `runs/bts_poc_*` 保留。
+
 ---
 
 ## 4. 目前程式狀態（檔案 → 角色）
 
-- `envs/gridworld.py`：env + partial-reveal hint + oracle posterior + BFS expert + v4 不對稱懲罰
+- `envs/gridworld.py`：env + 雙 hint 兩階段揭露 + oracle posterior + BFS expert + v4 不對稱懲罰
   - reward 常數：`STEP_REWARD=-0.01`、`SUCCESS_REWARD=1.0`、`WRONG_OBJECT_REWARD=-1.0`
-  - `compatible_tasks_given_state`：揭露後用單一屬性過濾候選（→ 2-peak）
-  - `_on_any_wrong_object`：v4 判斷踩錯
-- `data/generate.py`：offline dataset；record 含 `hint_pos/hint_task/hint_attr_kind/hint_attr_value`
+  - hint1/hint2 各揭露互補屬性；`compatible_tasks_given_state`：依序用已揭露的每個 hint 屬性過濾候選（→ 4/2/1）
+  - `expert_trajectory`：歧義時 `start→hint1→hint2→target`
+  - `_on_any_wrong_object`：v4 判斷踩錯；`_encode_hint`：vectorize_obs 的單 hint 編碼 helper
+- `data/generate.py`：offline dataset；record 含 `hint1_pos/kind/value` 與 `hint2_pos/kind/value`
 - `models/transformer.py`：tiny in-context transformer + belief head + policy head + `SinglePointBaseline`
 - `train.py`：`L_IC + λ·L_belief` teacher-forcing；`EpisodeDataset` 會保留 raw record（給 eval rollout 重建用）
 - `eval/phenomena.py`：P1 entropy gap / P2 entropy decay metric / P3 `rollout_episode` 回 (success, return)

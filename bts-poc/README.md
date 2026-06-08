@@ -2,6 +2,36 @@
 
 Belief-from-Specification (BTS) 的最小可跑 PoC。
 
+## Image/VLA route（2026-06）
+
+3D-DA/CALVIN closed-loop reproduction 已停止作為主線；目前主線轉向 image-language manipulation 與 VLA comparison。核心 claim：**structured belief over object-attribute bindings reduces wrong-object / wrong-instance errors under compositional or relational ambiguity**。
+
+關鍵文件：
+
+- `../idea/bts_image_vla_spec.md` — image/VLA 完整 spec。
+- `experiments/CONTROLLED_IMAGE_BINDING_REPORT.md` — controlled image-binding benchmark 結果。
+- `experiments/LIBERO_OBJECT_DIAGNOSTICS_REPORT.md` — LIBERO-Object diagnostics scaffold。
+- `experiments/LIBERO_SPATIAL_DIAGNOSTICS_REPORT.md` — LIBERO-Spatial relation/instance binding diagnostics。
+- `experiments/REPRODUCIBILITY.md` — controlled + LIBERO diagnostics 重跑命令。
+
+關鍵 scripts：
+
+- `envs/image_binding.py` — synthetic RGB object-attribute binding benchmark。
+- `experiments/train_image_binding_v0.py` — shortcut / generic belief / structured BTS baseline。
+- `experiments/train_image_pixels_v0.py` — generic CNN image policy baseline。
+- `experiments/learned_bts_policy_v0.py` — learned object evidence + structured BTS。
+- `experiments/libero_object_diagnostics.py` — LIBERO Object/Spatial language + BDDL parser。
+- `experiments/libero_object_rollout_diagnostics.py` — LIBERO rollout target/nearest/contact diagnostics。
+- `experiments/summarize_libero_rollouts.py` — rollout JSON comparison table。
+
+
+## v5 變更（雙 hint：讓 2-peak 可再縮小）
+
+- 結構性發現：v3/v4 的單 hint 揭露單一屬性後，殘留 2-peak **資訊上不可再縮小**（除非踩物件），故 belief 與 single 在「往哪走」無資訊差異 → P3 gap 有天花板。
+- **改成兩個 hint tile**，揭露互補屬性（一 color、一 shape）。揭露進度：0 個 → ~4 候選；1 個 → ~2（2-peak）；2 個 → 1（收斂）。
+- expert 對歧義 episode 示範 `start → hint1 → hint2 → target`。belief-aware 學「先集滿兩個 hint 再走」；single 只吃 argmax one-hot，第一 hint 後易誤判已確定而早賭、踩錯吃懲罰。
+- obs 編碼擴成兩組 hint 區塊（obs_dim 再變 → **須重生資料 + 重訓**）。
+
 ## v4 變更（eval-only 不對稱懲罰 + avg_return）
 
 - **env 加「踩錯物件」不對稱懲罰**：rollout 時若 policy 在不確定下走到非 target 物件，給 `WRONG_OBJECT_REWARD` 並結束 episode。這是 **eval-only 的環境動態，不進訓練 loss**；expert 直達 target 不踩錯，故不影響既有資料與訓練。
