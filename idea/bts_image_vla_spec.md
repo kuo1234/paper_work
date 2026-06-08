@@ -2045,3 +2045,46 @@ python -m py_compile bts-poc/experiments/openvla_policy_adapter.py
 ```
 
 Next actual OpenVLA work should happen in a GPU-capable OpenVLA environment, likely lab A6000 or a separate CUDA stack, not spark `bts_libero`.
+
+
+---
+
+## 33. Lab A6000 OpenVLA feasibility check（2026-06-09）
+
+Checked `ssh lab`:
+
+```text
+host: USCC
+GPU: NVIDIA RTX A6000, 46068 MiB
+Driver: 596.59
+nvidia-smi path: /usr/lib/wsl/lib/nvidia-smi
+system python: /usr/bin/python3, Python 3.12.3
+no conda/micromamba/uv/pipx/docker on PATH
+HDD free: 2.6T available at /mnt/wsl/HDD
+root fs free: 32G only
+```
+
+Existing env:
+
+```text
+~/HDD/envs/bts_a6000
+Python 3.12.13 conda-forge
+Torch 2.7.0+cu128
+CUDA available: True
+GPU: NVIDIA RTX A6000
+```
+
+Implications:
+
+- Lab A6000 is the right machine for OpenVLA GPU eval, but not with the current `bts_a6000` env if OpenVLA strictly needs Python 3.10 / torch 2.2 / transformers 4.40 / flash-attn pins.
+- No env manager is on PATH, despite `bts_a6000` being conda-style. Need either:
+  1. install micromamba under `~/HDD/tools`, or
+  2. use Python 3.12 existing env and test whether OpenVLA dependencies tolerate it, or
+  3. create a container another way (Docker absent, so not preferred).
+- Use `~/HDD` for all OpenVLA files; root fs is nearly full.
+
+Recommended next action:
+
+```text
+Install micromamba locally under ~/HDD/tools on lab, create isolated openvla env with Python 3.10, then clone OpenVLA and run import/checkpoint metadata smoke.
+```
