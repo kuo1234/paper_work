@@ -490,3 +490,62 @@ Load 4/1000 episodes...
 /workspace/bts/eval_safe4_trap1.outer.log
 /workspace/bts/eval_safe4_trap1_logs/result.txt
 ```
+
+
+---
+
+## 13. 最終收斂：停止 3D-DA closed-loop reproduction，全面轉向圖片路線（2026-06-08）
+
+### 13.1 A6000 reference confirmation
+
+使用 lab A6000（x86_64 / RTX A6000 46GB）做 bounded reference run。因 lab render 走 Mesa llvmpipe，速度很慢，但 N=10 已乾淨完成：
+
+```text
+A6000 final10 per-sequence:
+0 1
+1 0
+2 4
+3 0
+4 2
+5 0
+6 0
+7 0
+8 1
+9 2
+
+summary:
+1/5 : 50.0%
+2/5 : 30.0%
+3/5 : 10.0%
+4/5 : 10.0%
+5/5 : 0.0%
+avg seq len = 1.0
+```
+
+這比 GB10 100-seq avg 0.57 略高，但沒有恢復論文級；而且和 GB10 早期 10-seq smoke 非常接近：
+
+```text
+GB10 old 10-seq: 40 / 30 / 10 / 10 / 0
+A6000 N=10:      50 / 30 / 10 / 10 / 0
+```
+
+### 13.2 決策
+
+因此不再把 root cause 歸因於 GB10/aarch64/Blackwell 特有 forward 錯誤。更合理的解釋是：
+
+1. public checkpoint + public eval 的 reproducibility 本身不穩；或
+2. CALVIN / pybullet / control / env package 版本組合仍有高層差異；或
+3. 論文數字與 public checkpoint/script 並非可直接等同。
+
+已做的 debug 已足以排除主流低階嫌疑。繼續深追 3D-DA closed-loop reproduction 的邊際價值低，會拖慢 BTS 主線。
+
+**正式停止 M1b-6 3D-DA closed-loop reproduction debug。** 3D-DA 仍可作為參考，不再作為 BTS 下一階段必要 backbone。
+
+### 13.3 新方向
+
+BTS 全面轉向 **image/perception-side CALVIN**：
+
+- 不再依賴 point cloud / DGL FPS / 3D-Diffuser-Actor closed-loop reproduction。
+- 保留 BTS 核心 novelty：belief / object-attribute binding。
+- 新主張收斂為：structured belief improves visual-language manipulation under attribute-object binding ambiguity。
+- 下一步閱讀與設計重點：CALVIN image baselines、Diffusion Policy / ACT / VLA backbone、object-centric representation、attribute-object binding diagnostics。
