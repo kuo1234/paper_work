@@ -1892,3 +1892,40 @@ language relation
 ```
 
 This is a major milestone for the image/VLA route.
+
+
+---
+
+## 30. LIBERO rollout summarizer v0（2026-06-09）
+
+Implemented:
+
+```text
+bts-poc/experiments/summarize_libero_rollouts.py
+```
+
+Purpose: compare rollout diagnostic JSONs across policies/suites.
+
+Command run in `bts_libero`:
+
+```bash
+python /workspace/summarize_libero_rollouts.py   /workspace/bts/libero_object_rollout_diag_noop_v2.json   /workspace/bts/libero_object_rollout_diag_random_v2.json   /workspace/bts/libero_object_rollout_diag_target_reach_v2.json   /workspace/bts/libero_object_rollout_diag_target_reach_fast.json   /workspace/bts/libero_spatial_rollout_diag_target_reach_fast_v2.json   /workspace/bts/libero_spatial_contact_long.json   --out /workspace/bts/libero_rollout_summary.json
+```
+
+Summary table:
+
+```text
+file                                                suite           policy             n  success  drop    nearest_frac  first_nearest  contacts  contact_target  final_dist
+libero_object_rollout_diag_noop_v2.json            None            noop               6  0        0.0163  0.0000        0.0000         0         NA              0.3194
+libero_object_rollout_diag_random_v2.json          None            random             6  0        0.0164  0.0000        0.0000         0         NA              0.3193
+libero_object_rollout_diag_target_reach_v2.json    None            target_reach       6  0        0.0547  0.0000        0.0000         0         NA              0.2810
+libero_object_rollout_diag_target_reach_fast.json  None            target_reach_fast  6  0        0.2437  0.3722        0.0000         0         NA              0.0920
+libero_spatial_rollout_diag_target_reach_fast_v2   libero_spatial  target_reach_fast  6  0        0.1659  0.4583        0.3333         0         NA              0.1523
+libero_spatial_contact_long.json                   libero_spatial  target_reach_fast  1  0        0.3125  0.8050        0.0000         1         1.0000          0.0210
+```
+
+Interpretation:
+
+- Summarizer now gives one compact table for policy diagnostics.
+- Long LIBERO-Spatial run validates first-contact target correctness (`contact_target=1.0`).
+- This tool is ready to wrap future learned/OpenVLA policies.
