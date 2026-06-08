@@ -1729,3 +1729,69 @@ Next fix:
 ```text
 Extend rollout diagnostics from LIBERO-Object to LIBERO-Spatial using BDDL goal_object_instance as target key, then run target_reach_fast to verify wrong-bowl nearest metrics.
 ```
+
+
+---
+
+## 28. LIBERO-Spatial rollout diagnostics v0（2026-06-09）
+
+Updated:
+
+```text
+bts-poc/experiments/libero_object_rollout_diagnostics.py
+```
+
+Changes:
+
+- `--suite` argument added, supports `libero_object` and `libero_spatial`.
+- BDDL goal object instance is parsed and preferred as target key.
+- This disambiguates `akita_black_bowl_1` vs `akita_black_bowl_2` in LIBERO-Spatial.
+- Fixed nearest-object target matching to handle exact instance names (`name == target`) as well as prefix names (`name.startswith(target + "_")`).
+- Spatial language parser added to rollout logger.
+
+Command:
+
+```bash
+MUJOCO_GL=egl MUJOCO_EGL_DEVICE_ID=0 python /workspace/libero_object_rollout_diagnostics.py   --suite libero_spatial   --tasks 3 --inits 2 --steps 60   --policy target_reach_fast   --out /workspace/bts/libero_spatial_rollout_diag_target_reach_fast_v2.json
+```
+
+Result over 6 rollouts:
+
+```text
+success_count = 0
+mean_target_dist_drop = 0.1659
+mean_nearest_target_fraction = 0.4583
+first_nearest_target_rate = 0.3333
+```
+
+Per-task pattern:
+
+```text
+task 0 relation=between plate and ramekin:
+  nearest_target_fraction = 0.35 / 0.40
+
+task 1 relation=next to ramekin:
+  nearest_target_fraction = 0.00 / 0.00
+
+task 2 relation=from table center:
+  first_nearest_target = True / True
+  nearest_target_fraction = 1.00 / 1.00
+```
+
+Interpretation:
+
+- LIBERO-Spatial rollout diagnostics now use BDDL target instances correctly.
+- The metrics detect relation-dependent ambiguity: some spatial relations start with the goal bowl nearest, others have distractors closer.
+- This is directly relevant to BTS: relation-conditioned object-instance binding can be evaluated by `nearest_target_fraction`, `first_nearest_target_rate`, and future first-contact metrics.
+
+Important caveat:
+
+```text
+success remains 0 because target_reach_fast only approaches; it does not grasp/place.
+```
+
+Next fix:
+
+```text
+Add a relation-aware diagnostic report for LIBERO-Spatial and compare Object vs Spatial as BTS real-benchmark targets.
+```
