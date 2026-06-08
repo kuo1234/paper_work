@@ -2001,3 +2001,47 @@ Interpretation:
 - External adapter path works.
 - Future OpenVLA/BTS policy wrappers can plug into diagnostics without editing logger internals.
 - The diagnostic logger is now policy-agnostic enough for the next phase.
+
+
+---
+
+## 32. OpenVLA adapter skeleton（2026-06-09）
+
+Implemented:
+
+```text
+bts-poc/experiments/openvla_policy_adapter.py
+```
+
+Purpose: define the integration contract between future OpenVLA runtime and the existing LIBERO diagnostics logger.
+
+Adapter entrypoint:
+
+```python
+def openvla_policy(obs: dict, context: dict) -> list[float]
+```
+
+Expected diagnostic invocation:
+
+```bash
+python libero_object_rollout_diagnostics.py   --suite libero_spatial   --policy external   --policy-adapter openvla_policy_adapter:openvla_policy
+```
+
+The skeleton intentionally does not import OpenVLA at module import time because `bts_libero` is not an OpenVLA GPU environment. It provides:
+
+```text
+OpenVLAAdapterConfig
+configure(...)
+make_prompt(language)
+image conversion to PIL
+openvla_policy skeleton
+zero_policy smoke adapter
+```
+
+Syntax check passed:
+
+```bash
+python -m py_compile bts-poc/experiments/openvla_policy_adapter.py
+```
+
+Next actual OpenVLA work should happen in a GPU-capable OpenVLA environment, likely lab A6000 or a separate CUDA stack, not spark `bts_libero`.
