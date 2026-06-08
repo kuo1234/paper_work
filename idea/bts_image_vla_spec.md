@@ -878,3 +878,51 @@ Next fix:
 ```text
 Move from metadata object candidates to image-derived candidates or rendered object patches, so the structured belief remains image-grounded rather than oracle-metadata-grounded.
 ```
+
+
+---
+
+## 15. Image-grounded candidate extraction v0（2026-06-08）
+
+Implemented:
+
+```text
+bts-poc/envs/image_binding.py::extract_image_candidates
+bts-poc/experiments/image_binding_detector_v0.py
+```
+
+Purpose: remove oracle metadata from the structured belief result. v0 uses deterministic pixel segmentation of the synthetic rendered objects:
+
+- color by nearest known RGB palette
+- connected components by color mask
+- centroid from component pixels
+- shape by component fill ratio
+  - square ≈ high fill
+  - circle ≈ medium fill
+  - triangle ≈ low fill
+
+Command:
+
+```bash
+PYTHONPATH=bts-poc python bts-poc/experiments/image_binding_detector_v0.py --n 1000
+```
+
+Result:
+
+```text
+train success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000 detected_all=1.000 avg_candidates=4.00
+id    success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000 detected_all=1.000 avg_candidates=4.00
+ood   success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000 detected_all=1.000 avg_candidates=4.00
+```
+
+Interpretation:
+
+- Structured binding now works from image-derived candidates, not ground-truth object metadata.
+- This is still a deterministic synthetic detector, not a learned perception model.
+- It validates the staged path: image → candidates → structured belief → action.
+
+Next fix:
+
+```text
+Add a learned pixel baseline / learned candidate classifier so the comparison is not only deterministic parser vs shortcut.
+```

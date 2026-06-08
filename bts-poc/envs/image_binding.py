@@ -218,3 +218,74 @@ def location_prior_policy(example: ImageBindingExample) -> int:
 def oracle_language_policy(example: ImageBindingExample) -> int:
     """Upper-bound parser policy: choose object matching the instruction attributes."""
     return example.target_index
+
+
+def classify_shape_from_mask(mask: np.ndarray) -> str:
+    """Classify simple rendered shapes from a connected-component mask.
+
+    This is intentionally deterministic and transparent. It is a stand-in for a
+    detector/segmenter in v0, allowing the benchmark to test image-grounded candidates
+    before introducing learned perception.
+    """
+    ys, xs = np.where(mask)
+    if len(xs) == 0:
+        return "unknown"
+    w = xs.max() - xs.min() + 1
+    h = ys.max() - ys.min() + 1
+    fill = float(mask.sum()) / max(1.0, float(w * h))
+    # Rendered square has fill ~1.0, circle ~0.75, triangle ~0.45-0.55.
+    if fill > 0.88:
+        return "square"
+    if fill > 0.62:
+        return "circle"
+    return "triangle"
+
+
+def _connected_components(mask: np.ndarray) -> List[np.ndarray]:
+    h, w = mask.shape
+    seen = np.zeros_like(mask, dtype=bool)
+    comps: List[np.ndarray] = []
+    for y in range(h):
+        for x in range(w):
+            if not mask[y, x] or seen[y, x]:
+                continue
+            stack = [(y, x)]
+            seen[y, x] = True
+            pts = []
+            while stack:
+                cy, cx = stack.pop()
+                pts.append((cy, cx))
+                for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    ny, nx = cy + dy, cx + dx
+                    if 0 <= ny < h and 0 <= nx < w and mask[ny, nx] and not seen[ny, nx]:
+                        seen[ny, nx] = True
+                        stack.append((ny, nx))
+            cm = np.zeros_like(mask, dtype=bool)
+            for py, px in pts:
+                cm[py, px] = True
+            comps.append(cm)
+    return comps
+
+
+def extract_image_candidates(image: np.ndarray, min_area: int = 20) -> List[ImageObj]:
+    """Extract colored object candidates from the rendered RGB image.
+
+    Returns ImageObj-style candidates inferred from pixels only: color by nearest known
+    palette, centroid by connected component, shape by fill ratio.
+    """
+    candidates: List[ImageObj] = []
+    img = image.astype(np.int16)
+    for color, rgb in COLORS.items():
+        target = np.array(rgb, dtype=np.int16)
+        dist = np.abs(img - target).sum(axis=-1)
+        mask = dist < 40
+        for comp in _connected_components(mask):
+            area = int(comp.sum())
+            if area < min_area:
+                continue
+            ys, xs = np.where(comp)
+            xy = (int(round(xs.mean())), int(round(ys.mean())))
+            radius = int(max(xs.max() - xs.min() + 1, ys.max() - ys.min() + 1) // 2)
+            shape = classify_shape_from_mask(comp)
+            candidates.append(ImageObj(color=color, shape=shape, xy=xy, radius=radius))
+    return candidates
