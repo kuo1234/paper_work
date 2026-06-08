@@ -1644,3 +1644,88 @@ Next engineering target:
 ```text
 Add a compact LIBERO diagnostics report comparing noop/random/target_reach/target_reach_fast.
 ```
+
+
+---
+
+## 27. LIBERO-Spatial diagnostic parser v0（2026-06-09）
+
+Updated:
+
+```text
+bts-poc/experiments/libero_object_diagnostics.py
+```
+
+The parser now supports spatial language forms:
+
+```text
+pick up the {object} {relation phrase} and place it on/in the {receptacle}
+```
+
+and BDDL goal extraction:
+
+```text
+(:goal (And (On {goal_object_instance} {goal_receptacle_instance})))
+```
+
+Ran in `bts_libero`:
+
+```bash
+python /workspace/libero_object_diagnostics.py   --suite libero_spatial   --render-one   --out /workspace/bts/libero_spatial_diagnostics_v2.json
+```
+
+Result:
+
+```text
+suite libero_spatial
+n_tasks 10
+```
+
+Parsed tasks:
+
+```text
+0 black_bowl -> plate | relation between the plate and the ramekin | goal akita_black_bowl_1 -> plate_1
+1 black_bowl -> plate | relation next to the ramekin | goal akita_black_bowl_1 -> plate_1
+2 black_bowl -> plate | relation from table center | goal akita_black_bowl_1 -> plate_1
+3 black_bowl -> plate | relation on the cookie box | goal akita_black_bowl_1 -> plate_1
+4 black_bowl -> plate | relation in the top drawer of the wooden cabinet | goal akita_black_bowl_1 -> plate_1
+5 black_bowl -> plate | relation on the ramekin | goal akita_black_bowl_1 -> plate_1
+6 black_bowl -> plate | relation next to the cookie box | goal akita_black_bowl_1 -> plate_1
+7 black_bowl -> plate | relation on the stove | goal akita_black_bowl_1 -> plate_1
+8 black_bowl -> plate | relation next to the plate | goal akita_black_bowl_1 -> plate_1
+9 black_bowl -> plate | relation on the wooden cabinet | goal akita_black_bowl_1 -> plate_1
+```
+
+For all tasks:
+
+```text
+bddl_contains_target = True
+bddl_contains_receptacle = True
+goal object instance = akita_black_bowl_1
+goal receptacle instance = plate_1
+```
+
+Rendered obs exposes both ambiguous bowl instances:
+
+```text
+akita_black_bowl_1_pos
+akita_black_bowl_2_pos
+plate_1_pos
+glazed_rim_porcelain_ramekin_1_pos
+cookies_1_pos
+...
+```
+
+Interpretation:
+
+- LIBERO-Spatial is more BTS-relevant than LIBERO-Object because the language disambiguates between two visually similar black bowls by relation/location.
+- The target instance is available from BDDL goal, making wrong-bowl diagnostics feasible.
+- Relation phrases are parseable from language and can be cross-checked against BDDL init regions.
+
+This becomes the primary real-benchmark diagnostic target for relation/object binding.
+
+Next fix:
+
+```text
+Extend rollout diagnostics from LIBERO-Object to LIBERO-Spatial using BDDL goal_object_instance as target key, then run target_reach_fast to verify wrong-bowl nearest metrics.
+```
