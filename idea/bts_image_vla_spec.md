@@ -1430,3 +1430,65 @@ Next fix:
 ```text
 Add a heuristic target-reaching policy using object-state positions to verify diagnostic success path and distance reduction before integrating learned policies.
 ```
+
+
+---
+
+## 24. LIBERO target-reaching diagnostic heuristic（2026-06-09）
+
+Updated:
+
+```text
+bts-poc/experiments/libero_object_rollout_diagnostics.py
+```
+
+Added policy:
+
+```text
+target_reach
+```
+
+Policy logic:
+
+```text
+parse target object from language
+find target object position in obs
+find robot0_eef_pos
+apply clipped proportional delta action toward target
+```
+
+This is diagnostic-only, not a task-solving policy. It tests whether the logger can detect behavior that intentionally approaches the correct target.
+
+Command:
+
+```bash
+MUJOCO_GL=egl MUJOCO_EGL_DEVICE_ID=0 python /workspace/libero_object_rollout_diagnostics.py   --tasks 3 --inits 2 --steps 25 --policy target_reach   --out /workspace/bts/libero_object_rollout_diag_target_reach.json
+```
+
+Distance-drop comparison over 6 rollouts:
+
+```text
+noop drops         [0.0103, 0.0156, 0.0082, 0.0090, 0.0261, 0.0284]
+noop mean_drop     0.0163
+noop mean_final    0.3194
+
+random drops       [0.0146, 0.0141, 0.0073, 0.0075, 0.0258, 0.0268]
+random mean_drop   0.0160
+random mean_final  0.3197
+
+target_reach drops      [0.0465, 0.0509, 0.0479, 0.0492, 0.0659, 0.0678]
+target_reach mean_drop  0.0547
+target_reach mean_final 0.2810
+```
+
+Interpretation:
+
+- The diagnostic metric is behavior-sensitive: target-reaching reduces target-to-EEF distance about 3.4× more than noop/random.
+- This validates LIBERO-Object as a real-benchmark scaffold for measuring whether policies approach the correct target object.
+- It still does not solve the full task; gripper/orientation/receptacle placement are not handled.
+
+Next engineering target:
+
+```text
+Add first-approach / nearest-object-over-time summary and wrong-nearest-object metric for any policy trace.
+```
