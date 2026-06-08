@@ -1,0 +1,574 @@
+---
+type: research-spec
+aliases:
+  - "BTS image VLA spec"
+  - "Belief over object-attribute binding for image-language manipulation"
+tags:
+  - 研究主線
+  - BTS
+  - image-policy
+  - VLA
+  - OpenVLA
+  - LIBERO
+  - binding
+summary: "BTS 全面轉向 image route 的完整規格：先做 controlled image-binding benchmark，再接 LIBERO，最後與 OpenVLA 比較；核心是 structured belief over object-attribute bindings。"
+---
+
+# BTS Image/VLA Route — Complete Spec（2026-06-08）
+
+## 0. One-line objective
+
+Build and evaluate **BTS as a structured belief module for object-attribute binding in image-language manipulation**, then compare against strong image policies and an open VLA baseline (**OpenVLA**).
+
+Core claim:
+
+> Explicit belief over object-attribute bindings improves robustness and reduces wrong-object / wrong-attribute errors in image-language manipulation, including when attached to modern VLA-style backbones.
+
+---
+
+## 1. Why pivot from 3D-DA/CALVIN to image/VLA
+
+M1b-6 showed 3D-Diffuser-Actor CALVIN closed-loop reproduction is not reliable enough to be a foundation for BTS:
+
+- GB10 100-seq old checkpoint: avg seq len ≈ 0.57.
+- A6000 N=10 reference: `50 / 30 / 10 / 10 / 0`, avg=1.0.
+- Extensive checks ruled out checkpoint load, flags, validation extraction, FPS fallback, precision, CPU-vs-GPU forward mismatch, scheduler, language truncation, render/camera obvious issues.
+- Continuing 3D-DA reproduction has low marginal value.
+
+Image route preserves the scientific point while avoiding point cloud/FPS/reproduction bottlenecks.
+
+---
+
+## 2. Benchmark strategy
+
+Do **not** make CALVIN image the only path. Use three layers.
+
+### Stage A — Controlled image-binding benchmark（main mechanism benchmark）
+
+Purpose: prove BTS mechanism cleanly.
+
+Requirements:
+
+- RGB observation.
+- Multiple objects.
+- Attribute-object language, e.g. `push the red cube`, `pick the blue sphere`.
+- Spurious shortcut train distribution.
+- OOD attribute-object recombination test.
+- Direct wrong-object / wrong-attribute metrics.
+- Fast training/eval.
+
+This can be a synthetic tabletop/gridworld-image environment first. It should extend the existing toy/P3 insight into pixels.
+
+### Stage B — LIBERO（main real benchmark）
+
+Purpose: demonstrate BTS on a modern language-conditioned manipulation benchmark.
+
+Why LIBERO over CALVIN as primary real benchmark:
+
+- More aligned with modern VLA / imitation learning ecosystem.
+- Better for language-conditioned generalization suites.
+- Less tied to old CALVIN reproduction issues.
+- More suitable for OpenVLA-style comparison.
+
+Need to verify:
+
+- Which LIBERO suites have object/attribute binding.
+- Availability of image observations and language tasks.
+- Whether state labels can provide target-object diagnostics.
+- Training/eval cost on spark/lab.
+
+### Stage C — CALVIN image（secondary / optional benchmark）
+
+Purpose: retain continuity with prior CALVIN work.
+
+Current status:
+
+- Validation image data works.
+- Minimal dataloader passed.
+- Binding parser coverage good.
+- Tiny validation-only image overfit passed.
+- Training split is absent locally.
+
+Use CALVIN only if small/large training extraction becomes practical. Do not let CALVIN training data block the image/VLA route.
+
+---
+
+## 3. Baseline stack
+
+### Level 0 — Minimal image BC baseline（debug baseline）
+
+Goal: fast sanity.
+
+Input:
+
+```text
+static RGB + gripper RGB + proprio + language/task embedding
+```
+
+Model:
+
+```text
+small CNN/ResNet + language embedding + MLP/Transformer action head
+```
+
+Output:
+
+```text
+7D relative action or short action chunk
+```
+
+Use for:
+
+- dataloader validation
+- tiny overfit
+- diagnostic plumbing
+- first closed-loop smoke
+
+### Level 1 — Strong non-VLA baseline
+
+Use one of:
+
+1. **ACT-style action chunking**
+2. **Diffusion Policy-style action decoder**
+
+Recommendation: start with ACT-style chunking before diffusion.
+
+Reason:
+
+- Easier to implement/debug.
+- More stable for small data.
+- Action chunking fits manipulation.
+- Diffusion adds sampling complexity; use later for stronger baseline.
+
+### Level 2 — VLA comparison
+
+Primary VLA:
+
+```text
+OpenVLA
+```
+
+Secondary design reference:
+
+```text
+Octo
+```
+
+Do not start with RT-1/RT-2/pi0 as experimental baselines because reproducibility/access is weaker.
+
+OpenVLA comparison modes, in increasing cost:
+
+1. frozen OpenVLA features + lightweight action head
+2. OpenVLA LoRA fine-tuning
+3. OpenVLA + BTS belief module + action head
+4. full fine-tune only if resources allow
+
+---
+
+## 4. BTS model design
+
+### 4.1 Abstract architecture
+
+```text
+RGB observation + language + proprio
+  -> visual-language encoder
+  -> object/query evidence tokens
+  -> BTS belief module over object-attribute bindings
+  -> belief-conditioned action decoder
+```
+
+### 4.2 Belief state
+
+Belief should represent uncertainty over bindings, not just be another hidden token.
+
+Candidate variables:
+
+```text
+B_t(object, attribute, role)
+```
+
+Example:
+
+```text
+P(target = red_block | image, instruction, history)
+P(target = blue_block | image, instruction, history)
+P(target = drawer | image, instruction, history)
+```
+
+Roles:
+
+- target object
+- source object
+- receptacle / destination
+- interactable affordance（drawer handle, button, switch）
+
+### 4.3 Implementation variants
+
+#### Variant A — Belief tokens（fastest）
+
+```text
+visual-language tokens
+  -> K learned belief query tokens via cross-attention
+  -> action decoder
+```
+
+Pros: easy, differentiable, minimal labels needed.  
+Cons: less interpretable unless probed.
+
+#### Variant B — Explicit target distribution（diagnostic-friendly）
+
+```text
+object/query tokens
+  -> target classifier over candidate objects
+  -> belief embedding = weighted object tokens
+  -> action decoder
+```
+
+Pros: clear wrong-object metrics, auxiliary loss possible.  
+Cons: needs object candidates / pseudo labels.
+
+#### Variant C — Temporal Bayesian-style belief update（most BTS-like）
+
+```text
+B_{t+1} = Update(B_t, visual evidence_t, language, action history)
+```
+
+Pros: closest to BTS novelty.  
+Cons: more engineering; should be Stage 2 after A/B.
+
+Recommended first implementation:
+
+```text
+Variant B-lite:
+  object/query tokens from CNN/ViT feature map
+  target distribution supervised by pseudo labels when available
+  weighted belief token conditions ACT-style action decoder
+```
+
+---
+
+## 5. Diagnostics and metrics
+
+Core metrics beyond success:
+
+### 5.1 Binding metrics
+
+```text
+target object accuracy
+wrong-object error rate
+wrong-attribute error rate
+first-contact object accuracy
+belief entropy / calibration
+OOD attribute-object recombination success
+```
+
+### 5.2 Policy metrics
+
+```text
+offline action MSE / L1
+chunk prediction loss
+closed-loop success
+long-horizon avg seq len（only for CALVIN-like eval）
+```
+
+### 5.3 Required ablations
+
+```text
+baseline image policy
++ belief tokens only
++ explicit target distribution
++ auxiliary binding loss
++ shuffled-language stress test
++ spurious shortcut split
++ oracle target upper bound（analysis only）
+```
+
+---
+
+## 6. Dataset and label plan
+
+### 6.1 Controlled image-binding benchmark
+
+Generate labels directly:
+
+```text
+target object id
+object attributes
+first contact object
+success/failure
+wrong object / wrong attribute
+```
+
+This is the cleanest proof of mechanism.
+
+### 6.2 LIBERO
+
+Need investigate:
+
+- available simulator state
+- object names / task metadata
+- whether target object can be extracted from language/task definitions
+- whether first-contact object can be logged
+
+### 6.3 CALVIN
+
+Already verified validation parser:
+
+```text
+windows: 1087
+unparsed_target: 0
+binding_sensitive_count: 782
+color_block_count: 673
+```
+
+Target counts:
+
+```text
+blue_block:   234
+pink_block:   221
+red_block:    218
+drawer:       140
+sliding_door:  90
+block:         64
+led:           60
+lightbulb:     60
+```
+
+Need training split before formal training.
+
+---
+
+## 7. OpenVLA comparison design
+
+### 7.1 Why OpenVLA
+
+OpenVLA is the primary VLA comparison because:
+
+- open-source
+- representative modern VLA baseline
+- reviewer-recognizable
+- supports fine-tuning / adaptation workflows
+- lets BTS claim be tested against a strong image-language-action backbone
+
+Comparison statement:
+
+> BTS is not a replacement for VLA scale; it is a structured belief layer that can complement VLA representations and reduce binding errors.
+
+### 7.2 OpenVLA experiment ladder
+
+#### OpenVLA-Frozen
+
+```text
+image + language -> frozen OpenVLA representations -> action head
+```
+
+Use as first VLA-level sanity.
+
+#### OpenVLA-LoRA
+
+```text
+LoRA fine-tune OpenVLA on benchmark demonstrations
+```
+
+Use if resources allow.
+
+#### OpenVLA+BTS
+
+```text
+OpenVLA visual-language tokens
+  -> BTS target/binding belief module
+  -> action decoder
+```
+
+Evaluate whether BTS reduces binding-specific failures compared with OpenVLA-only.
+
+### 7.3 What not to claim
+
+Do not claim BTS beats all VLAs globally unless evaluated at that scale.
+
+Claim should be narrower:
+
+```text
+BTS improves binding-sensitive tasks and diagnostic errors under matched data/backbone settings.
+```
+
+---
+
+## 8. Execution milestones
+
+### M2-0 — Spec + smoke（current）
+
+Done / in progress:
+
+- CALVIN image dataloader smoke passed.
+- CALVIN binding parser v2 passed.
+- CALVIN tiny validation-only overfit passed.
+- This spec created.
+
+Exit condition:
+
+```text
+spec written, committed, next implementation path clear
+```
+
+### M2-1 — Controlled image-binding benchmark
+
+Deliverables:
+
+- environment generator
+- RGB renderer
+- language generator
+- train/OOD split
+- wrong-object diagnostics
+- minimal BC baseline
+
+Exit condition:
+
+```text
+baseline learns ID split; fails more on OOD binding split
+```
+
+### M2-2 — BTS on controlled benchmark
+
+Deliverables:
+
+- belief module v1
+- target distribution diagnostic
+- BTS vs baseline result
+
+Exit condition:
+
+```text
+BTS improves OOD binding and reduces wrong-object errors
+```
+
+### M2-3 — LIBERO feasibility
+
+Deliverables:
+
+- install/run LIBERO smoke
+- inspect data/state/task metadata
+- identify binding-sensitive tasks
+- choose first suite
+
+Exit condition:
+
+```text
+LIBERO dataloader/eval feasible, binding diagnostics possible
+```
+
+### M2-4 — Strong baseline
+
+Deliverables:
+
+- ACT-style or Diffusion Policy-style baseline
+- matched data split
+- diagnostic metrics
+
+Exit condition:
+
+```text
+strong non-VLA baseline established
+```
+
+### M2-5 — OpenVLA comparison
+
+Deliverables:
+
+- OpenVLA frozen or LoRA baseline
+- OpenVLA+BTS integration
+- binding diagnostic comparison
+
+Exit condition:
+
+```text
+BTS effect tested against VLA baseline
+```
+
+---
+
+## 9. Immediate next actions
+
+### Action 1 — Build controlled image-binding benchmark spec-to-code
+
+Start with a simple synthetic image environment:
+
+```text
+64x64 or 128x128 RGB
+3-5 colored objects
+language instruction target color/object/action
+simple 2D action or discrete action first
+train distribution with spurious shortcuts
+OOD split swaps color/object/location correlations
+```
+
+This does not need robot physics at first. It is mechanism validation.
+
+### Action 2 — Keep CALVIN as diagnostic reference
+
+Do not download full CALVIN training yet. Keep current validation tools for:
+
+- parser testing
+- diagnostic design
+- future benchmark continuity
+
+### Action 3 — Research LIBERO setup
+
+Check:
+
+- installation cost
+- dataset size
+- image/action format
+- object metadata
+- OpenVLA compatibility
+
+### Action 4 — Prepare reading pack
+
+Priority reading:
+
+1. OpenVLA
+2. LIBERO
+3. ACT
+4. Diffusion Policy
+5. Slot Attention
+6. CLIPort
+7. Octo
+
+---
+
+## 10. Main risks
+
+### Risk A — benchmark too toy-like
+
+Mitigation: controlled benchmark is Stage A only; real benchmark is LIBERO/OpenVLA.
+
+### Risk B — OpenVLA too expensive
+
+Mitigation: start frozen features + action head; LoRA only if needed.
+
+### Risk C — belief module becomes generic attention
+
+Mitigation: require explicit binding diagnostics and target distribution/probe.
+
+### Risk D — no clean object labels in real benchmark
+
+Mitigation: use language/task metadata + simulator state where available; otherwise report first-contact object with approximate object regions.
+
+---
+
+## 11. Success criteria for the image route
+
+Minimum publishable evidence should include:
+
+1. Controlled benchmark where BTS reduces wrong-object errors under OOD binding.
+2. Real benchmark evidence on LIBERO or CALVIN showing same trend on binding-sensitive tasks.
+3. Comparison to strong non-VLA policy baseline.
+4. At least one VLA comparison, preferably OpenVLA frozen/LoRA, showing BTS complements VLA representations.
+
+Target story:
+
+```text
+Large image-language policies can still bind the right attribute to the wrong object.
+BTS introduces an explicit, temporally maintained belief over bindings.
+This reduces wrong-object and wrong-attribute errors, especially under compositional shifts.
+```
