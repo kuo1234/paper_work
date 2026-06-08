@@ -435,4 +435,58 @@ rel_any_hits:       6/12
 oracle_replay_scan.out   (本地 working dir tee 檔，若未清除)
 ```
 
+---
 
+## 13. crash 後補驗：safe launcher + restore trap（2026-06-08）
+
+使用者檢查前一個 smoke log 發現：只跑到 4 條 summary，沒有 final `Load 5/1000` / `EXIT`；本地 command 用 `tee | grep` 且沒有 `pipefail`，因此 local pipeline exit code 0 不能代表 lab eval 完整跑完。
+
+### 13.1 restore 狀態
+重開 session 後先查遠端容器：
+```text
+host/container: p76141495@192.168.65.11 / bts_m1
+repo: /workspace/bts/3d_diffuser_actor
+online_evaluation_calvin/evaluate_policy.py: NUM_SEQUENCES = 1000
+running evaluate_policy/run_eval jobs: none
+```
+
+也就是 lab repo 已回到 canonical `NUM_SEQUENCES=1000`，沒有卡在前一輪 smoke 的 `5`。
+
+### 13.2 robust launcher
+建立 `/tmp/run_eval_safe.sh`，修正兩個前一輪包裝問題：
+1. `set -Eeuo pipefail` 下使用 `PYTHONPATH="$(pwd):${PYTHONPATH:-}"`，避免 `PYTHONPATH` 未定義時中斷；
+2. 對 `evaluate_policy.py` 做 backup 後設定 `trap restore EXIT INT TERM`，不論正常結束、error、interrupt、TERM 都還原；
+3. 不再用 `grep` pipe 判斷成功，stdout/stderr 全量寫到 outer log，launcher 自己最後輸出 `EXIT=... RESTORED_NUM_SEQUENCES=...`。
+
+### 13.3 safe N=4 實跑
+用 safe launcher 跑：
+```text
+/tmp/run_eval_safe.sh 4 safe4_trap1 29566 > /workspace/bts/eval_safe4_trap1.outer.log 2>&1 &
+```
+
+結果完整跑完：
+```text
+summary lines: 5  # 4 條 per-sequence summary + 1 條 final summary
+result.txt:
+0 1
+1 2
+2 5
+3 1
+final: EXIT=0 TAG=safe4_trap1 N=4 RESTORED=1 RESTORED_NUM_SEQUENCES=1000
+post-check evaluate_policy.py: NUM_SEQUENCES = 1000
+```
+
+最後 log 有 final reprint：
+```text
+Load 4/1000 episodes...
+1/5 : 100.0% | 2/5 : 50.0% | 3/5 : 25.0% | 4/5 : 25.0% | 5/5 : 25.0% ||
+```
+
+**解讀**：這輪只驗證 launcher/restore/log 完整性，不解讀 N=4 score（sum=9/4=2.25，樣本太小且 first-4 偏幸運）。後續 lab eval 一律用 `/tmp/run_eval_safe.sh` 類型的 trap launcher，並以 outer log 的 `EXIT=` 與 `RESTORED_NUM_SEQUENCES=1000` 為完成條件，不再用 `tee | grep` 的 pipeline exit code。
+
+遠端產物：
+```text
+/tmp/run_eval_safe.sh
+/workspace/bts/eval_safe4_trap1.outer.log
+/workspace/bts/eval_safe4_trap1_logs/result.txt
+```
