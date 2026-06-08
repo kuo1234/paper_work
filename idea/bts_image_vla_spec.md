@@ -926,3 +926,56 @@ Next fix:
 ```text
 Add a learned pixel baseline / learned candidate classifier so the comparison is not only deterministic parser vs shortcut.
 ```
+
+
+---
+
+## 16. Learned pixel baseline v0（2026-06-08）
+
+Implemented:
+
+```text
+bts-poc/experiments/train_image_pixels_v0.py
+```
+
+Model:
+
+```text
+RGB image + instruction one-hot -> CNN -> target xy regression -> nearest object diagnostic
+```
+
+Command:
+
+```bash
+PYTHONPATH=bts-poc python bts-poc/experiments/train_image_pixels_v0.py   --n-train 3000 --n-eval 1000 --epochs 10 --batch-size 128 --cpu
+```
+
+Result:
+
+```text
+pixel_xy train success=0.983 wrong_object=0.017 wrong_color=0.011 wrong_shape=0.011 loss=0.0050
+pixel_xy id    success=0.989 wrong_object=0.011 wrong_color=0.007 wrong_shape=0.009 loss=0.0049
+pixel_xy ood   success=0.244 wrong_object=0.756 wrong_color=0.474 wrong_shape=0.454 loss=0.1051
+```
+
+Interpretation:
+
+- A generic learned image+instruction policy also learns the spurious color-location shortcut.
+- It performs near-perfectly on train/ID but collapses on held-out binding OOD, like the handcrafted location-prior baseline.
+- This strengthens the BTS motivation: image grounding alone is insufficient when the training distribution supports a shortcut.
+
+Current controlled benchmark comparison:
+
+```text
+pixel_xy generic policy OOD:      success 0.244, wrong_object 0.756
+shortcut prior OOD:               success 0.258, wrong_object 0.742
+generic MLP belief OOD:           success 0.080, wrong_object 0.920
+structured BTS belief OOD:        success 1.000, wrong_object 0.000
+image-derived structured binding: success 1.000, wrong_object 0.000
+```
+
+Next fix:
+
+```text
+Replace deterministic image candidate extractor with a learned/soft candidate module, or add noise/occlusion to make v0 less trivially segmentable.
+```
