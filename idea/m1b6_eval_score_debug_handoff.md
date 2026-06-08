@@ -241,3 +241,38 @@ torch.set_float32_matmul_precision('highest')
 **最決定性的剩餘實驗 = §7.4 選項 1：主流 GPU(4090/A100/x86 CUDA) 對照**。fp32 已排除精度後，GB10 上要再判別只能逐 op 比對參考卡，本質就等同跨硬體對照。建議優先安排一張 x86 CUDA 卡跑同 checkpoint + 同 20 條，一刀切開「GB10 硬體 vs 其他」。
 
 遠端產物：`/tmp/run_eval_fp32.sh`、`/workspace/bts/eval_fp32_run1_logs/result.txt`（sum18）。
+
+---
+
+## 9. 第四輪：diffusers scheduler 線（2026-06-08）— **clip_sample=False 第一個真正有效的修正**
+
+選項 1（主流 GPU）不可行（只有本地+GB10），改追硬體無關的 **diffusers 版本/scheduler** 線（符合 #102「reconfigure environment」）。
+
+### 9.1 發現
+- 裝的是 **diffusers 0.37.1，repo setup.py 不 pin**。repo 最後 commit **2024-08-17**，era-correct 應是 0.27–0.30。
+- repo `DDPMScheduler(...)` **沒設 clip_sample → 吃 default `True`**：每個去噪步把預測 x0 clip 到 [−1,1]。
+  - position 有 `normalize_pos` 到 [−1,1]（clip 大致無害）；
+  - **rotation 6D（idx 3:9）沒 normalize**，去噪中間 x0 會超出 [−1,1]，被 clip → **扭曲旋轉**。
+
+### 9.2 clip_sample=False 實測（同 20 條）
+| run | 設定 | sum/20 | avg |
+|---|---|---|---|
+| base3 | clip_sample=True（default）| 19 | 0.95 |
+| **noclip** | **clip_sample=False** | **23** | **1.15 (+21%)** |
+
+seq4 1→4、seq17 1→3（**chaining 變深**），非雜訊。**這是四輪以來第一個真正動了指針的修正**，但非 ~5× 量級 → 多因素疊加。
+
+### 9.3 純降 diffusers 版本行不通
+- **scheduler 數學 0.30→0.37 完全相同**（timesteps[24..0] / betas / alphas_cumprod / clip_sample=True / timestep_spacing=leading 全一致）。
+- era-correct **≤0.27 在現代 huggingface_hub(0.36) 下 import 失敗**（`cached_download` 已移除）→ 要降 diffusers 得連 hub 一起降，風險高（會動到 transformers/CLIP），**未做**。已把 diffusers 還原 0.37.1。
+- 結論：版本回歸（若存在）在 0.27 之前；但 clip_sample 這個 default 在所有版本都是 True，**它是 repo eval 對這個 checkpoint 的真 bug（影響所有人），不是 GB10 特有**。
+
+### 9.4 pyhash shim 已驗正確
+shim 的 `fnv1_32`（mul-then-xor）對齊官方 FNV-1 32-bit 測試向量（'a'=0x050c5d7e 等全 match）。即使與真 pyhash 有別，scene shuffle 只換兩個 table-block 位置、產生「不同但合法」的 episode（oracle 看實際 sim state），**非掉分機制**。排除。
+
+### 9.5 下一步
+1. **clip_sample=False 跑 100-seq**（對齊原始 0.57 的誠實比較，拿穩定增益量級）— 進行中。
+2. 若增益穩定但仍遠低於論文 → 回 **dataset 線**：我們的 partial-extract validation vs 官方 packaged_ABC_D 是否在「eval 實際讀的東西」上有別（注意 eval 的 initial_state 來自 get_sequences、不讀 npz，所以 dataset 影響面其實有限——要重新確認 packaged 到底差在哪）。
+3. 或細查 0.27 vs 0.37 的 `DDPMScheduler.step` posterior/variance 實作差異（逐函式 diff），看 clip 以外還有沒有行為差。
+
+遠端產物：`/tmp/run_eval_noclip.sh`（patch DA 兩個 scheduler 加 clip_sample=False，跑完還原 source）、`/workspace/bts/eval_noclip_logs/`（N=20 sum23）、`/tmp/sched_probe.py`、`/tmp/pyhash_check.py`、`/tmp/fnv_variants.py`。
