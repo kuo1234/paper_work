@@ -392,3 +392,47 @@ rel action, reset every 32 frames: 4/10
 /tmp/action_replay_modes.out    (local tee copy in shell cwd if preserved)
 ```
 
+---
+
+## 12. 第七輪：oracle all-task scan 修正 action replay 解讀（2026-06-08）
+
+為避免把 `auto_lang_ann` window 誤當 oracle ground truth，寫 `/tmp/oracle_replay_scan.py`：對前 12 個 unique task annotation window 同時檢查：
+1. stored state scan：reset 到 frame s 與 frame j，不 replay action，查 target / any task oracle；
+2. abs replay：`np.split(data['actions'], [3,6])`；
+3. rel replay：`data['rel_actions']`；
+4. 記錄 first target hit 與 first any-task hit。
+
+結果摘要：
+```text
+n=12
+stored_target_hits: 1/12
+stored_any_hits:    8/12
+abs_target_hits:    3/12
+abs_any_hits:       7/12
+rel_target_hits:    3/12
+rel_any_hits:       6/12
+```
+
+關鍵觀察：很多 annotation target 與 oracle actual hit **不一致**：
+- target `turn_on_led`，stored state 偵測到 `turn_on_lightbulb`；abs/rel replay 才偵測到 `turn_on_led`。
+- target `lift_blue_block_slider`，stored state 偵測到 `lift_pink_block_slider`。
+- target `lift_pink_block_table`，stored/replay 偵測到 `lift_red_block_table`。
+- target `turn_on_lightbulb`，stored state 偵測到 `turn_on_led`。
+- target `turn_off_led`，stored state 偵測到 `turn_off_lightbulb`。
+
+**修正解讀**：上一輪「expert action replay target success 只有 3–4/10」不能直接推論 env/controller 壞；主要原因是 `auto_lang_ann.language.task` / `info.indx` 不能直接當 task-oracle ground truth。`stored_any_hits=8/12` 且 `abs_any_hits=7/12` 反而顯示 env/action/oracle 能偵測不少任務，並非全局壞。
+
+更重要：**3D-DA online eval 不使用 `auto_lang_ann.language.task`**。它用 `get_sequences()` 生成 canonical task names，再從 `calvin_models/conf/annotations/new_playtable_validation.yaml` 取 language instruction。因此 `auto_lang_ann` label/window mismatch 不是 3D-DA online eval 低分的直接 root cause。
+
+更新後結論：
+1. GPT plan 的「action replay」方向有價值，但必須使用官方 replay/benchmark segment，不可直接用 `auto_lang_ann` target 當 oracle truth。
+2. 目前 action replay sanity **沒有證明 env/controller 壞**；它只證明 annotation windows/labels 與 task oracle 對齊很差（可能是 CALVIN dataset annotation 已知問題）。
+3. 剩餘最合理下一步：dump 3D-DA online eval 的真實 predicted actions / videos / oracle traces，而不是從 `auto_lang_ann` replay 推論。具體：對 first 20 eval sequences 中成功(如 seq1=5)與失敗(如 seq0=0)各 dump 每個 subtask 的 language、19-waypoint absolute action、executed actions、robot/object state、oracle hit，判斷 policy 是不是一開始就輸出錯。
+
+遠端產物：
+```text
+/tmp/oracle_replay_scan.py
+oracle_replay_scan.out   (本地 working dir tee 檔，若未清除)
+```
+
+
