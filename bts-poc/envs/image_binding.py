@@ -278,7 +278,7 @@ def extract_image_candidates(image: np.ndarray, min_area: int = 20) -> List[Imag
     for color, rgb in COLORS.items():
         target = np.array(rgb, dtype=np.int16)
         dist = np.abs(img - target).sum(axis=-1)
-        mask = dist < 40
+        mask = dist < 140
         for comp in _connected_components(mask):
             area = int(comp.sum())
             if area < min_area:

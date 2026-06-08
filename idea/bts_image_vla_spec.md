@@ -979,3 +979,49 @@ Next fix:
 ```text
 Replace deterministic image candidate extractor with a learned/soft candidate module, or add noise/occlusion to make v0 less trivially segmentable.
 ```
+
+
+---
+
+## 17. Image-grounded binding corruption robustness（2026-06-08）
+
+Implemented:
+
+```text
+bts-poc/experiments/image_binding_corruption_v0.py
+```
+
+Initial stress test found a real bug: the deterministic color threshold in `extract_image_candidates` was too tight (`dist < 40`), so Gaussian noise destroyed detections:
+
+```text
+noise20 success≈0.279 detected_all≈0.008
+noise40 success≈0.254 detected_all≈0.000
+```
+
+Fix:
+
+```text
+increase palette distance threshold to dist < 140
+```
+
+Rerun command:
+
+```bash
+PYTHONPATH=bts-poc python bts-poc/experiments/image_binding_corruption_v0.py --n 500 --seeds 5
+```
+
+Post-fix OOD robustness:
+
+```text
+clean          success=1.000±0.000 detected_all=1.000 avg_candidates=4.00
+noise20        success=1.000±0.000 detected_all=1.000 avg_candidates=4.00
+noise40        success=0.856±0.011 detected_all=1.000 avg_candidates=4.00
+occ12          success=0.954±0.008 detected_all=0.998 avg_candidates=4.00
+noise20_occ12  success=0.959±0.008 detected_all=0.999 avg_candidates=4.00
+```
+
+Interpretation:
+
+- The image-grounded structured binding path is robust to moderate noise and occlusion after threshold fix.
+- Severe noise (`std=40`) mostly hurts shape classification, not object detection.
+- This gives a concrete next perception target: learned/soft shape evidence should replace brittle fill-ratio classification.
