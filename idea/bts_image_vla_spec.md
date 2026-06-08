@@ -1929,3 +1929,75 @@ Interpretation:
 - Summarizer now gives one compact table for policy diagnostics.
 - Long LIBERO-Spatial run validates first-contact target correctness (`contact_target=1.0`).
 - This tool is ready to wrap future learned/OpenVLA policies.
+
+
+---
+
+## 31. External LIBERO policy adapter interface（2026-06-09）
+
+Updated:
+
+```text
+bts-poc/experiments/libero_object_rollout_diagnostics.py
+```
+
+Added:
+
+```text
+--policy external
+--policy-adapter module:function
+```
+
+Adapter signature:
+
+```python
+def policy(obs: dict, context: dict) -> list[float]:
+    return action_7d
+```
+
+Context contains:
+
+```text
+suite
+task_id
+init_id
+language
+target_key
+receptacle_key
+target_object
+receptacle
+relation
+goal_target_instance
+goal_receptacle_instance
+step
+trace_so_far
+```
+
+Added smoke adapters:
+
+```text
+bts-poc/experiments/libero_policy_adapters.py
+  zero_policy
+  target_reach_policy
+```
+
+Smoke command in `bts_libero`:
+
+```bash
+cd /workspace
+MUJOCO_GL=egl MUJOCO_EGL_DEVICE_ID=0 python /workspace/libero_object_rollout_diagnostics.py   --suite libero_spatial   --tasks 1 --inits 1 --steps 20   --policy external   --policy-adapter libero_policy_adapters:target_reach_policy   --out /workspace/bts/libero_external_adapter_smoke.json
+```
+
+Result:
+
+```text
+n_rollouts = 1
+success_count = 0
+mean_drop = 0.0361
+```
+
+Interpretation:
+
+- External adapter path works.
+- Future OpenVLA/BTS policy wrappers can plug into diagnostics without editing logger internals.
+- The diagnostic logger is now policy-agnostic enough for the next phase.

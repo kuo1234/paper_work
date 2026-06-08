@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import os
 import re
@@ -107,6 +108,24 @@ def summarize_trace(trace: List[Dict], target: str | None) -> Dict:
     }
 
 
+def load_policy_adapter(spec: str | None):
+    """Load external policy adapter from 'module:function'.
+
+    Adapter signature:
+        fn(obs: dict, context: dict) -> list[float]
+
+    Context contains: suite, task_id, init_id, language, target_key,
+    receptacle_key, policy, step, trace_so_far.
+    """
+    if not spec:
+        return None
+    if ":" not in spec:
+        raise ValueError("--policy-adapter must be module:function")
+    module_name, fn_name = spec.split(":", 1)
+    mod = importlib.import_module(module_name)
+    return getattr(mod, fn_name)
+
+
 def compute_action(policy: str, obs: Dict, target_key: str | None, rng: np.random.Generator) -> List[float]:
     """Policy registry for diagnostic rollouts.
 
@@ -131,7 +150,7 @@ def compute_action(policy: str, obs: Dict, target_key: str | None, rng: np.rando
     raise ValueError(policy)
 
 
-def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy: str, camera_size: int):
+def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy: str, camera_size: int, policy_adapter=None):
     from libero.libero import benchmark, get_libero_path
     from libero.libero.envs import OffScreenRenderEnv
 
@@ -183,7 +202,27 @@ def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy
             "agentview_shape": list(obs["agentview_image"].shape) if "agentview_image" in obs else None,
             "wrist_shape": list(obs["robot0_eye_in_hand_image"].shape) if "robot0_eye_in_hand_image" in obs else None,
         })
-        action = compute_action(policy, obs, target_key, rng)
+        if policy == "external":
+            if policy_adapter is None:
+                raise ValueError("policy='external' requires --policy-adapter module:function")
+            context = {
+                "suite": suite_name,
+                "task_id": task_id,
+                "init_id": init_id,
+                "language": task.language,
+                "target_key": target_key,
+                "receptacle_key": receptacle_key,
+                "target_object": target,
+                "receptacle": receptacle,
+                "relation": parsed.get("relation"),
+                "goal_target_instance": goal_target_instance,
+                "goal_receptacle_instance": goal_receptacle_instance,
+                "step": t,
+                "trace_so_far": trace,
+            }
+            action = policy_adapter(obs, context)
+        else:
+            action = compute_action(policy, obs, target_key, rng)
         obs, reward, done, info = env.step(action)
         success_seen = success_seen or bool(reward > 0 or done)
         if done:
@@ -219,14 +258,16 @@ def main():
     ap.add_argument("--tasks", type=int, default=3)
     ap.add_argument("--inits", type=int, default=2)
     ap.add_argument("--steps", type=int, default=10)
-    ap.add_argument("--policy", choices=["noop", "random", "target_reach", "target_reach_fast"], default="noop")
+    ap.add_argument("--policy", choices=["noop", "random", "target_reach", "target_reach_fast", "external"], default="noop")
+    ap.add_argument("--policy-adapter", default=None, help="External policy adapter as module:function; signature fn(obs, context)->7D action")
     ap.add_argument("--camera-size", type=int, default=128)
     ap.add_argument("--out", type=Path, default=Path("runs/libero_object_rollout_diag.json"))
     args = ap.parse_args()
+    policy_adapter = load_policy_adapter(args.policy_adapter)
     rows = []
     for task_id in range(args.tasks):
         for init_id in range(args.inits):
-            rows.append(rollout_task(args.suite, task_id, init_id, args.steps, args.policy, args.camera_size))
+            rows.append(rollout_task(args.suite, task_id, init_id, args.steps, args.policy, args.camera_size, policy_adapter))
             print("done", task_id, init_id)
     drops = [r["trace_summary"].get("target_dist_drop") for r in rows if r["trace_summary"].get("target_dist_drop") is not None]
     nearest_fracs = [r["trace_summary"].get("nearest_target_fraction") for r in rows if r["trace_summary"].get("nearest_target_fraction") is not None]
