@@ -1291,3 +1291,77 @@ Next fix:
 ```text
 Build LIBERO diagnostic parser over task.language + BDDL + object-state keys.
 ```
+
+
+---
+
+## 22. LIBERO-Object diagnostic parser v0（2026-06-09）
+
+Implemented:
+
+```text
+bts-poc/experiments/libero_object_diagnostics.py
+```
+
+Ran in `bts_libero`:
+
+```bash
+python /workspace/libero_object_diagnostics.py   --suite libero_object   --render-one   --out /workspace/bts/libero_object_diagnostics.json
+```
+
+Result:
+
+```text
+suite libero_object
+n_tasks 10
+```
+
+Parsed task targets:
+
+```text
+0 alphabet_soup      -> basket | pick up the alphabet soup and place it in the basket
+1 cream_cheese       -> basket | pick up the cream cheese and place it in the basket
+2 salad_dressing     -> basket | pick up the salad dressing and place it in the basket
+3 bbq_sauce          -> basket | pick up the bbq sauce and place it in the basket
+4 ketchup            -> basket | pick up the ketchup and place it in the basket
+5 tomato_sauce       -> basket | pick up the tomato sauce and place it in the basket
+6 butter             -> basket | pick up the butter and place it in the basket
+7 milk               -> basket | pick up the milk and place it in the basket
+8 chocolate_pudding  -> basket | pick up the chocolate pudding and place it in the basket
+9 orange_juice       -> basket | pick up the orange juice and place it in the basket
+```
+
+For every task:
+
+```text
+bddl_contains_target = True
+bddl_contains_receptacle = True
+init_states_shape = (50, 110)
+```
+
+Task-0 rendered obs exposes object diagnostic keys:
+
+```text
+alphabet_soup_1_pos
+basket_1_pos
+butter_1_pos
+cream_cheese_1_pos
+milk_1_pos
+salad_dressing_1_pos
+tomato_sauce_1_pos
+object-state
+robot0_eef_pos
+...
+```
+
+Interpretation:
+
+- LIBERO-Object is diagnostic-friendly for BTS: target object and receptacle can be parsed from language and verified in BDDL.
+- Observation exposes per-object positions, enabling first-contact / nearest-object / target-distance diagnostics.
+- LIBERO-Object is object-identity binding rather than color-shape attribute binding, but it is the correct first real benchmark.
+
+Next fix:
+
+```text
+Build a small LIBERO-Object random/noop rollout logger that records target distance, nearest object to gripper, and success over init states.
+```
