@@ -287,3 +287,45 @@ shim 的 `fnv1_32`（mul-then-xor）對齊官方 FNV-1 32-bit 測試向量（'a'
 3. 回 dataset/env config 線：partial-extract validation 與官方 packaged_ABC_D 在 `.hydra/merged_config.yaml`、calvin_env assets、scene/task config 上是否完全一致（注意 eval initial_state 來自 `get_sequences()`，但 env config/asset 仍來自 validation）。
 
 遠端產物：`/tmp/run_eval_noclip.sh`（patch DA 兩個 scheduler 加 clip_sample=False，跑完還原 source）、`/workspace/bts/eval_noclip_logs/`（N=20 sum23）、`/workspace/bts/eval_noclip100_logs/`（N=100 sum45）、`/tmp/sched_probe.py`、`/tmp/pyhash_check.py`、`/tmp/fnv_variants.py`、`/tmp/cpu_gpu_step_compare.py`、`/tmp/cpu_gpu_full_step_compare.py`。
+
+---
+
+## 10. 第五輪：沒有第二台機器下的剩餘 sanity（2026-06-08）
+
+### 10.1 `calvin_env main` 對照：排除 env commit 差異
+3D-DA README 明確要求：`cd calvin_env; git checkout main`。遠端原本是 detached `1431a46`，本地 `main/origin/main` 是 `797142c fix bug in button during rollouts`，中間含幾個看似相關 commit：
+- `27a27a2 fix bug with actions being modified after step`
+- `6e7ceaa fix bug with wrong object sizes after changing a scene`
+- `5a0eb8a add control in joint space`
+- `797142c fix bug in button during rollouts`
+
+做法：`/tmp/run_eval_envmain.sh` 暫時 checkout `calvin_env main`，跑同 20 條 base eval，再 trap 還原 `1431a46`。
+
+結果：**逐 sequence 完全等於 base3**（sum19/20；`0 0, 1 5, 2 0, ...` 一模一樣）。→ `calvin_env` commit / action execution 差異**不是主因**。
+
+### 10.2 language tokenization：排除 text length / truncation 問題
+實際 eval wrapper (`DiffusionModel.encode_instruction`) 設 `tokenizer.model_max_length=16` 後，embedding shape 是 **(1, 16, 512)**。`new_playtable_validation.yaml` 34 個 annotation 經 CLIP tokenizer 都回傳 len=16，沒有 >16 長句/未 truncation 問題。
+
+validation `auto_lang_ann.npy` 的 `language.emb` 是 **(1087,1,384)**（CALVIN 自己的 embedding），不是 3D-DA 使用的 CLIP 16×512；不能直接拿來比。3D-DA repo 的 `instructions/calvin_task_ABC_D/` 在遠端不存在，因此無法直接比訓練時預存 CLIP embedding。
+
+### 10.3 DGL CPU FPS vs canonical FPS：排除 CPU FPS 實作錯誤
+實作純 Python canonical farthest-point sampling（start_idx=0、逐步 argmax），對多個 shape/dtype 比 DGL CPU：
+- fp32/fp64，B=1/3/2，N=128/256/1000，C=192/64/16，k=N//3
+- **equal=True / overlap=1.000** 全部通過。
+
+→ DGL CPU FPS 至少等於 canonical FPS；剩下的 CUDA-vs-CPU tie-breaking 不可直接測，但已被 factor=1 反向 rollout + canonical check 大幅降權。
+
+### 10.4 stored frame vs live render：render/assets 大體正常
+reset env 到 validation `.npz` 的 `robot_obs`/`scene_obs` 後 live render 與 stored frame 比：
+- episode 0/1/40/219635：RGB/depth 幾乎 pixel/depth 對齊（static RGB mean_abs ~0.8–1.4，gripper RGB ~0.001；depth ~1e-4）。
+- 中段 episode 1000/37682 差異較大，可能是 storage state 不能完整重建所有 dynamic state；但開頭與跨 split frame 能對齊，**不支持 render/asset 全局錯誤**。
+
+### 10.5 目前狀態
+在「只有本地 + GB10」限制下，已排掉：checkpoint、flags、validation missing、FPS dtype/canonical/factor=1、EGL depth/render、fp16/TF32、CPU-vs-GPU model inference、calvin_env main vs detached、language token length。
+
+仍未能解釋 0.57 vs 論文 ~2.5。最誠實的剩餘假設：
+1. **released checkpoint / public eval reproduction 本身高度環境敏感**（issue #102 的 V100 fail→4090 pass 仍是唯一外部 clue），但我們已無第二台機器可切開；
+2. **我們仍漏掉某個 high-level rollout 差異**（pybullet 3.2.7 / Python 3.12 / control dynamics / task oracle / packaged dataset-env config），但目前沒有單一強嫌疑；
+3. **比較對象可能不是這個 checkpoint/公開腳本的可重現結果**，需向作者 issue/成功環境索取精確 env lock 或 checkpoint checksum。
+
+若繼續本機 debug，下一個最有資訊量的是：修 `/tmp/dump_first_traj.py`（補 `interpolation_length=20`）dump failure/success 的 19-waypoint absolute action path + gripper，判斷模型是否輸出「合理但 physics/oracle 失敗」還是「模型本身語義/動作就很差」。
