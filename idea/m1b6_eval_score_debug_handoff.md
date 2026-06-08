@@ -244,35 +244,46 @@ torch.set_float32_matmul_precision('highest')
 
 ---
 
-## 9. 第四輪：diffusers scheduler 線（2026-06-08）— **clip_sample=False 第一個真正有效的修正**
+## 9. 第四輪：diffusers scheduler 線（2026-06-08）— **clip_sample 初看有效，但 100-seq 否決**
 
 選項 1（主流 GPU）不可行（只有本地+GB10），改追硬體無關的 **diffusers 版本/scheduler** 線（符合 #102「reconfigure environment」）。
 
 ### 9.1 發現
 - 裝的是 **diffusers 0.37.1，repo setup.py 不 pin**。repo 最後 commit **2024-08-17**，era-correct 應是 0.27–0.30。
 - repo `DDPMScheduler(...)` **沒設 clip_sample → 吃 default `True`**：每個去噪步把預測 x0 clip 到 [−1,1]。
-  - position 有 `normalize_pos` 到 [−1,1]（clip 大致無害）；
-  - **rotation 6D（idx 3:9）沒 normalize**，去噪中間 x0 會超出 [−1,1]，被 clip → **扭曲旋轉**。
+- hypothesis：position 有 `normalize_pos` 到 [−1,1]（clip 大致無害），但 **rotation 6D（idx 3:9）沒 normalize**，去噪中間 x0 若超出 [−1,1] 會被 clip → 扭曲旋轉。
 
-### 9.2 clip_sample=False 實測（同 20 條）
-| run | 設定 | sum/20 | avg |
-|---|---|---|---|
-| base3 | clip_sample=True（default）| 19 | 0.95 |
-| **noclip** | **clip_sample=False** | **23** | **1.15 (+21%)** |
+### 9.2 clip_sample=False 實測：20-seq 假陽性，100-seq 否決
+| run | N | 設定 | sum/N | avg |
+|---|---:|---|---:|---:|
+| base3 | 20 | clip_sample=True（default）| 19/20 | 0.95 |
+| noclip | 20 | clip_sample=False | 23/20 | 1.15 |
+| original | 100 | clip_sample=True（default）| 57/100 | 0.57 |
+| **noclip100** | **100** | **clip_sample=False** | **45/100** | **0.45** |
 
-seq4 1→4、seq17 1→3（**chaining 變深**），非雜訊。**這是四輪以來第一個真正動了指針的修正**，但非 ~5× 量級 → 多因素疊加。
+20-seq 的 +21%（seq4 1→4、seq17 1→3）被 100-seq 誠實比較否決：**clip_sample=False 沒有回升，反而略低（0.57→0.45）**。結論：**clip_sample 不是解法；20-seq 是樣本噪聲**。
 
-### 9.3 純降 diffusers 版本行不通
+### 9.3 純降 diffusers 版本行不通 / 目前未找到 scheduler 主因
 - **scheduler 數學 0.30→0.37 完全相同**（timesteps[24..0] / betas / alphas_cumprod / clip_sample=True / timestep_spacing=leading 全一致）。
 - era-correct **≤0.27 在現代 huggingface_hub(0.36) 下 import 失敗**（`cached_download` 已移除）→ 要降 diffusers 得連 hub 一起降，風險高（會動到 transformers/CLIP），**未做**。已把 diffusers 還原 0.37.1。
-- 結論：版本回歸（若存在）在 0.27 之前；但 clip_sample 這個 default 在所有版本都是 True，**它是 repo eval 對這個 checkpoint 的真 bug（影響所有人），不是 GB10 特有**。
+- 結論：diffusers scheduler 線目前**未找到主因**；clip_sample 已排除。
 
 ### 9.4 pyhash shim 已驗正確
 shim 的 `fnv1_32`（mul-then-xor）對齊官方 FNV-1 32-bit 測試向量（'a'=0x050c5d7e 等全 match）。即使與真 pyhash 有別，scene shuffle 只換兩個 table-block 位置、產生「不同但合法」的 episode（oracle 看實際 sim state），**非掉分機制**。排除。
 
-### 9.5 下一步
-1. **clip_sample=False 跑 100-seq**（對齊原始 0.57 的誠實比較，拿穩定增益量級）— 進行中。
-2. 若增益穩定但仍遠低於論文 → 回 **dataset 線**：我們的 partial-extract validation vs 官方 packaged_ABC_D 是否在「eval 實際讀的東西」上有別（注意 eval 的 initial_state 來自 get_sequences、不讀 npz，所以 dataset 影響面其實有限——要重新確認 packaged 到底差在哪）。
-3. 或細查 0.27 vs 0.37 的 `DDPMScheduler.step` posterior/variance 實作差異（逐函式 diff），看 clip 以外還有沒有行為差。
+### 9.5 CPU vs GPU 單步對照：模型 inference / kernel bug 也排除
+在沒有第二張 GPU 的情況下，做 GB10-only 最決定性測試：**同一個真實 eval obs + 同一 checkpoint + 同一 CLIP embedding + 同一固定 diffusion initial noise + 每步 variance noise**，CPU vs GPU(fp32/TF32-off) 比單次 `model.step`。
 
-遠端產物：`/tmp/run_eval_noclip.sh`（patch DA 兩個 scheduler 加 clip_sample=False，跑完還原 source）、`/workspace/bts/eval_noclip_logs/`（N=20 sum23）、`/tmp/sched_probe.py`、`/tmp/pyhash_check.py`、`/tmp/fnv_variants.py`。
+結果：
+- raw policy trajectory：**max_abs=9.6e-8, mean_abs=2.1e-8**。
+- full eval postprocess（quat→Euler + relative_to_absolute；含 pytorch3d transform）後 absolute action：**max_abs=1.9e-7**。
+
+→ **Blackwell/aarch64 forward kernel / attention / pytorch3d / dgl gather 算錯基本排除**。模型對同一 obs 的輸出在 CPU/GPU 一致。
+
+### 9.6 下一步（目前最合理）
+既然模型 inference/device 數值已排除，低分若不是 checkpoint 本身，就更像 **CALVIN env / pybullet / action execution / task oracle / packaged dataset/env config 版本差異**，不是模型 forward。下一步建議：
+1. 比對 CALVIN / pybullet / package versions 與官方/issue #102 成功環境；
+2. 做 action execution / oracle sanity（固定一個已知 initial_state，檢查 env.step 控制模式、physics timestep、task oracle 對 state delta 的判定是否合理）；
+3. 回 dataset/env config 線：partial-extract validation 與官方 packaged_ABC_D 在 `.hydra/merged_config.yaml`、calvin_env assets、scene/task config 上是否完全一致（注意 eval initial_state 來自 `get_sequences()`，但 env config/asset 仍來自 validation）。
+
+遠端產物：`/tmp/run_eval_noclip.sh`（patch DA 兩個 scheduler 加 clip_sample=False，跑完還原 source）、`/workspace/bts/eval_noclip_logs/`（N=20 sum23）、`/workspace/bts/eval_noclip100_logs/`（N=100 sum45）、`/tmp/sched_probe.py`、`/tmp/pyhash_check.py`、`/tmp/fnv_variants.py`、`/tmp/cpu_gpu_step_compare.py`、`/tmp/cpu_gpu_full_step_compare.py`。
