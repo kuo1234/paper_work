@@ -1492,3 +1492,83 @@ Next engineering target:
 ```text
 Add first-approach / nearest-object-over-time summary and wrong-nearest-object metric for any policy trace.
 ```
+
+
+---
+
+## 25. LIBERO nearest-object metrics v0（2026-06-09）
+
+Updated:
+
+```text
+bts-poc/experiments/libero_object_rollout_diagnostics.py
+```
+
+Added per-rollout summary:
+
+```text
+first_nearest_object
+first_nearest_is_target
+nearest_target_fraction
+first_target_nearest_t
+target_dist_initial
+target_dist_final
+target_dist_drop
+```
+
+Aggregate summary:
+
+```text
+mean_target_dist_drop
+mean_nearest_target_fraction
+first_nearest_target_rate
+```
+
+Ran three policies over 3 tasks × 2 init states × 25 steps:
+
+```bash
+for p in noop random target_reach; do
+  MUJOCO_GL=egl MUJOCO_EGL_DEVICE_ID=0 python /workspace/libero_object_rollout_diagnostics.py     --tasks 3 --inits 2 --steps 25 --policy $p     --out /workspace/bts/libero_object_rollout_diag_${p}_v2.json
+done
+```
+
+Results:
+
+```text
+noop:
+  mean_target_dist_drop = 0.0163
+  mean_nearest_target_fraction = 0.0
+  first_nearest_target_rate = 0.0
+
+random:
+  mean_target_dist_drop = 0.0164
+  mean_nearest_target_fraction = 0.0
+  first_nearest_target_rate = 0.0
+
+target_reach:
+  mean_target_dist_drop = 0.0547
+  mean_nearest_target_fraction = 0.0
+  first_nearest_target_rate = 0.0
+```
+
+Interpretation:
+
+- `target_dist_drop` is behavior-sensitive and clearly separates target_reach from noop/random.
+- `nearest_target_fraction` remains 0 for all three because target_reach moves toward the parsed target but does not get close enough within 25 steps to make the target object nearest to the gripper.
+- This is useful: nearest-object is a stricter diagnostic than target-distance reduction and probably corresponds more closely to first-contact / object-selection behavior.
+
+Recommended diagnostic hierarchy for real policies:
+
+```text
+1. target_dist_drop          # weak but smooth signal
+2. first_target_nearest_t    # stronger approach signal
+3. nearest_target_fraction   # sustained target focus
+4. first-contact object      # strongest wrong-object metric, needs contact extraction
+5. success                   # full task metric
+```
+
+Next fix:
+
+```text
+Extend target_reach horizon/action scale or add target_nearest heuristic to validate the stricter nearest-object metric.
+```

@@ -45,6 +45,29 @@ def nearest_object(obs: Dict, object_names: List[str], eef_key: str = "robot0_ee
     return best
 
 
+def summarize_trace(trace: List[Dict], target: str | None) -> Dict:
+    nearest = [t.get("nearest_object") for t in trace if t.get("nearest_object")]
+    nearest_names = [n.get("object") for n in nearest if n]
+    target_prefix = f"{target}_" if target else None
+    is_target_nearest = [bool(name and target_prefix and name.startswith(target_prefix)) for name in nearest_names]
+    first_nearest = nearest_names[0] if nearest_names else None
+    first_target_nearest_t = None
+    for i, ok in enumerate(is_target_nearest):
+        if ok:
+            first_target_nearest_t = i
+            break
+    dists = [t.get("target_dist_to_eef") for t in trace if t.get("target_dist_to_eef") is not None]
+    return {
+        "first_nearest_object": first_nearest,
+        "first_nearest_is_target": bool(is_target_nearest[0]) if is_target_nearest else False,
+        "nearest_target_fraction": float(sum(is_target_nearest) / len(is_target_nearest)) if is_target_nearest else None,
+        "first_target_nearest_t": first_target_nearest_t,
+        "target_dist_initial": dists[0] if dists else None,
+        "target_dist_final": dists[-1] if dists else None,
+        "target_dist_drop": (dists[0] - dists[-1]) if len(dists) >= 2 else None,
+    }
+
+
 def rollout_task(task_id: int, init_id: int, steps: int, policy: str, camera_size: int):
     from libero.libero import benchmark, get_libero_path
     from libero.libero.envs import OffScreenRenderEnv
@@ -109,6 +132,7 @@ def rollout_task(task_id: int, init_id: int, steps: int, policy: str, camera_siz
         if done:
             break
     env.close()
+    trace_summary = summarize_trace(trace, target)
     return {
         "task_id": task_id,
         "init_id": init_id,
@@ -121,6 +145,7 @@ def rollout_task(task_id: int, init_id: int, steps: int, policy: str, camera_siz
         "steps_requested": steps,
         "steps_recorded": len(trace),
         "success_seen": success_seen,
+        "trace_summary": trace_summary,
         "trace": trace,
     }
 
@@ -139,18 +164,36 @@ def main():
         for init_id in range(args.inits):
             rows.append(rollout_task(task_id, init_id, args.steps, args.policy, args.camera_size))
             print("done", task_id, init_id)
+    drops = [r["trace_summary"].get("target_dist_drop") for r in rows if r["trace_summary"].get("target_dist_drop") is not None]
+    nearest_fracs = [r["trace_summary"].get("nearest_target_fraction") for r in rows if r["trace_summary"].get("nearest_target_fraction") is not None]
+    first_nearest_hits = [r["trace_summary"].get("first_nearest_is_target") for r in rows]
     summary = {
         "n_rollouts": len(rows),
         "policy": args.policy,
         "success_count": sum(int(r["success_seen"]) for r in rows),
+        "mean_target_dist_drop": float(np.mean(drops)) if drops else None,
+        "mean_nearest_target_fraction": float(np.mean(nearest_fracs)) if nearest_fracs else None,
+        "first_nearest_target_rate": float(np.mean(first_nearest_hits)) if first_nearest_hits else None,
         "rollouts": rows,
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    print("n_rollouts", summary["n_rollouts"], "success_count", summary["success_count"])
+    print(
+        "n_rollouts", summary["n_rollouts"],
+        "success_count", summary["success_count"],
+        "mean_drop", summary["mean_target_dist_drop"],
+        "nearest_target_frac", summary["mean_nearest_target_fraction"],
+        "first_nearest_target_rate", summary["first_nearest_target_rate"],
+    )
     for r in rows:
-        first = r["trace"][0] if r["trace"] else {}
-        print(r["task_id"], r["init_id"], r["target_object"], "nearest0", first.get("nearest_object"), "target_dist0", first.get("target_dist_to_eef"))
+        ts = r["trace_summary"]
+        print(
+            r["task_id"], r["init_id"], r["target_object"],
+            "first_nearest", ts.get("first_nearest_object"),
+            "first_hit", ts.get("first_nearest_is_target"),
+            "nearest_frac", ts.get("nearest_target_fraction"),
+            "drop", ts.get("target_dist_drop"),
+        )
     print("wrote", args.out)
 
 
