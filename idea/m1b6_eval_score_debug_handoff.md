@@ -165,3 +165,49 @@ online_evaluation_calvin/evaluate_utils.py  prepare_visual_states：camera 依 c
 ## 6. 給下一 session 的一句話
 
 **接 M1b-6：3D-DA ABC→D 100-seq 只有 avg seq len ~0.57（論文 ~2.8）。flags 已全對齊官方，問題不在 flag。先驗 FPS CPU fallback 等價性（嫌疑 A），再查 partial-validation 完整性（B）與 checkpoint load keys（C）。遠端容器 bts_m1、branch 0c6685b、validation 已就緒。**
+
+---
+
+## 7. 第二輪 debug 結果（2026-06-08，補記）— **所有 component 嫌疑全數排除，定錨為硬體/環境**
+
+> 重要：遠端路徑修正為 **/workspace/bts/...**（不是 ~/bts）。容器 bts_m1 Up、GB10 idle。
+
+### 7.1 逐項排除（皆遠端容器實測）
+
+| 嫌疑 | 結論 | 證據 |
+|---|---|---|
+| **C** checkpoint 載入 | ✅ 排除 | 實跑 `load_state_dict`：**0 missing / 0 unexpected / 0 shape mismatch**。`module.` 7-char strip 正確、strict=True 本會 raise。|
+| **B** validation 完整性 | ✅ 排除 | 1087 個 lang-task eval window **0 missing frame**。**且發現 eval 的 initial_state 來自 `get_sequences()` 程序生成、不讀 npz frame**（npz 只供 lang embedding），資料完整性對 rollout 行為基本無關。|
+| **A** FPS（dtype）| ✅ 排除 | git diff 證明上游**原本就 `.to(float64)`**，patch 只改 device。實測 CPU FPS fp64-vs-fp32 index **overlap=1.000 且完全 deterministic**。CUDA FPS 在此 aarch64 wheel 不存在。|
+| **A** FPS（反向 rollout 測）| ✅ 排除 | 同 20 條 sequence：factor=3 **avg 0.95** vs factor=1（不下採樣）**avg 0.55**（更糟非回升）。若 FPS 是元兇移除下採樣應回升。|
+| **D** 單 GPU 取樣 | ✅ 排除 | WORLD_SIZE=1 → 乾淨取 sequence 0..N-1。|
+| **F** GB10 EGL 幾何 | ✅ 排除 | live render depth 與**資料集存的 depth 幾乎一致**（static mean 4.278 vs 4.285）。point cloud extent 合理、finite。|
+
+外加逐行確認對齊官方：scene config（calvin_scene_D / calvin_table_D）、proprio 8-dim(pos3+wxyz quat4+grip1) 與 `gripper[...,:7]`、quaternion_format=wxyz 與 `convert_rot` 內部慣例、relative_to_absolute、gripper_loc_bounds（JSON keyed by {A,B,C,D}→multi-task union）、act bounds clip、EP_LEN=60/EXECUTE_LEN=20、autocast=fp16。**無一不符。**
+
+### 7.2 關鍵反轉
+失敗**不在 chaining**：task-1 本身只有 ~36%（論文 ~93.8%）。代表「每一步 action 品質系統性偏掉」。no-history(nhist=1) 與 old(nhist=3) 分數幾乎相同也佐證 history 非關鍵。
+
+### 7.3 決定性外部證據（GitHub issues）
+- **#102「Error Result on Calvin dataset」**：完全相同症狀——分數極低、**換 no-history checkpoint 也一樣低**；maintainer 說 eval code「looks correct」。最終解法：**「V100 server 一直失敗，換到 4090 workstation 重配環境後成功重現」**＝GPU/環境問題，非 code/data/flag。
+- **#94**：multi-task 權重測試需 `single_task_gripper_loc_bounds=0`（但此 flag 只在 RLBench eval；CALVIN 走 task=None→multi-task union，已正確）。
+- **#66**：avg seq len 算法＝Σ(每條完成數)/N，與我們一致。
+
+### 7.4 定錨結論 + 下一步
+pipeline 對官方忠實、component 全清白 → 分數低**最可能是 GB10（Blackwell / aarch64 / CUDA13 / torch 2.7 nv25.04）這套 exotic 硬體在 diffusion inference 某 op 的 silent 數值問題**（與 #102 的 V100-fail / 4090-pass 同類）。
+
+建議下一步（**不要再找 flag/data/code bug，已證實不在那**）：
+1. **換主流 GPU 對照**（最直接）：把同 checkpoint + 同 dataset 放到 x86 CUDA（4090 / A100）跑同 20 條 sequence，看是否回到 ~2.x。能一刀切開「硬體 vs 其他」。
+2. 若只能留在 GB10：逐 op 比對 inference 數值——關 autocast 改全程 fp32、`cudnn.benchmark=False` / `deterministic=True`、單步 dump diffusion 去噪中間值與一張參考卡比對；重點查 attention / FPS gather / pytorch3d 旋轉 op 在 Blackwell 上的數值。
+
+### 7.5 第二輪用到的遠端產物
+```text
+/tmp/check_load.py     checkpoint load keys 驗證
+/tmp/check_val.py      validation lang-window 完整性
+/tmp/fps_probe.py      FPS 決定性 + fp64/fp32 overlap
+/tmp/geom_probe.py     一步 depth/pcd/proprio 幾何 dump
+/tmp/cmp_depth.py      live vs stored depth 比對
+/tmp/run_eval_fpsexp.sh  參數化 launcher: <N> <fps_factor> <tag>
+/workspace/bts/eval_fpsexp_base3_logs/result.txt  factor=3 N=20 (sum19)
+/workspace/bts/eval_fpsexp_fps1_logs/result.txt   factor=1 N=20 (sum11)
+```
