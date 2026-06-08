@@ -1070,3 +1070,62 @@ Interpretation:
 - Learned object evidence is robust across clean/noise/occlusion when trained on a mixed corruption distribution.
 - This is the next bridge from synthetic deterministic parsing to VLA-compatible learned perception tokens.
 - Remaining gap: integrate learned patch evidence into the structured BTS belief policy end-to-end.
+
+
+---
+
+## 19. Learned evidence + structured BTS policy v0（2026-06-08）
+
+Implemented:
+
+```text
+bts-poc/experiments/learned_bts_policy_v0.py
+```
+
+Pipeline:
+
+```text
+RGB image
+  -> deterministic color connected components for candidate locations
+  -> learned patch classifier for color/shape evidence
+  -> structured BTS score = log P(color target) + log P(shape target)
+  -> select object
+```
+
+This integrates learned object evidence with structured binding. It is no longer using ground-truth object metadata or deterministic shape fill-ratio for the final decision.
+
+Command:
+
+```bash
+PYTHONPATH=bts-poc python bts-poc/experiments/learned_bts_policy_v0.py   --n-train-scenes 500 --n-eval 500 --epochs 6 --cpu
+```
+
+OOD result:
+
+```text
+clean          success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000 detected_all=1.000
+noise20        success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000 detected_all=1.000
+noise40        success=0.998 wrong_object=0.002 wrong_color=0.000 wrong_shape=0.002 detected_all=1.000
+occ12          success=0.980 wrong_object=0.020 wrong_color=0.002 wrong_shape=0.018 detected_all=0.996
+noise20_occ12  success=0.972 wrong_object=0.028 wrong_color=0.000 wrong_shape=0.028 detected_all=1.000
+```
+
+Comparison against generic pixel policy:
+
+```text
+generic pixel_xy OOD clean: success=0.244, wrong_object=0.756
+learned evidence + BTS OOD clean: success=1.000, wrong_object=0.000
+learned evidence + BTS OOD noise/occlusion: success≈0.972-1.000
+```
+
+Interpretation:
+
+- Learned perception plus structured belief preserves OOD binding performance under corruption.
+- Failure under occlusion is now small and mostly shape-related.
+- This is the strongest controlled image-route evidence so far.
+
+Next fix:
+
+```text
+Add a multi-seed report script that runs the key controlled benchmark experiments and emits a compact table/JSON for paper-style reporting.
+```
