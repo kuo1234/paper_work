@@ -107,6 +107,30 @@ def summarize_trace(trace: List[Dict], target: str | None) -> Dict:
     }
 
 
+def compute_action(policy: str, obs: Dict, target_key: str | None, rng: np.random.Generator) -> List[float]:
+    """Policy registry for diagnostic rollouts.
+
+    Future learned / OpenVLA policies should adapt to this signature or wrap it:
+    `policy(obs, instruction, diagnostics_context) -> 7D action`.
+    """
+    if policy == "noop":
+        return [0.0] * 7
+    if policy == "random":
+        action = rng.normal(0.0, 0.05, size=7).tolist()
+        action[-1] = 0.0
+        return action
+    if policy in {"target_reach", "target_reach_fast"}:
+        action = [0.0] * 7
+        if target_key and target_key in obs and "robot0_eef_pos" in obs:
+            delta = np.asarray(obs[target_key]) - np.asarray(obs["robot0_eef_pos"])
+            gain = 2.0 if policy == "target_reach" else 5.0
+            clip = 0.08 if policy == "target_reach" else 0.20
+            action[:3] = np.clip(gain * delta, -clip, clip).tolist()
+        action[-1] = 0.0
+        return action
+    raise ValueError(policy)
+
+
 def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy: str, camera_size: int):
     from libero.libero import benchmark, get_libero_path
     from libero.libero.envs import OffScreenRenderEnv
@@ -159,24 +183,7 @@ def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy
             "agentview_shape": list(obs["agentview_image"].shape) if "agentview_image" in obs else None,
             "wrist_shape": list(obs["robot0_eye_in_hand_image"].shape) if "robot0_eye_in_hand_image" in obs else None,
         })
-        if policy == "noop":
-            action = [0.0] * 7
-        elif policy == "random":
-            action = rng.normal(0.0, 0.05, size=7).tolist()
-            action[-1] = 0.0
-        elif policy in {"target_reach", "target_reach_fast"}:
-            # Simple object-state heuristic: move end-effector toward parsed target object.
-            # This is diagnostic-only, not a task policy. It verifies that target-distance
-            # metrics respond to behavior and that parsed target keys are actionable.
-            action = [0.0] * 7
-            if target_key and "robot0_eef_pos" in obs:
-                delta = np.asarray(obs[target_key]) - np.asarray(obs["robot0_eef_pos"])
-                gain = 2.0 if policy == "target_reach" else 5.0
-                clip = 0.08 if policy == "target_reach" else 0.20
-                action[:3] = np.clip(gain * delta, -clip, clip).tolist()
-            action[-1] = 0.0
-        else:
-            raise ValueError(policy)
+        action = compute_action(policy, obs, target_key, rng)
         obs, reward, done, info = env.step(action)
         success_seen = success_seen or bool(reward > 0 or done)
         if done:
