@@ -1025,3 +1025,48 @@ Interpretation:
 - The image-grounded structured binding path is robust to moderate noise and occlusion after threshold fix.
 - Severe noise (`std=40`) mostly hurts shape classification, not object detection.
 - This gives a concrete next perception target: learned/soft shape evidence should replace brittle fill-ratio classification.
+
+
+---
+
+## 18. Learned object evidence classifier v0（2026-06-08）
+
+Implemented:
+
+```text
+bts-poc/experiments/train_patch_classifier_v0.py
+```
+
+Purpose: replace brittle deterministic fill-ratio evidence with learned color/shape patch evidence.
+
+Initial attempt trained only on `noise20+occ8`, which over-specialized to that corruption regime:
+
+```text
+clean shape≈0.708
+occ12 shape≈0.674
+noise20 shape=1.000
+```
+
+Fix: mixed-corruption training with clean, noise, occlusion, and noise+occlusion datasets.
+
+Command:
+
+```bash
+PYTHONPATH=bts-poc python bts-poc/experiments/train_patch_classifier_v0.py   --n-train-scenes 500 --n-eval-scenes 300 --epochs 6 --cpu
+```
+
+Post-fix result:
+
+```text
+clean          color=1.000 shape=1.000 both=1.000 loss=0.0645
+noise20        color=1.000 shape=0.999 both=0.999 loss=0.0311
+noise40        color=1.000 shape=0.989 both=0.989 loss=0.0533
+occ12          color=1.000 shape=0.968 both=0.968 loss=0.2335
+noise20_occ12  color=1.000 shape=0.973 both=0.973 loss=0.1571
+```
+
+Interpretation:
+
+- Learned object evidence is robust across clean/noise/occlusion when trained on a mixed corruption distribution.
+- This is the next bridge from synthetic deterministic parsing to VLA-compatible learned perception tokens.
+- Remaining gap: integrate learned patch evidence into the structured BTS belief policy end-to-end.
