@@ -818,3 +818,63 @@ Next implementation step:
 ```text
 Train a small image policy baseline on this benchmark, then add BTS target-belief supervision and compare OOD wrong-object rate.
 ```
+
+
+---
+
+## 14. Trainable controlled image-binding baselines（2026-06-08）
+
+Implemented:
+
+```text
+bts-poc/experiments/train_image_binding_v0.py
+```
+
+This trains three policies on the controlled benchmark:
+
+1. `shortcut`: instruction-only xy regressor. It learns train-time color-location shortcut.
+2. `generic_belief`: generic MLP scorer over instruction-object features. It can memorize seen color-shape pairs and treat held-out pairs as negatives.
+3. `bts_structured`: decomposed structured belief scorer with separate color-match and shape-match terms. It cannot memorize atomic color-shape pairs, so it generalizes to held-out bindings.
+
+Command:
+
+```bash
+PYTHONPATH=bts-poc python bts-poc/experiments/train_image_binding_v0.py   --n-train 5000 --n-eval 2000 --epochs 20 --cpu
+```
+
+Result after first attempt:
+
+```text
+shortcut ood success≈0.27 wrong_object≈0.73
+generic_belief ood success≈0.08 wrong_object≈0.92
+```
+
+Diagnosis: generic MLP belief is not enough. It memorizes training compositions and fails worse than the shortcut on held-out color-shape pairs. This is exactly the failure mode BTS must avoid: belief must be **structured**, not just another attention/MLP head.
+
+Fixed with `bts_structured` decomposed scorer:
+
+```text
+shortcut train success=0.986 wrong_object=0.014 wrong_color=0.010 wrong_shape=0.008
+shortcut id    success=0.988 wrong_object=0.012 wrong_color=0.006 wrong_shape=0.009
+shortcut ood   success=0.258 wrong_object=0.742 wrong_color=0.475 wrong_shape=0.422
+
+generic_belief train success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000
+generic_belief id    success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000
+generic_belief ood   success=0.080 wrong_object=0.920 wrong_color=0.641 wrong_shape=0.465
+
+bts_structured train success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000
+bts_structured id    success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000
+bts_structured ood   success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000
+```
+
+Key finding:
+
+> A generic learned belief head is insufficient under compositional OOD. The benefit comes from explicit factorization of object-attribute binding, not from adding capacity.
+
+This is strong support for the image-route BTS story.
+
+Next fix:
+
+```text
+Move from metadata object candidates to image-derived candidates or rendered object patches, so the structured belief remains image-grounded rather than oracle-metadata-grounded.
+```
