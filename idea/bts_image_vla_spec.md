@@ -572,3 +572,249 @@ Large image-language policies can still bind the right attribute to the wrong ob
 BTS introduces an explicit, temporally maintained belief over bindings.
 This reduces wrong-object and wrong-attribute errors, especially under compositional shifts.
 ```
+
+
+---
+
+## 12. LIBERO/OpenVLA research update（2026-06-08）
+
+This update is recorded as `docs/decisions/ADR-001-bts-image-libero-openvla.md`.
+
+### 12.1 Benchmark choice
+
+Recommended real-benchmark start:
+
+```text
+1. LIBERO-Object
+2. LIBERO-Spatial
+3. LIBERO-10 / Long only later
+```
+
+Reason:
+
+- LIBERO-Object is closest to object identity / object-binding diagnostics.
+- LIBERO-Spatial is the next step for relational binding.
+- LIBERO-10/Long introduce horizon/confounding before binding diagnostics are stable.
+- LIBERO-Goal stresses goal variation more than pure object-attribute binding.
+
+### 12.2 Practical setup notes
+
+LIBERO native setup is older/simulator-heavy:
+
+```bash
+conda create -n libero python=3.8.13
+conda activate libero
+git clone https://github.com/Lifelong-Robot-Learning/LIBERO.git
+cd LIBERO
+pip install -r requirements.txt
+pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113
+pip install -e .
+```
+
+Datasets:
+
+```bash
+python benchmark_scripts/download_libero_datasets.py
+# or
+python benchmark_scripts/download_libero_datasets.py --use-huggingface
+```
+
+Suites:
+
+```text
+libero_spatial
+libero_object
+libero_goal
+libero_10
+libero_90
+libero_100
+```
+
+Simulator uses MuJoCo / robosuite-style offscreen rendering. Expect EGL friction (`MUJOCO_EGL_DEVICE_ID`, `CUDA_VISIBLE_DEVICES`).
+
+### 12.3 OpenVLA setup notes
+
+OpenVLA stack is newer:
+
+```text
+Python 3.10
+PyTorch 2.2.x
+transformers==4.40.1
+flash-attn==2.5.5
+A100 recommended for full reproduction
+LoRA smaller but still ~27GB+ VRAM
+```
+
+OpenVLA has a LIBERO eval path:
+
+```bash
+pip install -r experiments/robot/libero/libero_requirements.txt
+python experiments/robot/libero/run_libero_eval.py   --model_family openvla   --pretrained_checkpoint openvla/openvla-7b-finetuned-libero-object   --task_suite_name libero_object   --center_crop True
+```
+
+Default eval is 500 trials = 10 tasks × 50 episodes. Start with much smaller trial count.
+
+Available checkpoints include:
+
+```text
+openvla/openvla-7b-finetuned-libero-spatial
+openvla/openvla-7b-finetuned-libero-object
+openvla/openvla-7b-finetuned-libero-goal
+openvla/openvla-7b-finetuned-libero-10
+```
+
+Modified LIBERO RLDS data from OpenVLA is about 10GB total:
+
+```bash
+git clone git@hf.co:datasets/openvla/modified_libero_rlds
+```
+
+### 12.4 Image/action compatibility
+
+LIBERO native env example:
+
+```python
+from libero.libero.envs import OffScreenRenderEnv
+
+env = OffScreenRenderEnv(
+    bddl_file_name=task_bddl_file,
+    camera_heights=128,
+    camera_widths=128,
+)
+obs, reward, done, info = env.step([0.] * 7)
+```
+
+Expected:
+
+```text
+image: RGB camera frames, commonly 128x128
+action: 7D continuous
+reward: sparse, success gives +1
+```
+
+OpenVLA inference expects:
+
+```text
+PIL image
+prompt: "In: What action should the robot take to {instruction}?
+Out:"
+output: 7-DoF continuous action via predict_action(...)
+```
+
+OpenVLA-OFT is worth checking later because it uses two images + proprio:
+
+```text
+full_image
+wrist_image
+state
+task_description
+num_images_in_input = 2
+use_proprio = True
+```
+
+### 12.5 Diagnostics feasibility
+
+LIBERO exposes task metadata:
+
+```text
+task.name
+task.language
+task.problem_folder
+task.bddl_file
+task_suite.get_task_init_states(task_id)
+```
+
+BDDL path construction:
+
+```python
+task_bddl_file = os.path.join(
+    get_libero_path("bddl_files"),
+    task.problem_folder,
+    task.bddl_file,
+)
+```
+
+BTS diagnostics likely path:
+
+1. Parse task language.
+2. Parse BDDL goal predicates.
+3. Group by object names / attributes / relations.
+4. Log success by object-pair, distractor, relation, template, init state.
+5. Inspect robosuite object names / simulator state for first-contact or nearest-object proxies.
+
+Caveat: object metadata is feasible but not plug-and-play; expect custom BDDL/simulator-state inspection.
+
+### 12.6 Updated execution order
+
+```text
+M2-1: Controlled image-binding benchmark v0
+M2-2: BTS on controlled benchmark
+M2-3a: LIBERO-Object install/eval smoke
+M2-3b: LIBERO BDDL diagnostic parser
+M2-4: ACT/Diffusion strong baseline
+M2-5: OpenVLA LIBERO-Object small eval
+M2-6: OpenVLA+BTS integration
+```
+
+Do not start with full OpenVLA fine-tuning. First prove mechanism, then evaluate existing OpenVLA checkpoint on small LIBERO-Object runs.
+
+
+---
+
+## 13. Controlled image-binding benchmark v0 result（2026-06-08）
+
+Implemented:
+
+```text
+bts-poc/envs/image_binding.py
+bts-poc/experiments/image_binding_v0.py
+```
+
+Design:
+
+- 96×96 RGB scenes.
+- 4 colored objects per scene.
+- Attributes: color × shape.
+- Instruction: `pick the {color} {shape}`.
+- Action abstraction: discrete object selection. This isolates binding before robot dynamics.
+- Train/ID split includes a deliberate color-location shortcut.
+- OOD split holds out selected color-shape target pairs and breaks the location shortcut.
+- Direct diagnostics: success, wrong_object, wrong_color, wrong_shape.
+
+Held-out OOD target pairs:
+
+```text
+red triangle
+blue square
+green circle
+```
+
+Smoke command:
+
+```bash
+PYTHONPATH=bts-poc python bts-poc/experiments/image_binding_v0.py --n 1000 --save-images
+```
+
+Result:
+
+```text
+location_prior train success=0.989 wrong_object=0.011 wrong_color=0.006 wrong_shape=0.006
+location_prior id    success=0.982 wrong_object=0.018 wrong_color=0.012 wrong_shape=0.011
+location_prior ood   success=0.256 wrong_object=0.744 wrong_color=0.454 wrong_shape=0.454
+
+oracle_language train success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000
+oracle_language id    success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000
+oracle_language ood   success=1.000 wrong_object=0.000 wrong_color=0.000 wrong_shape=0.000
+```
+
+Interpretation:
+
+- The benchmark successfully creates a spurious shortcut: location prior works in train/ID and collapses on OOD.
+- OOD failure is mostly wrong-object with both wrong-color and wrong-shape components.
+- Oracle language binding solves OOD, proving the task is solvable when object-attribute binding is correct.
+
+Next implementation step:
+
+```text
+Train a small image policy baseline on this benchmark, then add BTS target-belief supervision and compare OOD wrong-object rate.
+```
