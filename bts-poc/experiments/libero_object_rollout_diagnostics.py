@@ -298,6 +298,7 @@ def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy
                 "relation": parsed.get("relation"),
                 "goal_target_instance": goal_target_instance,
                 "goal_receptacle_instance": goal_receptacle_instance,
+                "object_names": object_names,
                 "step": t,
                 "trace_so_far": trace,
             }

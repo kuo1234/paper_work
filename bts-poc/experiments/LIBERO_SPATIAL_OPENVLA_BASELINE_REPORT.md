@@ -306,4 +306,34 @@ be **selective**, not always-on: activate the structured gate only when OpenVLA'
 is low/ambiguous or when predicted motion points toward a non-target object. This matches BTS's
 actual premise: belief gates should intervene under uncertainty, not override every rollout.
 
+### 6.6 Selective directional gate: fixes first-contact, but still regresses success
+
+Artifact: `runs/openvla_object10x1_directional_gate.json`
+Adapter: `openvla_policy_adapter:openvla_directional_bts_gate_policy`
+
+Heuristic: before target contact, compute the endpoint of OpenVLA's proposed translation
+(`EEF + action[:3]`). Gate to the target only if that endpoint is closer to a non-target object
+than to the BDDL target.
+
+Known 3 failures:
+
+```text
+success 1/3, first_wrong_type 0/3, any_wrong_type 0/3
+```
+
+Broader init-0 slice:
+
+| Metric | baseline init0 | directional gate init0 |
+|---|---:|---:|
+| success | 7/10 | 3/10 |
+| first_wrong_type | 2/10 | **0/10** |
+| any_wrong_type | 2/10 | 1/10 |
+| any_target_contact | 8/10 | **10/10** |
+| mean_nearest_target_fraction | 0.758 | 0.814 |
+
+Conclusion: this direction-endpoint heuristic is also too aggressive / miscalibrated for success,
+but it reinforces the core point: structured target acquisition reliably removes first wrong-object
+contacts. The missing piece is a better **when-to-intervene** criterion, likely learned/evidence-
+based rather than geometry-only.
+
 

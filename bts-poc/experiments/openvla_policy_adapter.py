@@ -178,6 +178,21 @@ def _default_unnorm_key(checkpoint: str) -> str:
     return "libero_spatial"
 
 
+def _apply_target_translation_gate(action, obs: Dict[str, Any], context: Dict[str, Any]):
+    """Replace action[:3] with clipped translation toward context['target_key']."""
+    import os
+    import numpy as np
+
+    action = np.asarray(action, dtype=float).reshape(-1)[:7].copy()
+    target_key = context.get("target_key")
+    if target_key and target_key in obs and "robot0_eef_pos" in obs:
+        gain = float(os.environ.get("BTS_TARGET_GATE_GAIN", "5.0"))
+        clip = float(os.environ.get("BTS_TARGET_GATE_CLIP", "0.20"))
+        delta = np.asarray(obs[target_key], dtype=float) - np.asarray(obs["robot0_eef_pos"], dtype=float)
+        action[:3] = np.clip(gain * delta, -clip, clip)
+    return action
+
+
 def openvla_target_gate_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:
     """Diagnostic BTS/OpenVLA upper-bound: gate translation toward the BDDL target.
 
@@ -188,17 +203,8 @@ def openvla_target_gate_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> 
     It preserves OpenVLA's rotation + gripper output, but replaces action[:3] with a
     clipped proportional controller toward context['target_key'] (e.g. cream_cheese_1_pos).
     """
-    import os
-    import numpy as np
-
-    action = np.asarray(openvla_policy(obs, context), dtype=float).reshape(-1)[:7]
-    target_key = context.get("target_key")
-    if target_key and target_key in obs and "robot0_eef_pos" in obs:
-        gain = float(os.environ.get("BTS_TARGET_GATE_GAIN", "5.0"))
-        clip = float(os.environ.get("BTS_TARGET_GATE_CLIP", "0.20"))
-        delta = np.asarray(obs[target_key], dtype=float) - np.asarray(obs["robot0_eef_pos"], dtype=float)
-        action[:3] = np.clip(gain * delta, -clip, clip)
-    return action.tolist()
+    action = openvla_policy(obs, context)
+    return _apply_target_translation_gate(action, obs, context).tolist()
 
 
 def openvla_target_gate_until_contact_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:
@@ -216,6 +222,65 @@ def openvla_target_gate_until_contact_policy(obs: Dict[str, Any], context: Dict[
         if name and target_name and (name == target_name or name.startswith(target_name + "_")):
             return openvla_policy(obs, context)
     return openvla_target_gate_policy(obs, context)
+
+
+def openvla_directional_bts_gate_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:
+    """Selective BTS gate: intervene only when OpenVLA translation points to a wrong object.
+
+    Diagnostic heuristic for the next BTS step. Before target contact, compute the endpoint of
+    OpenVLA's proposed translation (`eef + action[:3]`). If the nearest object to that endpoint
+    is a non-target object (and closer than the target by `BTS_DIRECTIONAL_MARGIN`), replace the
+    translation with the oracle target-gate translation. Otherwise leave OpenVLA untouched.
+
+    This tests whether a *selective* structured-binding gate can fix mis-binding without the
+    broad success regressions of an always-on gate.
+    """
+    import os
+    import re
+    import numpy as np
+
+    base = np.asarray(openvla_policy(obs, context), dtype=float).reshape(-1)[:7]
+    target_key = context.get("target_key") or ""
+    target_name = target_key[:-4] if target_key.endswith("_pos") else target_key
+
+    # Release once the target has been contacted.
+    for step in context.get("trace_so_far") or []:
+        c = step.get("contact_object")
+        name = c.get("object") if c else None
+        if name and target_name and (name == target_name or name.startswith(target_name + "_")):
+            return base.tolist()
+
+    if not target_key or target_key not in obs or "robot0_eef_pos" not in obs:
+        return base.tolist()
+
+    def stem(name: str | None) -> str | None:
+        return re.sub(r"_\d+$", "", name) if name else None
+
+    target_stem = stem(target_name)
+    eef = np.asarray(obs["robot0_eef_pos"], dtype=float)
+    endpoint = eef + np.asarray(base[:3], dtype=float)
+    target_pos = np.asarray(obs[target_key], dtype=float)
+    target_dist = float(np.linalg.norm(endpoint - target_pos))
+
+    best = None
+    for obj in context.get("object_names") or []:
+        pos_key = f"{obj}_pos"
+        if pos_key not in obs:
+            continue
+        dist = float(np.linalg.norm(endpoint - np.asarray(obs[pos_key], dtype=float)))
+        if best is None or dist < best["dist"]:
+            best = {"object": obj, "dist": dist}
+
+    if best is None:
+        return base.tolist()
+
+    margin = float(os.environ.get("BTS_DIRECTIONAL_MARGIN", "0.00"))
+    points_to_wrong = stem(best["object"]) != target_stem and best["dist"] + margin < target_dist
+    if not points_to_wrong:
+        return base.tolist()
+
+    gated = _apply_target_translation_gate(base, obs, context)
+    return gated.tolist()
 
 
 def zero_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:

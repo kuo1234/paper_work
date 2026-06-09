@@ -2322,7 +2322,16 @@ target-gate-until-contact init0: success 3/10, wrong_type 0/10, target_contact 1
 
 So the acquisition gate is excellent for binding metrics but too blunt as an always-on wrapper:
 it fixes wrong contacts and increases target contact, but regresses many otherwise-good successes.
-Next intervention should be **selective**: activate only when evidence/belief is ambiguous or
-when OpenVLA motion is aimed toward a non-target object.
+A first selective geometric heuristic (`openvla_directional_bts_gate_policy`, gate when OpenVLA's
+translation endpoint is nearer a non-target object than target) also fixes first-contact wrong-type
+but still regresses success:
+
+```text
+directional gate known 3: success 1/3, first_wrong 0/3, any_wrong 0/3
+directional gate 10x1:    success 3/10, first_wrong 0/10, any_wrong 1/10, target_contact 10/10
+```
+
+Next intervention should be **evidence/belief-selective**, not geometry-only: activate only when
+OpenVLA target evidence is ambiguous/low or an object-evidence module predicts non-target attraction.
 
 
