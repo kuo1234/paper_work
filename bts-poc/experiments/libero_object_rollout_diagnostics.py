@@ -267,10 +267,18 @@ def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy
             target_to_receptacle = float(np.linalg.norm(np.asarray(obs[target_key]) - np.asarray(obs[receptacle_key])))
         near = nearest_object(obs, object_names)
         contact = contact_object(env, object_names)
+        object_positions = {}
+        for name in object_names:
+            k = find_obs_key(obs, name, "_pos")
+            if k and k in obs:
+                object_positions[name] = np.asarray(obs[k], dtype=float).tolist()
         trace.append({
             "t": t,
             "target_dist_to_eef": target_dist,
             "target_dist_to_receptacle": target_to_receptacle,
+            "robot0_eef_pos": np.asarray(obs["robot0_eef_pos"], dtype=float).tolist() if "robot0_eef_pos" in obs else None,
+            "target_pos": np.asarray(obs[target_key], dtype=float).tolist() if target_key and target_key in obs else None,
+            "object_positions": object_positions,
             "nearest_object": near,
             "contact_object": contact,
             "agentview_shape": list(obs["agentview_image"].shape) if "agentview_image" in obs else None,
