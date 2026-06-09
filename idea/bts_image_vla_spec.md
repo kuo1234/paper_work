@@ -2279,4 +2279,19 @@ Targeted rerun (new `--pairs` option) confirms the failures are stable:
 
 This is now the cheap fixed failure set for the next BTS/OpenVLA intervention test.
 
+Oracle target-gate smoke (`openvla_target_gate_policy`) on the same 3 failures:
+
+```text
+first_contact_wrong_type: 3/3 -> 0/3
+  cream_cheese:       tomato_sauce_1  -> cream_cheese_1
+  butter:             basket_1        -> butter_1
+  chocolate_pudding:  orange_juice_1  -> chocolate_pudding_1
+any_wrong_type_contact: 3/3 -> 1/3  (cream_cheese later brushed tomato_sauce)
+success_count: 0/3  (binding fixed, full task completion not fixed)
+```
+
+Interpretation: structured target binding can eliminate the **first wrong-object contact** on the
+known failures, but does not automatically solve the full manipulation task. Next BTS/OpenVLA
+prototype should report binding metrics separately from LIBERO success.
+
 

@@ -178,6 +178,29 @@ def _default_unnorm_key(checkpoint: str) -> str:
     return "libero_spatial"
 
 
+def openvla_target_gate_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:
+    """Diagnostic BTS/OpenVLA upper-bound: gate translation toward the BDDL target.
+
+    This is NOT the final learned BTS method. It is an oracle diagnostic that asks:
+    if structured binding selects the correct target instance/object, is wrong-object
+    contact eliminated on the fixed OpenVLA failure cases?
+
+    It preserves OpenVLA's rotation + gripper output, but replaces action[:3] with a
+    clipped proportional controller toward context['target_key'] (e.g. cream_cheese_1_pos).
+    """
+    import os
+    import numpy as np
+
+    action = np.asarray(openvla_policy(obs, context), dtype=float).reshape(-1)[:7]
+    target_key = context.get("target_key")
+    if target_key and target_key in obs and "robot0_eef_pos" in obs:
+        gain = float(os.environ.get("BTS_TARGET_GATE_GAIN", "5.0"))
+        clip = float(os.environ.get("BTS_TARGET_GATE_CLIP", "0.20"))
+        delta = np.asarray(obs[target_key], dtype=float) - np.asarray(obs["robot0_eef_pos"], dtype=float)
+        action[:3] = np.clip(gain * delta, -clip, clip)
+    return action.tolist()
+
+
 def zero_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:
     """Safe no-op adapter for testing import path in environments without OpenVLA."""
     return [0.0] * 7

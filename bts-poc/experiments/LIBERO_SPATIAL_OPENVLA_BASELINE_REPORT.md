@@ -217,4 +217,37 @@ n_rollouts 3, success_count 0, wrong_type_contact_rate 1.0
 This gives a cheap fixed failure set for the next intervention step: a BTS/OpenVLA module only
 needs to be tested first on these 3 rollouts before running the full 30-rollout sweep.
 
+### 6.3 Oracle target-gate intervention smoke
+
+Artifact: `runs/openvla_object_known_failures_target_gate.json`
+Adapter: `openvla_policy_adapter:openvla_target_gate_policy`
+
+This is a diagnostic upper-bound, not the final learned BTS method. It keeps OpenVLA rotation +
+gripper, but replaces translation with a proportional controller toward the BDDL target instance
+(`context['target_key']`). It asks: if structured binding selects the correct target, can we
+eliminate the known wrong-first-contact failures?
+
+Result on the fixed 3 failure cases:
+
+```text
+first_contact_wrong_type: 3/3 -> 0/3  (fixed)
+first contacts:
+  1:0 cream_cheese       tomato_sauce_1     -> cream_cheese_1
+  6:2 butter             basket_1           -> butter_1
+  8:0 chocolate_pudding  orange_juice_1     -> chocolate_pudding_1
+any_wrong_type_contact:  3/3 -> 1/3  (cream_cheese later brushed tomato_sauce)
+success_count: 0/3       (binding fixed; full task completion not fixed)
+```
+
+Interpretation: structured target binding is sufficient to fix the **first wrong-object contact**
+on the known failures, but it is not by itself sufficient for task success. The next BTS/OpenVLA
+prototype should therefore separate two claims:
+
+```text
+binding metric: first_contact_wrong_type / any_wrong_type_contact
+full manipulation metric: LIBERO success
+```
+
+BTS should first reduce wrong-contact metrics, then later address placement/success.
+
 
