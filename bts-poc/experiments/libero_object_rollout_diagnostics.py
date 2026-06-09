@@ -144,6 +144,17 @@ def summarize_trace(trace: List[Dict], target: str | None) -> Dict:
     first_contact_is_distractor = _is_same_class_distractor(first_contact_name)
     any_distractor_contact = any(_is_same_class_distractor(n) for n in contact_names)
     any_target_contact = any(_is_target_name(n) for n in contact_names)
+
+    # Wrong-object-TYPE (cross-identity) binding: contacted an object whose class stem differs
+    # from the target stem entirely (e.g. target cream_cheese, contacted tomato_sauce). This is
+    # the LIBERO-Object identity-binding signal (distinct object types, no same-class pairs).
+    def _is_wrong_type(name: str | None) -> bool:
+        cs = _class_stem(name)
+        return bool(cs and target_stem and cs != target_stem)
+
+    contact_stems_first = _class_stem(first_contact_name)
+    first_contact_is_wrong_type = _is_wrong_type(first_contact_name)
+    any_wrong_type_contact = any(_is_wrong_type(n) for n in contact_names)
     return {
         "first_nearest_object": first_nearest,
         "first_nearest_is_target": bool(is_target_nearest[0]) if is_target_nearest else False,
@@ -152,8 +163,11 @@ def summarize_trace(trace: List[Dict], target: str | None) -> Dict:
         "first_contact_object": first_contact,
         "first_contact_is_target": bool(first_contact_is_target),
         "first_contact_is_distractor_instance": bool(first_contact_is_distractor),
+        "first_contact_is_wrong_type": bool(first_contact_is_wrong_type),
         "any_target_contact": bool(any_target_contact),
         "any_distractor_instance_contact": bool(any_distractor_contact),
+        "any_wrong_type_contact": bool(any_wrong_type_contact),
+        "first_contact_stem": contact_stems_first,
         "target_class_stem": target_stem,
         "target_dist_initial": dists[0] if dists else None,
         "target_dist_final": dists[-1] if dists else None,
@@ -351,6 +365,8 @@ def main():
     target_contacts = [r["trace_summary"].get("any_target_contact") for r in rows]
     distractor_contacts = [r["trace_summary"].get("any_distractor_instance_contact") for r in rows]
     first_contact_distractor = [r["trace_summary"].get("first_contact_is_distractor_instance") for r in rows]
+    wrong_type_contacts = [r["trace_summary"].get("any_wrong_type_contact") for r in rows]
+    first_wrong_type = [r["trace_summary"].get("first_contact_is_wrong_type") for r in rows]
     summary = {
         "n_rollouts": len(rows),
         "suite": args.suite,
@@ -362,6 +378,8 @@ def main():
         "any_target_contact_rate": float(np.mean(target_contacts)) if target_contacts else None,
         "any_distractor_instance_contact_rate": float(np.mean(distractor_contacts)) if distractor_contacts else None,
         "first_contact_distractor_rate": float(np.mean(first_contact_distractor)) if first_contact_distractor else None,
+        "any_wrong_type_contact_rate": float(np.mean(wrong_type_contacts)) if wrong_type_contacts else None,
+        "first_contact_wrong_type_rate": float(np.mean(first_wrong_type)) if first_wrong_type else None,
         "rollouts": rows,
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
