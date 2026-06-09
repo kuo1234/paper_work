@@ -2358,4 +2358,13 @@ belief premise.
 
 Focused intervention report: `bts-poc/experiments/BTS_OPENVLA_INTERVENTION_REPORT.md`.
 
+Evidence dataset substrate collected for next module:
+
+```text
+script: bts-poc/experiments/collect_libero_object_evidence_data.py
+remote: ~/bts-poc/experiments/runs/libero_object_evidence_v0
+n=50 frames (libero_object 10 tasks x 5 inits, 256px, OpenVLA-rotated)
+metadata includes language, target object, object_positions, target_pos, receptacle_pos
+```
+
 

@@ -304,6 +304,24 @@ PYTHONPATH=bts-poc python bts-poc/experiments/analyze_openvla_binding_traces.py 
 Use this after running rollout diagnostics with action/eef/object tracing; it reports wrong-object
 contacts, pre-target endpoint-nearest stats, and adapter gate rates.
 
+Collect visual/object evidence dataset for BTS trigger module:
+
+```bash
+ssh p76141495@192.168.65.11 'cd ~/bts-poc/experiments && \
+  MUJOCO_GL=egl PYTHONPATH=~/bts-poc/experiments \
+  ~/openvla-spark/.venv/bin/python collect_libero_object_evidence_data.py \
+    --suite libero_object --tasks 10 --inits 5 --camera-size 256 --warmup-steps 10 \
+    --out-dir runs/libero_object_evidence_v0'
+```
+
+Expected:
+
+```text
+n = 50 frames
+runs/libero_object_evidence_v0/metadata.jsonl
+runs/libero_object_evidence_v0/images/*.png
+```
+
 
 
 ```text

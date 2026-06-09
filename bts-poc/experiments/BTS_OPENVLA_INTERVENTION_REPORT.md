@@ -214,4 +214,14 @@ trigger: activate target-gate only when confidence is low or top evidence disagr
 metric: wrong_object_type first/any + LIBERO success on fixed failures and 10x1/10x3 slices
 ```
 
-First milestone should be a diagnostic evidence oracle or detector, not full policy learning.
+First dataset substrate collected:
+
+```text
+script: bts-poc/experiments/collect_libero_object_evidence_data.py
+remote artifact: ~/bts-poc/experiments/runs/libero_object_evidence_v0
+metadata: runs/libero_object_evidence_v0/metadata.jsonl
+n = 50 frames (libero_object 10 tasks x 5 inits, 256px, OpenVLA-rotated agentview)
+labels: language, target object, object_positions, target_pos, receptacle_pos
+```
+
+Next milestone should be a diagnostic evidence oracle or detector, not full policy learning.
