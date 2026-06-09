@@ -336,4 +336,21 @@ but it reinforces the core point: structured target acquisition reliably removes
 contacts. The missing piece is a better **when-to-intervene** criterion, likely learned/evidence-
 based rather than geometry-only.
 
+### 6.7 Gate-strength tuning: lower gain fixes binding but loses success
+
+Artifact: `runs/openvla_object_known_failures_gate_low.json`
+Adapter: `openvla_target_gate_until_contact_policy` with `BTS_TARGET_GATE_GAIN=2.0`,
+`BTS_TARGET_GATE_CLIP=0.08`.
+
+Known 3 failures:
+
+```text
+success 0/3, first_wrong_type 0/3, any_wrong_type 0/3
+```
+
+So weaker target-gating is still enough to fix wrong contacts, but it no longer recovers success
+(contrast default gain/clip: success 2/3). The success recovery likely depends on reaching/grasping
+the object decisively before handoff; simply making the gate gentler is not the right selectivity
+mechanism.
+
 

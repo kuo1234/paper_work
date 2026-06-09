@@ -2334,4 +2334,14 @@ directional gate 10x1:    success 3/10, first_wrong 0/10, any_wrong 1/10, target
 Next intervention should be **evidence/belief-selective**, not geometry-only: activate only when
 OpenVLA target evidence is ambiguous/low or an object-evidence module predicts non-target attraction.
 
+Gate-strength tuning on known 3 (`BTS_TARGET_GATE_GAIN=2.0`, `BTS_TARGET_GATE_CLIP=0.08`):
+
+```text
+success 0/3, first_wrong 0/3, any_wrong 0/3
+```
+
+Weaker gating still fixes wrong contacts but loses success recovery (default gain/clip got 2/3).
+So success recovery likely needs decisive target acquisition plus better handoff, not merely gentler
+translation.
+
 
