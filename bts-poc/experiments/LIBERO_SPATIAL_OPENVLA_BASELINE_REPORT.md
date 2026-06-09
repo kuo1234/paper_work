@@ -185,4 +185,18 @@ not to keep broadening vanilla LIBERO blindly; instead build a BTS/OpenVLA inter
 these object-identity failures or design a controlled-distractor/attribute variant that makes
 the error denser.
 
+Fast targeted rerun command for the known failures (new `--pairs` option):
+
+```bash
+OPENVLA_CHECKPOINT=openvla/openvla-7b-finetuned-libero-object \
+MUJOCO_GL=egl HF_HOME=~/bts/hf_cache PYTHONPATH=~/bts-poc/experiments \
+~/openvla-spark/.venv/bin/python libero_object_rollout_diagnostics.py \
+  --suite libero_object --pairs 1:0,6:2,8:0 \
+  --steps 280 --warmup-steps 10 --camera-size 256 \
+  --policy external --policy-adapter openvla_policy_adapter:openvla_policy \
+  --out runs/openvla_object_known_failures.json
+```
+
+Use this for fast BTS/OpenVLA intervention tests instead of rerunning a full 30-rollout sweep.
+
 

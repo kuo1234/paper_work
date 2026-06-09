@@ -340,11 +340,30 @@ def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy
     }
 
 
+def parse_pairs(spec: str | None) -> List[tuple[int, int]] | None:
+    """Parse --pairs like '1:0,6:2,8:0' into [(task_id, init_id), ...]."""
+    if not spec:
+        return None
+    pairs = []
+    for part in spec.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if ":" not in part:
+            raise ValueError(f"Invalid --pairs entry {part!r}; expected task:init")
+        task_s, init_s = part.split(":", 1)
+        pairs.append((int(task_s), int(init_s)))
+    if not pairs:
+        raise ValueError("--pairs was provided but no valid task:init entries were parsed")
+    return pairs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--suite", default="libero_object")
     ap.add_argument("--tasks", type=int, default=3)
     ap.add_argument("--inits", type=int, default=2)
+    ap.add_argument("--pairs", default=None, help="Explicit task:init pairs, e.g. '1:0,6:2,8:0'. Overrides --tasks/--inits.")
     ap.add_argument("--steps", type=int, default=10)
     ap.add_argument("--policy", choices=["noop", "random", "target_reach", "target_reach_fast", "external"], default="noop")
     ap.add_argument("--policy-adapter", default=None, help="External policy adapter as module:function; signature fn(obs, context)->7D action")
@@ -354,11 +373,13 @@ def main():
     ap.add_argument("--out", type=Path, default=Path("runs/libero_object_rollout_diag.json"))
     args = ap.parse_args()
     policy_adapter = load_policy_adapter(args.policy_adapter)
+    pairs = parse_pairs(args.pairs)
+    if pairs is None:
+        pairs = [(task_id, init_id) for task_id in range(args.tasks) for init_id in range(args.inits)]
     rows = []
-    for task_id in range(args.tasks):
-        for init_id in range(args.inits):
-            rows.append(rollout_task(args.suite, task_id, init_id, args.steps, args.policy, args.camera_size, policy_adapter, warmup_steps=args.warmup_steps, language_override=args.language_override))
-            print("done", task_id, init_id)
+    for task_id, init_id in pairs:
+        rows.append(rollout_task(args.suite, task_id, init_id, args.steps, args.policy, args.camera_size, policy_adapter, warmup_steps=args.warmup_steps, language_override=args.language_override))
+        print("done", task_id, init_id)
     drops = [r["trace_summary"].get("target_dist_drop") for r in rows if r["trace_summary"].get("target_dist_drop") is not None]
     nearest_fracs = [r["trace_summary"].get("nearest_target_fraction") for r in rows if r["trace_summary"].get("nearest_target_fraction") is not None]
     first_nearest_hits = [r["trace_summary"].get("first_nearest_is_target") for r in rows]
@@ -391,15 +412,19 @@ def main():
         "nearest_target_frac", summary["mean_nearest_target_fraction"],
         "first_nearest_target_rate", summary["first_nearest_target_rate"],
         "distractor_contact_rate", summary["any_distractor_instance_contact_rate"],
+        "wrong_type_contact_rate", summary["any_wrong_type_contact_rate"],
     )
     for r in rows:
         ts = r["trace_summary"]
+        first_contact = ts.get("first_contact_object") or {}
         print(
             r["task_id"], r["init_id"], r["target_object"],
             "first_nearest", ts.get("first_nearest_object"),
             "first_hit", ts.get("first_nearest_is_target"),
             "nearest_frac", ts.get("nearest_target_fraction"),
             "drop", ts.get("target_dist_drop"),
+            "first_contact", first_contact.get("object"),
+            "wrong_type", ts.get("any_wrong_type_contact"),
         )
     print("wrote", args.out)
 
