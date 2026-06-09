@@ -293,6 +293,18 @@ distractor_instance_contact_rate 0.0
 (vs broken: drop -0.298, success 0 — before the preprocessing fix)
 ```
 
+Trace feature analysis for BTS trigger design:
+
+```bash
+PYTHONPATH=bts-poc python bts-poc/experiments/analyze_openvla_binding_traces.py \
+  bts-poc/experiments/runs/openvla_object_mixed_actionpos120.json \
+  --out bts-poc/experiments/runs/openvla_binding_trace_features.json
+```
+
+Use this after running rollout diagnostics with action/eef/object tracing; it reports wrong-object
+contacts, pre-target endpoint-nearest stats, and adapter gate rates.
+
+
 
 ```text
 e375631 docs: pivot BTS from 3D-DA to image route
