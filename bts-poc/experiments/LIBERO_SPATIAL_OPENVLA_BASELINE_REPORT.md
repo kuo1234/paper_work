@@ -336,6 +336,18 @@ but it reinforces the core point: structured target acquisition reliably removes
 contacts. The missing piece is a better **when-to-intervene** criterion, likely learned/evidence-
 based rather than geometry-only.
 
+Debug trace instrumentation now records executed action and adapter `policy_debug` in each trace.
+A 120-step debug rerun on the known failures showed why the directional trigger is too broad:
+
+```text
+cream_cheese:       gate_triggered 69/120 = 0.575; endpoint often tomato_sauce/butter
+butter:             gate_triggered 25/120 = 0.208; endpoint often chocolate_pudding/ketchup
+chocolate_pudding:  gate_triggered 39/120 = 0.325; endpoint often ketchup/bbq_sauce
+```
+
+This is useful diagnostic data, but not yet a final trigger: the heuristic intervenes for a large
+fraction of acquisition steps, explaining the success regressions in broader eval.
+
 ### 6.7 Gate-strength tuning: lower gain fixes binding but loses success
 
 Artifact: `runs/openvla_object_known_failures_gate_low.json`
