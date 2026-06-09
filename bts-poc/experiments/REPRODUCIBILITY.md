@@ -205,7 +205,94 @@ LIBERO-Spatial long contact:
 
 ---
 
-## 4. Current commits of interest
+## 3b. Spark-native OpenVLA GPU eval (spark-only route)
+
+The CPU Docker (§1) is for LIBERO render/diagnostics only. OpenVLA GPU eval runs in a
+**separate native spark venv** that keeps the only CUDA-capable aarch64 torch
+(`2.12.0+cu130`) and installs the OpenVLA/LIBERO stack around it. See spec §34 for rationale.
+
+One-time env build on spark:
+
+```bash
+ssh p76141495@192.168.65.11
+python3 -m venv ~/openvla-spark/.venv
+~/openvla-spark/.venv/bin/pip install --upgrade pip
+~/openvla-spark/.venv/bin/pip install torch==2.12.0 torchvision \
+  --index-url https://download.pytorch.org/whl/cu130
+
+mkdir -p ~/bts && cd ~/bts
+git clone --depth 1 https://github.com/openvla/openvla.git
+git clone --depth 1 https://github.com/Lifelong-Robot-Learning/LIBERO.git
+
+# OpenVLA eval-critical deps (keep cu130 torch; skip training-only TF/dlimp)
+cd ~/bts/openvla && ~/openvla-spark/.venv/bin/pip install \
+  transformers==4.40.1 tokenizers==0.19.1 timm==0.9.10 \
+  draccus==0.8.0 peft==0.11.1 "accelerate>=0.25.0" \
+  einops huggingface_hub json-numpy jsonlines rich sentencepiece protobuf
+~/openvla-spark/.venv/bin/pip install -e . --no-deps
+
+# LIBERO runtime deps (skip pinned old transformers/numpy)
+cd ~/bts/LIBERO && ~/openvla-spark/.venv/bin/pip install \
+  robosuite==1.4.0 bddl==1.0.1 hydra-core==1.2.0 easydict gym==0.25.2 \
+  cloudpickle future thop robomimic
+~/openvla-spark/.venv/bin/pip install -e . --no-deps
+
+# Editable finder for LIBERO does not resolve; add a plain .pth fallback
+echo "/home/p76141495/bts/LIBERO" > \
+  ~/openvla-spark/.venv/lib/python3.12/site-packages/libero_repo.pth
+
+# Preseed ~/.libero/config.yaml (avoids interactive dataset-path prompt); see spec §34.2
+```
+
+Checkpoint download:
+
+```bash
+ssh p76141495@192.168.65.11 'export HF_HOME=~/bts/hf_cache; \
+  ~/openvla-spark/.venv/bin/python -c "from huggingface_hub import snapshot_download; \
+  print(snapshot_download(\"openvla/openvla-7b-finetuned-libero-spatial\"))"'
+```
+
+Load + inference smoke (decisive GB10 check):
+
+```bash
+ssh p76141495@192.168.65.11 'cd ~/bts && export HF_HOME=~/bts/hf_cache; \
+  ~/openvla-spark/.venv/bin/python test_openvla_load.py'
+# Expect: predict_action ~1.4s, 7D finite nonzero action, SMOKE_OK
+```
+
+OpenVLA LIBERO-Spatial eval through the existing diagnostics logger:
+
+```bash
+scp bts-poc/experiments/openvla_policy_adapter.py \
+    bts-poc/experiments/libero_object_rollout_diagnostics.py \
+    p76141495@192.168.65.11:~/bts-poc/experiments/
+
+ssh p76141495@192.168.65.11 'cd ~/bts-poc/experiments && \
+  export MUJOCO_GL=egl HF_HOME=~/bts/hf_cache PYTHONPATH=~/bts-poc/experiments && \
+  ~/openvla-spark/.venv/bin/python libero_object_rollout_diagnostics.py \
+    --suite libero_spatial --tasks 5 --inits 2 --steps 280 \
+    --warmup-steps 10 --camera-size 256 \
+    --policy external --policy-adapter openvla_policy_adapter:openvla_policy \
+    --out runs/openvla_spatial_sweep5x2.json'
+```
+
+Critical fidelity details (without these OpenVLA looks broken — drift, success 0):
+
+```text
+agentview_image rotated 180 deg (img[::-1, ::-1]) before resize to 224
+gripper: normalize [0,1]->[-1,+1] binarize, then invert sign
+10 dummy no-op warmup steps (objects fall/settle) + env.seed(0)
+center_crop True (finetuned checkpoints trained with image aug)
+```
+
+Expected single-rollout sanity (faithful preprocessing):
+
+```text
+success 1/1, target_dist_drop +0.317, nearest_target_fraction 0.537,
+distractor_instance_contact_rate 0.0
+(vs broken: drop -0.298, success 0 — before the preprocessing fix)
+```
+
 
 ```text
 e375631 docs: pivot BTS from 3D-DA to image route
