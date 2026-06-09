@@ -365,4 +365,25 @@ So weaker target-gating is still enough to fix wrong contacts, but it no longer 
 the object decisively before handoff; simply making the gate gentler is not the right selectivity
 mechanism.
 
+### 6.8 Pure OpenVLA action+position traces: endpoint geometry is not discriminative
+
+Artifact: `runs/openvla_object_mixed_actionpos120.json`
+Mixed set: wrong cases `1:0`, `8:0` plus good cases `0:0`, `2:0`, `9:0`, with action/eef/object
+positions logged for offline endpoint analysis.
+
+Pre-target-contact endpoint-nearest analysis (`endpoint = EEF + action[:3]`):
+
+```text
+1 cream_cheese        wrong_contact=True   endpoint_wrong_rate 75/120 = 0.625
+8 chocolate_pudding   wrong_contact=False  endpoint_wrong_rate 88/120 = 0.733
+0 alphabet_soup       wrong_contact=False  endpoint_wrong_rate 22/38  = 0.579
+2 salad_dressing      wrong_contact=False  endpoint_wrong_rate 44/51  = 0.863
+9 orange_juice        wrong_contact=False  endpoint_wrong_rate 35/44  = 0.795
+```
+
+Conclusion: endpoint-nearest geometry is **not** enough to identify true wrong-binding risk; even
+successful OpenVLA rollouts often have many early endpoint steps nearest a non-target. This explains
+why `openvla_directional_bts_gate_policy` regresses success. The selective trigger likely needs
+visual/object evidence or temporal confidence, not raw action endpoint geometry alone.
+
 

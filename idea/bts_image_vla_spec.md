@@ -2344,4 +2344,16 @@ Weaker gating still fixes wrong contacts but loses success recovery (default gai
 So success recovery likely needs decisive target acquisition plus better handoff, not merely gentler
 translation.
 
+Pure OpenVLA action+position trace analysis (mixed 5 cases, 120 steps) shows endpoint geometry is
+not discriminative:
+
+```text
+cream_cheese wrong case: endpoint_wrong_rate 0.625
+successful cases: endpoint_wrong_rate often similarly high (0.579, 0.795, 0.863)
+```
+
+Therefore the next trigger cannot be simple endpoint-nearest geometry. It likely needs a visual/
+object-evidence module or temporal confidence over object identity, matching BTS's structured
+belief premise.
+
 
