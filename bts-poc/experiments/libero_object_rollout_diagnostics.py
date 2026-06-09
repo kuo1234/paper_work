@@ -284,6 +284,7 @@ def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy
             # the BDDL target instance (target_key_name), so a policy that grasps the distractor
             # bowl is detected as a wrong-instance contact.
             policy_language = language_override if language_override is not None else task.language
+            policy_debug = {}
             context = {
                 "suite": suite_name,
                 "task_id": task_id,
@@ -301,10 +302,15 @@ def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy
                 "object_names": object_names,
                 "step": t,
                 "trace_so_far": trace,
+                "policy_debug": policy_debug,
             }
             action = policy_adapter(obs, context)
         else:
             action = compute_action(policy, obs, target_key, rng)
+            policy_debug = {}
+        trace[-1]["action"] = np.asarray(action, dtype=float).reshape(-1).tolist()
+        if policy_debug:
+            trace[-1]["policy_debug"] = policy_debug
         obs, reward, done, info = env.step(action)
         # LIBERO sets done on task success; also probe the env's native success check when available.
         step_success = bool(reward > 0 or done)

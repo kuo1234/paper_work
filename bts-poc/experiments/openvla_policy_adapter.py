@@ -203,8 +203,20 @@ def openvla_target_gate_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> 
     It preserves OpenVLA's rotation + gripper output, but replaces action[:3] with a
     clipped proportional controller toward context['target_key'] (e.g. cream_cheese_1_pos).
     """
+    import numpy as np
+
     action = openvla_policy(obs, context)
-    return _apply_target_translation_gate(action, obs, context).tolist()
+    gated = _apply_target_translation_gate(action, obs, context)
+    debug = context.get("policy_debug")
+    if isinstance(debug, dict):
+        debug.update({
+            "adapter": "openvla_target_gate_policy",
+            "base_action_xyz": np.asarray(action, dtype=float).reshape(-1)[:3].tolist(),
+            "gated_action_xyz": gated[:3].astype(float).tolist(),
+            "gate_triggered": True,
+            "target_key": context.get("target_key"),
+        })
+    return gated.tolist()
 
 
 def openvla_target_gate_until_contact_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:
@@ -240,6 +252,11 @@ def openvla_directional_bts_gate_policy(obs: Dict[str, Any], context: Dict[str, 
     import numpy as np
 
     base = np.asarray(openvla_policy(obs, context), dtype=float).reshape(-1)[:7]
+    debug = context.get("policy_debug")
+    if isinstance(debug, dict):
+        debug["adapter"] = "openvla_directional_bts_gate_policy"
+        debug["base_action_xyz"] = base[:3].astype(float).tolist()
+        debug["gate_triggered"] = False
     target_key = context.get("target_key") or ""
     target_name = target_key[:-4] if target_key.endswith("_pos") else target_key
 
@@ -276,10 +293,22 @@ def openvla_directional_bts_gate_policy(obs: Dict[str, Any], context: Dict[str, 
 
     margin = float(os.environ.get("BTS_DIRECTIONAL_MARGIN", "0.00"))
     points_to_wrong = stem(best["object"]) != target_stem and best["dist"] + margin < target_dist
+    if isinstance(debug, dict):
+        debug.update({
+            "target_key": target_key,
+            "target_stem": target_stem,
+            "endpoint_nearest_object": best["object"],
+            "endpoint_nearest_dist": float(best["dist"]),
+            "endpoint_target_dist": float(target_dist),
+            "directional_margin": float(margin),
+            "gate_triggered": bool(points_to_wrong),
+        })
     if not points_to_wrong:
         return base.tolist()
 
     gated = _apply_target_translation_gate(base, obs, context)
+    if isinstance(debug, dict):
+        debug["gated_action_xyz"] = gated[:3].astype(float).tolist()
     return gated.tolist()
 
 
