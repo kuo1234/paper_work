@@ -201,6 +201,23 @@ def openvla_target_gate_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> 
     return action.tolist()
 
 
+def openvla_target_gate_until_contact_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:
+    """Gate translation only until the target has been contacted, then release to OpenVLA.
+
+    The always-gated oracle fixes first-contact binding but can hurt placement/success because it
+    keeps pulling toward the object. This variant tests a more realistic intervention boundary:
+    use structured binding for acquisition, then hand manipulation back to the VLA.
+    """
+    target_key = context.get("target_key") or ""
+    target_name = target_key[:-4] if target_key.endswith("_pos") else target_key
+    for step in context.get("trace_so_far") or []:
+        c = step.get("contact_object")
+        name = c.get("object") if c else None
+        if name and target_name and (name == target_name or name.startswith(target_name + "_")):
+            return openvla_policy(obs, context)
+    return openvla_target_gate_policy(obs, context)
+
+
 def zero_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:
     """Safe no-op adapter for testing import path in environments without OpenVLA."""
     return [0.0] * 7

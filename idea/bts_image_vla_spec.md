@@ -2294,4 +2294,23 @@ Interpretation: structured target binding can eliminate the **first wrong-object
 known failures, but does not automatically solve the full manipulation task. Next BTS/OpenVLA
 prototype should report binding metrics separately from LIBERO success.
 
+Target-gate-until-contact intervention (gate only until target contact, then release to OpenVLA):
+
+```text
+OpenVLA baseline targeted rerun: success 0/3, first wrong-type 3/3, any wrong-type 3/3
+always target-gate oracle:       success 0/3, first wrong-type 0/3, any wrong-type 1/3
+target-gate until contact:       success 2/3, first wrong-type 0/3, any wrong-type 0/3
+```
+
+Per-case target-gate-until-contact:
+
+```text
+cream_cheese:       success 0, first_contact cream_cheese_1,      any_wrong False
+butter:             success 1, first_contact butter_1,            any_wrong False
+chocolate_pudding:  success 1, first_contact chocolate_pudding_1, any_wrong False
+```
+
+This is the strongest real-benchmark evidence so far: a structured target-binding acquisition
+gate can fix OpenVLA's wrong-object contacts and recover task success on 2/3 known failures.
+
 

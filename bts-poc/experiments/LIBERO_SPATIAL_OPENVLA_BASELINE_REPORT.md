@@ -250,4 +250,34 @@ full manipulation metric: LIBERO success
 
 BTS should first reduce wrong-contact metrics, then later address placement/success.
 
+### 6.4 Target-gate-until-contact: fixes binding and recovers success on 2/3
+
+Artifact: `runs/openvla_object_known_failures_target_gate_until_contact.json`
+Adapter: `openvla_policy_adapter:openvla_target_gate_until_contact_policy`
+
+This variant gates translation only until the target object has been contacted, then releases
+control back to pure OpenVLA for manipulation/placement. This is a better intervention boundary
+than always gating.
+
+Result on the fixed 3 failure cases:
+
+| Policy | success | first wrong-type | any wrong-type |
+|---|---:|---:|---:|
+| OpenVLA baseline targeted rerun | 0/3 | 3/3 | 3/3 |
+| always target-gate oracle | 0/3 | 0/3 | 1/3 |
+| **target-gate until contact** | **2/3** | **0/3** | **0/3** |
+
+Per case:
+
+```text
+1:0 cream_cheese       success=0 first_contact=cream_cheese_1       any_wrong=False
+6:2 butter             success=1 first_contact=butter_1             any_wrong=False
+8:0 chocolate_pudding  success=1 first_contact=chocolate_pudding_1  any_wrong=False
+```
+
+Interpretation: a structured target-binding intervention has a credible path to improving both
+binding metrics and actual LIBERO success, if it is used as an acquisition gate and then hands
+control back to the VLA. This is now the strongest real-benchmark evidence for the BTS image/VLA
+route.
+
 
