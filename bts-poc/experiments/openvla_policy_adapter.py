@@ -101,16 +101,27 @@ def _to_pil(image: np.ndarray):
 def openvla_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:
     """External adapter entrypoint for LIBERO diagnostics.
 
-    Returns a 7D action [dx, dy, dz, droll, dpitch, dyaw, gripper] in LIBERO's
-    OSC_POSE convention, produced by OpenVLA via HF predict_action.
+    Faithfully mirrors OpenVLA's official run_libero_eval preprocessing:
+      1. agentview_image rotated 180 deg (img[::-1, ::-1]) to match training.
+      2. resized to 224 (lanczos), then 90% center-crop+resize if center_crop (train aug).
+      3. predict_action via HF, then gripper normalize [0,1]->[-1,+1] (binarized) and inverted.
+
+    Returns a 7D action [dx, dy, dz, droll, dpitch, dyaw, gripper] for LIBERO OSC_POSE.
     """
     import numpy as np
     import torch
+    from PIL import Image
 
     model, processor = _lazy_load()
-    image = _to_pil(obs[_CONFIG.image_key])
+
+    raw = np.asarray(obs[_CONFIG.image_key])
+    raw = raw[::-1, ::-1]  # rotate 180 deg to match OpenVLA training preprocessing
+    if raw.dtype != np.uint8:
+        raw = np.clip(raw, 0, 255).astype(np.uint8)
+    image = Image.fromarray(np.ascontiguousarray(raw)).resize((224, 224), Image.LANCZOS)
     if _CONFIG.center_crop:
-        image = _center_crop(image)
+        image = _center_crop(image, scale=0.9)
+
     language = context.get("language") or "complete the task"
     prompt = make_prompt(language)
 
@@ -122,7 +133,23 @@ def openvla_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:
     with torch.no_grad():
         action = model.predict_action(**inputs, unnorm_key=unnorm_key, do_sample=False)
     action = np.asarray(action, dtype=float).reshape(-1)[:7]
+    action = _postprocess_gripper(action)
     return action.tolist()
+
+
+def _postprocess_gripper(action):
+    """Normalize gripper [0,1]->[-1,+1] (binarized) then invert sign, per OpenVLA LIBERO eval.
+
+    normalize_gripper_action(binarize=True): y = 2x - 1, then sign() -> {-1,+1}
+    invert_gripper_action: y = -y  (env uses -1=open, +1=close)
+    """
+    import numpy as np
+
+    g = 2.0 * (float(action[-1]) - 0.0) / (1.0 - 0.0) - 1.0  # [0,1] -> [-1,+1]
+    g = float(np.sign(g)) if g != 0 else -1.0  # binarize
+    g = -g  # invert
+    action[-1] = g
+    return action
 
 
 def _center_crop(image, scale: float = 0.9):

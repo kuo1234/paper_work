@@ -121,6 +121,29 @@ def summarize_trace(trace: List[Dict], target: str | None) -> Dict:
     first_contact = contacts[0] if contacts else None
     first_contact_name = first_contact.get("object") if first_contact else None
     first_contact_is_target = _is_target_name(first_contact_name)
+
+    # Wrong-instance (the core BTS binding signal): the policy contacts an object that
+    # shares the target's class stem but is a DIFFERENT instance, e.g. target is
+    # akita_black_bowl_1 and the policy grasps akita_black_bowl_2. We derive the class
+    # stem by stripping a trailing _<digits> instance index from the target instance name.
+    def _class_stem(name: str | None) -> str | None:
+        if not name:
+            return None
+        return re.sub(r"_\d+$", "", name)
+
+    target_stem = _class_stem(target)
+
+    def _is_same_class_distractor(name: str | None) -> bool:
+        if not name or not target_stem:
+            return False
+        if _is_target_name(name):
+            return False
+        return name == target_stem or name.startswith(target_stem + "_")
+
+    contact_names = [c.get("object") for c in contacts if c]
+    first_contact_is_distractor = _is_same_class_distractor(first_contact_name)
+    any_distractor_contact = any(_is_same_class_distractor(n) for n in contact_names)
+    any_target_contact = any(_is_target_name(n) for n in contact_names)
     return {
         "first_nearest_object": first_nearest,
         "first_nearest_is_target": bool(is_target_nearest[0]) if is_target_nearest else False,
@@ -128,6 +151,10 @@ def summarize_trace(trace: List[Dict], target: str | None) -> Dict:
         "first_target_nearest_t": first_target_nearest_t,
         "first_contact_object": first_contact,
         "first_contact_is_target": bool(first_contact_is_target),
+        "first_contact_is_distractor_instance": bool(first_contact_is_distractor),
+        "any_target_contact": bool(any_target_contact),
+        "any_distractor_instance_contact": bool(any_distractor_contact),
+        "target_class_stem": target_stem,
         "target_dist_initial": dists[0] if dists else None,
         "target_dist_final": dists[-1] if dists else None,
         "target_dist_drop": (dists[0] - dists[-1]) if len(dists) >= 2 else None,
@@ -176,7 +203,7 @@ def compute_action(policy: str, obs: Dict, target_key: str | None, rng: np.rando
     raise ValueError(policy)
 
 
-def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy: str, camera_size: int, policy_adapter=None):
+def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy: str, camera_size: int, policy_adapter=None, warmup_steps: int = 0):
     from libero.libero import benchmark, get_libero_path
     from libero.libero.envs import OffScreenRenderEnv
 
@@ -194,10 +221,17 @@ def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy
     target_key_name = goal_target_instance or target
     receptacle_key_name = goal_receptacle_instance or receptacle
     env = OffScreenRenderEnv(bddl_file_name=bddl, camera_heights=camera_size, camera_widths=camera_size)
+    env.seed(0)  # OpenVLA eval seeds env; affects object positions even with fixed init state
     obs = env.reset()
     init_states = suite.get_task_init_states(task_id)
     if init_id < len(init_states):
         obs = env.set_init_state(init_states[init_id])
+
+    # Settle objects with LIBERO dummy no-op action (gripper open = -1), matching
+    # OpenVLA eval num_steps_wait. Without this, objects are mid-fall on the first frames.
+    dummy_action = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0]
+    for _ in range(max(0, warmup_steps)):
+        obs, _, _, _ = env.step(dummy_action)
 
     object_names = []
     for k in obs.keys():
@@ -250,7 +284,13 @@ def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy
         else:
             action = compute_action(policy, obs, target_key, rng)
         obs, reward, done, info = env.step(action)
-        success_seen = success_seen or bool(reward > 0 or done)
+        # LIBERO sets done on task success; also probe the env's native success check when available.
+        step_success = bool(reward > 0 or done)
+        try:
+            step_success = step_success or bool(env.check_success())
+        except Exception:
+            pass
+        success_seen = success_seen or step_success
         if done:
             break
     env.close()
@@ -287,17 +327,21 @@ def main():
     ap.add_argument("--policy", choices=["noop", "random", "target_reach", "target_reach_fast", "external"], default="noop")
     ap.add_argument("--policy-adapter", default=None, help="External policy adapter as module:function; signature fn(obs, context)->7D action")
     ap.add_argument("--camera-size", type=int, default=128)
+    ap.add_argument("--warmup-steps", type=int, default=0, help="LIBERO dummy no-op steps to settle objects before policy acts (OpenVLA eval uses 10)")
     ap.add_argument("--out", type=Path, default=Path("runs/libero_object_rollout_diag.json"))
     args = ap.parse_args()
     policy_adapter = load_policy_adapter(args.policy_adapter)
     rows = []
     for task_id in range(args.tasks):
         for init_id in range(args.inits):
-            rows.append(rollout_task(args.suite, task_id, init_id, args.steps, args.policy, args.camera_size, policy_adapter))
+            rows.append(rollout_task(args.suite, task_id, init_id, args.steps, args.policy, args.camera_size, policy_adapter, warmup_steps=args.warmup_steps))
             print("done", task_id, init_id)
     drops = [r["trace_summary"].get("target_dist_drop") for r in rows if r["trace_summary"].get("target_dist_drop") is not None]
     nearest_fracs = [r["trace_summary"].get("nearest_target_fraction") for r in rows if r["trace_summary"].get("nearest_target_fraction") is not None]
     first_nearest_hits = [r["trace_summary"].get("first_nearest_is_target") for r in rows]
+    target_contacts = [r["trace_summary"].get("any_target_contact") for r in rows]
+    distractor_contacts = [r["trace_summary"].get("any_distractor_instance_contact") for r in rows]
+    first_contact_distractor = [r["trace_summary"].get("first_contact_is_distractor_instance") for r in rows]
     summary = {
         "n_rollouts": len(rows),
         "suite": args.suite,
@@ -306,6 +350,9 @@ def main():
         "mean_target_dist_drop": float(np.mean(drops)) if drops else None,
         "mean_nearest_target_fraction": float(np.mean(nearest_fracs)) if nearest_fracs else None,
         "first_nearest_target_rate": float(np.mean(first_nearest_hits)) if first_nearest_hits else None,
+        "any_target_contact_rate": float(np.mean(target_contacts)) if target_contacts else None,
+        "any_distractor_instance_contact_rate": float(np.mean(distractor_contacts)) if distractor_contacts else None,
+        "first_contact_distractor_rate": float(np.mean(first_contact_distractor)) if first_contact_distractor else None,
         "rollouts": rows,
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -316,6 +363,7 @@ def main():
         "mean_drop", summary["mean_target_dist_drop"],
         "nearest_target_frac", summary["mean_nearest_target_fraction"],
         "first_nearest_target_rate", summary["first_nearest_target_rate"],
+        "distractor_contact_rate", summary["any_distractor_instance_contact_rate"],
     )
     for r in rows:
         ts = r["trace_summary"]
