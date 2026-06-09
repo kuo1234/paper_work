@@ -2313,4 +2313,16 @@ chocolate_pudding:  success 1, first_contact chocolate_pudding_1, any_wrong Fals
 This is the strongest real-benchmark evidence so far: a structured target-binding acquisition
 gate can fix OpenVLA's wrong-object contacts and recover task success on 2/3 known failures.
 
+Broader init-0 check (all 10 LIBERO-Object tasks):
+
+```text
+OpenVLA baseline init0:          success 7/10, wrong_type 2/10, target_contact 8/10
+target-gate-until-contact init0: success 3/10, wrong_type 0/10, target_contact 10/10
+```
+
+So the acquisition gate is excellent for binding metrics but too blunt as an always-on wrapper:
+it fixes wrong contacts and increases target contact, but regresses many otherwise-good successes.
+Next intervention should be **selective**: activate only when evidence/belief is ambiguous or
+when OpenVLA motion is aimed toward a non-target object.
+
 

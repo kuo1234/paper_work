@@ -276,8 +276,34 @@ Per case:
 ```
 
 Interpretation: a structured target-binding intervention has a credible path to improving both
-binding metrics and actual LIBERO success, if it is used as an acquisition gate and then hands
-control back to the VLA. This is now the strongest real-benchmark evidence for the BTS image/VLA
-route.
+binding metrics and actual LIBERO success on known binding failures, if it is used as an
+acquisition gate and then hands control back to the VLA. This is now the strongest real-benchmark
+evidence for the BTS image/VLA route.
+
+### 6.5 Broader 10x1 intervention check: fixes binding but hurts vanilla success
+
+Artifact: `runs/openvla_object10x1_target_gate_until_contact.json`
+Compared against the init-0 slice of `runs/openvla_object10x3.json`.
+
+| Metric | OpenVLA baseline init0 | target-gate-until-contact init0 |
+|---|---:|---:|
+| success | 7/10 | 3/10 |
+| any_wrong_type_contact | 2/10 | **0/10** |
+| any_target_contact | 8/10 | **10/10** |
+| mean_nearest_target_fraction | 0.758 | 0.712 |
+
+Per-task success/wrong-type changes:
+
+```text
+t1 cream_cheese:       success 0->0, wrong True->False
+t8 chocolate_pudding:  success 0->1, wrong True->False
+several baseline successes regress to failure because the acquisition gate perturbs otherwise-good rollouts
+```
+
+Interpretation: the oracle acquisition gate is excellent as a **binding diagnostic** (wrong-type
+contacts go to zero), but too blunt as a universal policy wrapper. The next intervention should
+be **selective**, not always-on: activate the structured gate only when OpenVLA's target evidence
+is low/ambiguous or when predicted motion points toward a non-target object. This matches BTS's
+actual premise: belief gates should intervene under uncertainty, not override every rollout.
 
 
