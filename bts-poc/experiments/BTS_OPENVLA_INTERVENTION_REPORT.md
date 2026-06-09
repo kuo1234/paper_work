@@ -258,3 +258,23 @@ output: target label
 
 This aligns with BTS: belief is over object candidates conditioned on the specification, not a
 plain scene classifier.
+
+### 5.2 Candidate-conditioned evidence rows
+
+Script: `bts-poc/experiments/build_libero_candidate_evidence_rows.py`
+Artifact: `runs/libero_object_candidate_evidence_v0.jsonl`
+
+Converted the 50-frame metadata into one row per visible object candidate:
+
+```text
+frames = 50
+candidate_rows = 350
+positive_rows = 50
+negative_rows = 300
+positive_rate = 1/7 ≈ 0.143
+fields: image, language, target_stem, candidate_name/stem, candidate_pos, target_pos, is_target
+```
+
+This is the right training/eval shape for BTS evidence: score candidate compatibility with the
+language target. The remaining missing piece is candidate visual features/crops; the labels and
+candidate table are now in place.
