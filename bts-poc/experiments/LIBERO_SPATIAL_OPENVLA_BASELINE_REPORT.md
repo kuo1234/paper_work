@@ -199,4 +199,22 @@ MUJOCO_GL=egl HF_HOME=~/bts/hf_cache PYTHONPATH=~/bts-poc/experiments \
 
 Use this for fast BTS/OpenVLA intervention tests instead of rerunning a full 30-rollout sweep.
 
+### 6.2 Targeted rerun confirms the known failures are stable
+
+Artifact: `runs/openvla_object_known_failures_rerun.json`
+
+Reran only the three known wrong-object cases with `--pairs 1:0,6:2,8:0`.
+All three reproduced as wrong-object contacts:
+
+```text
+n_rollouts 3, success_count 0, wrong_type_contact_rate 1.0
+
+1:0 cream_cheese       first_contact tomato_sauce_1      wrong_type=True
+6:2 butter             first_contact basket_1            wrong_type=True
+8:0 chocolate_pudding  first_contact orange_juice_1      wrong_type=True
+```
+
+This gives a cheap fixed failure set for the next intervention step: a BTS/OpenVLA module only
+needs to be tested first on these 3 rollouts before running the full 30-rollout sweep.
+
 

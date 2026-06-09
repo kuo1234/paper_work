@@ -2268,4 +2268,15 @@ not spatial-relation disambiguation — consistent with the controlled benchmark
 object-attribute binding: generic 0.080 vs structured 1.000 OOD). Next should be a BTS/OpenVLA
 intervention for these object-identity failures, or a denser controlled-distractor/attribute variant.
 
+Targeted rerun (new `--pairs` option) confirms the failures are stable:
+
+```text
+--pairs 1:0,6:2,8:0 -> n=3, success 0, wrong_type_contact_rate 1.0
+1:0 cream_cheese       -> tomato_sauce_1
+6:2 butter             -> basket_1
+8:0 chocolate_pudding  -> orange_juice_1
+```
+
+This is now the cheap fixed failure set for the next BTS/OpenVLA intervention test.
+
 
