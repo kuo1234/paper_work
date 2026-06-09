@@ -2356,4 +2356,6 @@ Therefore the next trigger cannot be simple endpoint-nearest geometry. It likely
 object-evidence module or temporal confidence over object identity, matching BTS's structured
 belief premise.
 
+Focused intervention report: `bts-poc/experiments/BTS_OPENVLA_INTERVENTION_REPORT.md`.
+
 

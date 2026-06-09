@@ -13,6 +13,7 @@
 
 - `../idea/bts_image_vla_spec.md` — image/VLA 完整 spec（§34 spark-only 決策、§35 OpenVLA baseline+敘事 pivot）。
 - `experiments/LIBERO_SPATIAL_OPENVLA_BASELINE_REPORT.md` — OpenVLA baseline + ambiguity/object probes。
+- `experiments/BTS_OPENVLA_INTERVENTION_REPORT.md` — BTS/OpenVLA acquisition-gate intervention results。
 - `experiments/CONTROLLED_IMAGE_BINDING_REPORT.md` — controlled benchmark 結果。
 - `experiments/REPRODUCIBILITY.md`（§3b spark-native OpenVLA GPU eval）。
 
