@@ -2245,22 +2245,27 @@ relation-stripped probe on OpenVLA+libero_spatial. Remaining levers for a confid
 regime: BDDL-edited second same-class distractor placed to bait a shortcut; attribute binding
 (color/shape) axis; or a non-finetuned/zero-shot VLA. Report: §5 of the baseline report.
 
-### 35.3 LIBERO-Object: first nonzero mis-binding（2026-06-09）
+### 35.3 LIBERO-Object: stable nonzero mis-binding（2026-06-09）
 
-Ran OpenVLA `libero-object` checkpoint, 5 tasks x 2 inits. Suite = 10 distinct object types,
-so the axis is object IDENTITY (no same-class pairs). Added a permanent `any_wrong_type_contact`
-metric (target class stem != contacted stem).
+Ran OpenVLA `libero-object` checkpoint. Suite = 10 distinct object types, so the axis is
+object IDENTITY (no same-class pairs). Added a permanent `any_wrong_type_contact` metric
+(target class stem != contacted stem).
+
+Larger sweep: 10 tasks x 3 inits = 30 rollouts:
 
 ```text
-success 7/10 = 0.70
-any_target_contact 0.90, nearest_target_fraction 0.814
-wrong_object_type rate = 0.10  (1/10: target cream_cheese -> contacted tomato_sauce)
+success 23/30 = 0.767
+any_target_contact 0.90, nearest_target_fraction 0.783
+wrong_object_type rate = 0.10  (3/30)
+  t1i0: cream_cheese -> tomato_sauce
+  t6i2: butter -> basket
+  t8i0: chocolate_pudding -> orange_juice
 ```
 
-This is the FIRST nonzero mis-binding signal in the OpenVLA study (spatial was 0.00 both ways).
+This is the FIRST stable nonzero mis-binding signal in the OpenVLA study (spatial was 0.00 both ways).
 It points the real-benchmark BTS binding claim toward **object identity / attribute binding**,
 not spatial-relation disambiguation — consistent with the controlled benchmark (BTS gap was on
-object-attribute binding: generic 0.080 vs structured 1.000 OOD). n=10 is small; next is a
-larger LIBERO-Object sweep to stabilize the rate, then test BTS structured belief against it.
+object-attribute binding: generic 0.080 vs structured 1.000 OOD). Next should be a BTS/OpenVLA
+intervention for these object-identity failures, or a denser controlled-distractor/attribute variant.
 
 

@@ -138,37 +138,51 @@ remaining levers are:
 
 ---
 
-## 6. LIBERO-Object: first sign of cross-object mis-binding
+## 6. LIBERO-Object: stabilized cross-object mis-binding signal
 
-Artifact: `runs/openvla_object5x2.json`
-Checkpoint: `openvla/openvla-7b-finetuned-libero-object` (5 tasks x 2 inits, 280 steps).
+Artifacts:
+
+```text
+runs/openvla_object5x2.json   (initial 10 rollouts)
+runs/openvla_object10x3.json  (larger 30-rollout sweep; headline below)
+```
+
+Checkpoint: `openvla/openvla-7b-finetuned-libero-object`.
 Suite has 10 DISTINCT object types -> basket, so the binding axis is object identity, not
 same-class instance (there are no same-class pairs; distractor-instance rate is trivially 0).
 The relevant signal is **wrong-object-TYPE contact** (target stem != contacted stem).
 
+### 6.1 Larger sweep result (10 tasks x 3 inits = 30 rollouts)
+
 | Metric | Value |
 |---|---|
-| Success rate | 7/10 = 0.70 |
+| Success rate | 23/30 = 0.767 |
 | any_target_contact_rate | 0.90 |
-| mean_nearest_target_fraction | 0.814 |
+| mean_nearest_target_fraction | 0.783 |
+| mean_target_dist_drop | +0.233 |
 | **wrong_object_type_first_rate** | **0.10** |
 | **wrong_object_type_any_rate** | **0.10** |
 
-The one mis-binding (t1i0):
+Wrong-object contact cases:
 
 ```text
-target = cream_cheese, first contact = tomato_sauce  (genuine cross-identity binding error)
+t1i0: target=cream_cheese        first_contact=tomato_sauce
+t6i2: target=butter              first_contact=basket
+t8i0: target=chocolate_pudding   first_contact=orange_juice
 ```
 
-This is the **first nonzero mis-binding signal** in the whole OpenVLA study: unlike spatial
-(0.00 either way), the object-IDENTITY axis does produce a wrong-object grasp (1/10). It is
-small but real, and it points the BTS real-benchmark binding claim toward **object identity /
-attribute binding** rather than spatial-relation disambiguation — consistent with the
-controlled benchmark, where the large BTS gap was on object-attribute binding (generic 0.080
-vs structured 1.000 OOD).
+The initial 5x2 sweep already showed 1/10 wrong-object type (`cream_cheese -> tomato_sauce`).
+The larger 10x3 sweep stabilizes the rate at **3/30 = 0.10**.
 
-Caveat: n=10 is too small to estimate the rate precisely. Next step is a larger LIBERO-Object
-sweep (all 10 tasks x more inits) to stabilize the wrong-object-type rate, then test whether a
-BTS structured-belief module reduces it.
+This is the **first stable nonzero mis-binding signal** in the OpenVLA study: unlike spatial
+(0.00 either way), the object-IDENTITY axis does produce wrong-object contacts. It points the
+BTS real-benchmark binding claim toward **object identity / attribute binding** rather than
+spatial-relation disambiguation — consistent with the controlled benchmark, where the large
+BTS gap was on object-attribute binding (generic 0.080 vs structured 1.000 OOD).
+
+Caveat: wrong-object rate is not huge (10%), but it is real and directly relevant. Next step is
+not to keep broadening vanilla LIBERO blindly; instead build a BTS/OpenVLA intervention for
+these object-identity failures or design a controlled-distractor/attribute variant that makes
+the error denser.
 
 

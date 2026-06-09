@@ -23,7 +23,8 @@ controlled: generic pixel_xy OOD success ≈ 0.244; structured BTS OOD = 1.000
 OpenVLA spark-only GB10: load+predict 忠實，無 silent 失敗
   LIBERO-Spatial success 9/10=0.90, distractor-instance contact 0.00
   relation-stripped probe: success 0.90->0.20, distractor 仍 0.00（歧義=放棄抓取非綁錯）
-  LIBERO-Object success 7/10, wrong-object-type 1/10（cream_cheese->tomato_sauce，首個 nonzero mis-binding）
+  LIBERO-Object success 23/30=0.767, wrong-object-type 3/30=0.10
+    cases: cream_cheese->tomato_sauce, butter->basket, chocolate_pudding->orange_juice
 ```
 
 LIBERO scaffold：
