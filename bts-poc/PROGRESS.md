@@ -7,31 +7,32 @@
 
 ## 0. 一句話現況
 
-**主線已從舊 low-dimensional toy / 3D-DA CALVIN reproduction 轉到 image/VLA route。Controlled image-binding benchmark 已證明 structured object-attribute belief 可修 generic image policy 的 OOD wrong-object failure；LIBERO-Object/Spatial diagnostics scaffold 已跑通。**
+**主線已從舊 toy / 3D-DA CALVIN 轉到 image/VLA route。Controlled benchmark 證明 structured belief 修 generic policy 的 OOD wrong-object failure；OpenVLA-7B 真實 baseline 已 spark-only 在 GB10 跑通且忠實（LIBERO-Spatial 9/10），並發現綁定錯誤出現在 object-identity 軸（LIBERO-Object wrong-type 1/10），spatial 軸 OpenVLA 不 mis-bind。**
 
 最新主要產物：
 
-- `../idea/bts_image_vla_spec.md` — image/VLA 完整 spec。
+- `../idea/bts_image_vla_spec.md` — image/VLA 完整 spec（§34 spark-only 決策、§35 OpenVLA baseline+敘事 pivot）。
+- `experiments/LIBERO_SPATIAL_OPENVLA_BASELINE_REPORT.md` — OpenVLA baseline + ambiguity/object probes。
 - `experiments/CONTROLLED_IMAGE_BINDING_REPORT.md` — controlled benchmark 結果。
-- `experiments/LIBERO_OBJECT_DIAGNOSTICS_REPORT.md` — LIBERO-Object diagnostics。
-- `experiments/LIBERO_SPATIAL_DIAGNOSTICS_REPORT.md` — LIBERO-Spatial diagnostics。
-- `experiments/REPRODUCIBILITY.md` — 重跑命令。
+- `experiments/REPRODUCIBILITY.md`（§3b spark-native OpenVLA GPU eval）。
 
 核心新結果：
 
 ```text
-generic pixel_xy OOD success ≈ 0.244, wrong_object ≈ 0.756
-structured BTS OOD success = 1.000, wrong_object = 0.000
-learned evidence + BTS under corruption success ≈ 0.972-1.000
+controlled: generic pixel_xy OOD success ≈ 0.244; structured BTS OOD = 1.000
+OpenVLA spark-only GB10: load+predict 忠實，無 silent 失敗
+  LIBERO-Spatial success 9/10=0.90, distractor-instance contact 0.00
+  relation-stripped probe: success 0.90->0.20, distractor 仍 0.00（歧義=放棄抓取非綁錯）
+  LIBERO-Object success 7/10, wrong-object-type 1/10（cream_cheese->tomato_sauce，首個 nonzero mis-binding）
 ```
 
 LIBERO scaffold：
 
 ```text
-LIBERO Docker bts_libero builds on spark
-LIBERO-Object parser/render/rollout diagnostics pass
-LIBERO-Spatial parser/render/rollout diagnostics pass
-first-contact extraction works: first_contact_object = akita_black_bowl_1, first_contact_is_target=True in long spatial reach smoke
+spark 原生 GPU venv ~/openvla-spark/.venv 跑 OpenVLA（torch 2.12+cu130, EGL render OK）
+LIBERO Docker bts_libero 僅作 CPU diagnostics（torch.cuda=False）
+rollout diagnostics 含 wrong-instance + wrong-object-type 指標
+external policy adapter: fn(obs, context)->7D；openvla_policy_adapter 已實作忠實前處理
 ```
 
 舊 toy conclusion（保留歷史）：

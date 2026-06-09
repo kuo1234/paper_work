@@ -21,6 +21,43 @@ Main branch/session direction:
 ```text
 3D-DA/CALVIN closed-loop reproduction stopped.
 BTS image/VLA route is now the active path.
+OpenVLA real-VLA baseline now runs spark-only on GB10 (A6000 reserved for sharing).
+```
+
+Latest milestone — OpenVLA spark-only eval works and is faithful:
+
+```text
+OpenVLA-7B loads + runs on GB10 (torch 2.12+cu130) via pure HF trust_remote_code.
+No silent numeric failure (predict_action ~1.4s, finite 7D action).
+LIBERO-Spatial success 9/10 = 0.90 (matches published ~0.85) -> pipeline faithful.
+```
+
+Load-bearing research findings (reshape the BTS claim):
+
+```text
+LIBERO-Spatial: distractor-instance contact = 0.00 (OpenVLA does NOT mis-bind same-class).
+Relation-stripped probe: success 0.90->0.20 but distractor still 0.00 (ambiguity = aborted
+  grasp, not confident mis-binding).
+LIBERO-Object: FIRST nonzero mis-binding -> wrong-object-type 1/10 (cream_cheese->tomato_sauce).
+=> BTS real-benchmark binding claim should target OBJECT IDENTITY / attribute axis, not spatial.
+```
+
+Read these for the OpenVLA work:
+
+```text
+bts-poc/experiments/LIBERO_SPATIAL_OPENVLA_BASELINE_REPORT.md
+idea/bts_image_vla_spec.md  (sections 34, 35, 35.1-35.3)
+bts-poc/experiments/REPRODUCIBILITY.md  (section 3b: spark-native OpenVLA env)
+```
+
+Spark-only OpenVLA env (do not rebuild; see spec §34.2 / repro §3b):
+
+```text
+venv:  ~/openvla-spark/.venv (python3.12, torch 2.12.0+cu130, transformers 4.40.1)
+repos: ~/bts/openvla, ~/bts/LIBERO (editable --no-deps)
+ckpts: HF_HOME=~/bts/hf_cache (libero-spatial + libero-object 7B, ~15G each)
+run:   MUJOCO_GL=egl HF_HOME=~/bts/hf_cache PYTHONPATH=~/bts-poc/experiments
+       OPENVLA_CHECKPOINT=<...> to switch checkpoints
 ```
 
 Core claim now supported by controlled experiments:
@@ -34,9 +71,9 @@ Structured object-attribute belief fixes OOD wrong-object errors.
 Real benchmark scaffold:
 
 ```text
-LIBERO Docker builds on spark.
-LIBERO-Object diagnostics work.
-LIBERO-Spatial diagnostics work.
+LIBERO Docker builds on spark (CPU diagnostics).
+LIBERO native GPU env on spark for OpenVLA eval (the active route).
+LIBERO-Object/Spatial diagnostics work; wrong-instance + wrong-object-type metrics in place.
 First-contact object extraction works for spatial target instance.
 ```
 
