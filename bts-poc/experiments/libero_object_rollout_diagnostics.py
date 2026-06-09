@@ -203,7 +203,7 @@ def compute_action(policy: str, obs: Dict, target_key: str | None, rng: np.rando
     raise ValueError(policy)
 
 
-def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy: str, camera_size: int, policy_adapter=None, warmup_steps: int = 0):
+def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy: str, camera_size: int, policy_adapter=None, warmup_steps: int = 0, language_override: str | None = None):
     from libero.libero import benchmark, get_libero_path
     from libero.libero.envs import OffScreenRenderEnv
 
@@ -265,11 +265,18 @@ def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy
         if policy == "external":
             if policy_adapter is None:
                 raise ValueError("policy='external' requires --policy-adapter module:function")
+            # Language seen by the external policy. For binding-ambiguity probes we can strip
+            # the disambiguating relation phrase (language_override) while STILL scoring against
+            # the BDDL target instance (target_key_name), so a policy that grasps the distractor
+            # bowl is detected as a wrong-instance contact.
+            policy_language = language_override if language_override is not None else task.language
             context = {
                 "suite": suite_name,
                 "task_id": task_id,
                 "init_id": init_id,
-                "language": task.language,
+                "language": policy_language,
+                "original_language": task.language,
+                "language_override": language_override,
                 "target_key": target_key,
                 "receptacle_key": receptacle_key,
                 "target_object": target,
@@ -301,6 +308,7 @@ def rollout_task(suite_name: str, task_id: int, init_id: int, steps: int, policy
         "init_id": init_id,
         "task_name": task.name,
         "language": task.language,
+        "language_override": language_override,
         "target_object": target,
         "receptacle": receptacle,
         "relation": parsed.get("relation"),
@@ -328,13 +336,14 @@ def main():
     ap.add_argument("--policy-adapter", default=None, help="External policy adapter as module:function; signature fn(obs, context)->7D action")
     ap.add_argument("--camera-size", type=int, default=128)
     ap.add_argument("--warmup-steps", type=int, default=0, help="LIBERO dummy no-op steps to settle objects before policy acts (OpenVLA eval uses 10)")
+    ap.add_argument("--language-override", default=None, help="Replace the instruction seen by the policy (binding-ambiguity probe). Scoring still uses the BDDL target instance.")
     ap.add_argument("--out", type=Path, default=Path("runs/libero_object_rollout_diag.json"))
     args = ap.parse_args()
     policy_adapter = load_policy_adapter(args.policy_adapter)
     rows = []
     for task_id in range(args.tasks):
         for init_id in range(args.inits):
-            rows.append(rollout_task(args.suite, task_id, init_id, args.steps, args.policy, args.camera_size, policy_adapter, warmup_steps=args.warmup_steps))
+            rows.append(rollout_task(args.suite, task_id, init_id, args.steps, args.policy, args.camera_size, policy_adapter, warmup_steps=args.warmup_steps, language_override=args.language_override))
             print("done", task_id, init_id)
     drops = [r["trace_summary"].get("target_dist_drop") for r in rows if r["trace_summary"].get("target_dist_drop") is not None]
     nearest_fracs = [r["trace_summary"].get("nearest_target_fraction") for r in rows if r["trace_summary"].get("nearest_target_fraction") is not None]
