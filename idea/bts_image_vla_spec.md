@@ -2179,3 +2179,52 @@ libero_object_rollout_diagnostics.py --suite libero_spatial \
 -> existing logger captures target_dist / nearest-target / first-contact / wrong-instance.
 ```
 
+---
+
+## 35. OpenVLA LIBERO-Spatial baseline result + narrative pivot（2026-06-09）
+
+Full report: `bts-poc/experiments/LIBERO_SPATIAL_OPENVLA_BASELINE_REPORT.md`.
+
+First real VLA baseline, run spark-only on GB10. 5 tasks x 2 inits, 280 steps, faithful
+OpenVLA preprocessing (180deg rotate, gripper normalize+invert, 10 warmup, center_crop, 256 cam).
+
+```text
+success rate: 9/10 = 0.90   (consistent with OpenVLA published ~0.85 on libero_spatial)
+any_target_contact_rate: 1.00
+any_distractor_instance_contact_rate: 0.00
+first_contact_distractor_rate: 0.00
+mean_nearest_target_fraction: 0.753
+mean_target_dist_drop: +0.299
+```
+
+Fidelity check (single rollout, before vs after preprocessing fix):
+
+```text
+before: success 0, target_dist_drop -0.298 (drifts away)
+after:  success 1, target_dist_drop +0.317 (reaches target)
+```
+
+### 35.1 Load-bearing negative result (reshapes the BTS claim)
+
+On vanilla LIBERO-Spatial, **OpenVLA does NOT mis-bind same-class instances**
+(distractor-contact rate = 0.00). A 7B VLA finetuned on this exact suite has already learned
+the relation-conditioned binding (akita_black_bowl_1 vs _2).
+
+Therefore the naive pitch — "generic VLAs mis-bind instances on standard benchmarks, BTS
+fixes it" — is NOT supported on stock libero_spatial. This does not invalidate the controlled
+result (structured 1.000 vs generic 0.080 OOD); it bounds WHERE the gap is demonstrable.
+
+The BTS binding gap must be elicited under conditions the finetuned VLA did not see ID:
+
+```text
+1. OOD spatial relations / rephrased instructions outside libero_spatial training mix
+2. Added same-class distractors / perturbed init states (ambiguous placement)
+3. Attribute binding (color/shape), closer to the controlled benchmark where BTS wins big
+4. Zero-shot / non-finetuned VLA (binding not memorized in-distribution)
+```
+
+Next experiment: probe OpenVLA under (1)/(2) for a regime with nonzero distractor-contact.
+If LIBERO has none, pivot the real-benchmark binding claim to a controlled-distractor variant
+or to the attribute-binding axis.
+
+
