@@ -99,3 +99,40 @@ to a controlled-distractor variant or to the attribute-binding axis where BTS al
 ## 4. Reproduce
 
 See `REPRODUCIBILITY.md` §3b for the full env build and eval command.
+
+---
+
+## 5. Probe: relation-stripped (ambiguous) instructions
+
+Artifact: `runs/openvla_spatial_ambiguous5x2.json`
+Command: baseline sweep + `--language-override "pick up the black bowl and place it on the plate"`
+(the disambiguating spatial relation is removed; scoring still uses the BDDL target instance).
+
+| Metric | With relation (baseline) | Relation stripped |
+|---|---|---|
+| Success rate | 0.90 | **0.20** |
+| any_target_contact_rate | 1.00 | **0.70** |
+| any_distractor_instance_contact_rate | 0.00 | **0.00** |
+| mean_nearest_target_fraction | 0.753 | 0.294 |
+| mean_target_dist_drop | +0.299 | +0.163 |
+
+Interpretation (load-bearing nuance):
+
+```text
+OpenVLA clearly USES the relation phrase: removing it collapses success 0.90 -> 0.20.
+BUT it still does NOT grasp the distractor bowl (distractor rate stays 0.00).
+The failure mode is degraded / aborted grasp (target-contact 1.0 -> 0.7,
+nearest-fraction 0.75 -> 0.29), i.e. ambiguity -> hesitation, NOT confident mis-binding.
+```
+
+So neither vanilla nor relation-stripped LIBERO-Spatial produces *confident* same-class
+mis-binding for OpenVLA. The "resolve which instance" BTS story is therefore not directly
+demonstrated on this VLA+suite by either probe. To find a confident-mis-binding regime, the
+remaining levers are:
+
+```text
+- add a SECOND same-class bowl placed where a shortcut policy would prefer it (BDDL edit)
+- attribute binding (color/shape) instead of spatial relation (controlled benchmark axis)
+- a non-finetuned / zero-shot VLA that hasn't memorized in-distribution binding
+```
+

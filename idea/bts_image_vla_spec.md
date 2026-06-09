@@ -2227,4 +2227,22 @@ Next experiment: probe OpenVLA under (1)/(2) for a regime with nonzero distracto
 If LIBERO has none, pivot the real-benchmark binding claim to a controlled-distractor variant
 or to the attribute-binding axis.
 
+### 35.2 Probe done: relation-stripped instructions（2026-06-09）
+
+Ran the baseline sweep with `--language-override "pick up the black bowl and place it on the plate"`
+(relation removed; scoring still vs BDDL target instance). Result:
+
+```text
+success 0.90 -> 0.20   (OpenVLA clearly USES the relation phrase)
+any_target_contact 1.00 -> 0.70
+any_distractor_instance_contact 0.00 -> 0.00   (still NOT grabbing the wrong bowl)
+nearest_target_fraction 0.753 -> 0.294
+```
+
+Nuance: ambiguity causes **degraded/aborted grasp**, NOT **confident mis-binding**. So the
+"resolve which instance" BTS story is not directly demonstrated by either the vanilla or the
+relation-stripped probe on OpenVLA+libero_spatial. Remaining levers for a confident-mis-binding
+regime: BDDL-edited second same-class distractor placed to bait a shortcut; attribute binding
+(color/shape) axis; or a non-finetuned/zero-shot VLA. Report: §5 of the baseline report.
+
 
