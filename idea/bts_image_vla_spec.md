@@ -2088,3 +2088,94 @@ Recommended next action:
 ```text
 Install micromamba locally under ~/HDD/tools on lab, create isolated openvla env with Python 3.10, then clone OpenVLA and run import/checkpoint metadata smoke.
 ```
+
+---
+
+## 34. Decision: run OpenVLA eval on spark, not A6000（2026-06-09）
+
+User constraint: the A6000 (lab USCC) will need to be shared with others; spark GB10 is the user's exclusive machine. Therefore prefer **spark-only** for OpenVLA eval and keep A6000 as fallback.
+
+### 34.1 The spark torch constraint
+
+The pinned OpenVLA stack (`torch==2.2.0+cu121`) has **no CUDA-enabled aarch64 wheel**. The only `torch-2.2.0 ... aarch64.whl` available is the manylinux CPU build (verified via `pip download`), which would not see the GB10 GPU. The only CUDA-capable aarch64 torch is the preinstalled `2.12.0+cu130` (from `download.pytorch.org/whl/cu130`; versions 2.9–2.12 +cu130 available).
+
+Consequence: on spark we MUST keep `torch 2.12.0+cu130` and install the rest of the OpenVLA deps around it, accepting that the runtime torch is newer than OpenVLA's pin.
+
+GB10 GPU sanity verified before committing:
+
+```text
+fp32 matmul on cuda: ok
+bf16 matmul on cuda: ok
+torch 2.12.0+cu130, cuda 13.0, capability (12,1), device NVIDIA GB10
+```
+
+### 34.2 spark-only env build
+
+```text
+venv: ~/openvla-spark/.venv  (Python 3.12, system python3)
+torch: 2.12.0+cu130 (kept, CUDA True on GB10)
+repos: ~/bts/openvla (depth-1), ~/bts/LIBERO (depth-1)
+```
+
+Install policy: install OpenVLA eval-critical deps WITHOUT torch/torchvision/torchaudio, pinning the model-class-critical versions:
+
+```text
+transformers==4.40.1, tokenizers==0.19.1, timm==0.9.10
+draccus==0.8.0, peft==0.11.1, accelerate>=0.25.0
+einops, huggingface_hub, json-numpy, jsonlines, rich, sentencepiece, protobuf
+```
+
+Deliberately SKIP the training-only TF stack for eval: `tensorflow`, `tensorflow_datasets`, `tensorflow_graphics`, `dlimp` (RLDS data loading only; not needed for LIBERO eval with a pretrained checkpoint).
+
+### 34.3 Stop-loss
+
+If, with the cu130 + transformers-4.40.1 combination, either:
+- OpenVLA model class fails to register / load, OR
+- the LIBERO eval produces silent numeric failure (echoing the 3D-DA GB10 diffusion-inference issue recorded in memory `bts-m1b6-eval-debug`),
+
+then fall back to the prebuilt A6000 env at `~/HDD/envs/openvla` (torch 2.2.0+cu121, exact pin match).
+
+### 34.4 spark-only stack VERIFIED（2026-06-09）
+
+The stop-loss did **not** trigger. The full spark-only stack works end-to-end:
+
+```text
+GPU: GB10, torch 2.12.0+cu130, cuda True; fp32/bf16 matmul OK
+transformers 4.40.1 imports cleanly on torch 2.12 (version drift not fatal)
+OpenVLA loaded via pure HF trust_remote_code (NO local prismatic pkg / dlimp / TF):
+  AutoModelForVision2Seq.from_pretrained(ckpt, trust_remote_code=True)
+  -> auto_map points to openvla/openvla-7b--modeling_prismatic on the hub
+LIBERO-Spatial env renders headless via MUJOCO_GL=egl: agentview_image (128,128,3), img mean 118.7
+```
+
+Decisive GB10 inference smoke (`~/bts/test_openvla_load.py`, ckpt openvla-7b-finetuned-libero-spatial):
+
+```text
+model load: 104.0s
+norm_stats keys: ['libero_spatial']
+predict_action: 1.37s
+action (7D): [0.0894, 0.071, 0.1366, -0.0587, 0.0617, 0.114, 0.0]
+finite=True, nonzero=True  -> NO silent numeric failure
+```
+
+Conclusion: OpenVLA-7B LIBERO eval is fully viable on spark GB10. A6000 remains untouched as fallback only.
+
+Key env facts for reproduction:
+
+```text
+spark venv:  ~/openvla-spark/.venv  (python3.12)
+repos:       ~/bts/openvla, ~/bts/LIBERO  (both depth-1, editable installed --no-deps)
+libero fix:  plain .pth at site-packages/libero_repo.pth -> ~/bts/LIBERO (editable finder did not resolve)
+libero cfg:  ~/.libero/config.yaml preseeded (benchmark_root/bddl_files/init_states/assets -> package dir)
+HF cache:    HF_HOME=~/bts/hf_cache (checkpoint 15G)
+run env:     MUJOCO_GL=egl, HF_HOME=~/bts/hf_cache
+```
+
+Eval architecture (reuse existing diagnostics, NOT OpenVLA's run_libero_eval which pulls TF):
+
+```text
+libero_object_rollout_diagnostics.py --suite libero_spatial \
+  --policy external --policy-adapter openvla_policy_adapter:openvla_policy
+-> existing logger captures target_dist / nearest-target / first-contact / wrong-instance.
+```
+

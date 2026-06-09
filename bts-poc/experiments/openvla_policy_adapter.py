@@ -55,19 +55,33 @@ def configure(**kwargs) -> None:
 
 
 def _lazy_load():
-    """Load OpenVLA dependencies lazily.
+    """Load OpenVLA via pure HuggingFace trust_remote_code.
 
-    This is a skeleton. Fill this in inside an OpenVLA-capable environment.
-    Typical OpenVLA code path uses transformers AutoProcessor/AutoModelForVision2Seq
-    or repo-specific helpers, depending on the OpenVLA checkout.
+    The published checkpoints (e.g. openvla/openvla-7b-finetuned-libero-spatial) ship
+    their own configuration_prismatic.py / modeling_prismatic.py via the config auto_map.
+    Loading with trust_remote_code=True is therefore self-contained: it does NOT require
+    the local `prismatic` package, `dlimp`, or TensorFlow. This is what makes a spark-only
+    (aarch64 GB10, torch 2.12+cu130) eval feasible despite OpenVLA pinning torch 2.2+cu121.
     """
     global _MODEL, _PROCESSOR
     if _MODEL is not None:
         return _MODEL, _PROCESSOR
-    raise RuntimeError(
-        "OpenVLA adapter skeleton called without implementation. "
-        "Install/load OpenVLA in a GPU-capable environment and implement _lazy_load()."
+
+    import torch
+    from transformers import AutoModelForVision2Seq, AutoProcessor
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    dtype = torch.bfloat16 if device == "cuda" else torch.float32
+
+    _PROCESSOR = AutoProcessor.from_pretrained(_CONFIG.checkpoint, trust_remote_code=True)
+    model = AutoModelForVision2Seq.from_pretrained(
+        _CONFIG.checkpoint,
+        torch_dtype=dtype,
+        low_cpu_mem_usage=True,
+        trust_remote_code=True,
     )
+    _MODEL = model.to(device).eval()
+    return _MODEL, _PROCESSOR
 
 
 def make_prompt(language: str) -> str:
@@ -87,20 +101,45 @@ def _to_pil(image: np.ndarray):
 def openvla_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:
     """External adapter entrypoint for LIBERO diagnostics.
 
-    Returns a 7D action. In skeleton mode this raises until _lazy_load is implemented.
+    Returns a 7D action [dx, dy, dz, droll, dpitch, dyaw, gripper] in LIBERO's
+    OSC_POSE convention, produced by OpenVLA via HF predict_action.
     """
+    import numpy as np
+    import torch
+
     model, processor = _lazy_load()
     image = _to_pil(obs[_CONFIG.image_key])
+    if _CONFIG.center_crop:
+        image = _center_crop(image)
     language = context.get("language") or "complete the task"
     prompt = make_prompt(language)
 
-    # Pseudocode; adapt to the exact OpenVLA repo/API in the runtime environment:
-    # action = model.predict_action(image, prompt, unnorm_key=_CONFIG.unnorm_key, center_crop=_CONFIG.center_crop)
-    # return np.asarray(action, dtype=float).reshape(-1)[:7].tolist()
-    raise NotImplementedError(
-        "Implement OpenVLA predict_action call here in the OpenVLA environment. "
-        f"Prepared prompt={prompt!r}, checkpoint={_CONFIG.checkpoint!r}."
-    )
+    device = next(model.parameters()).device
+    dtype = next(model.parameters()).dtype
+    inputs = processor(prompt, image).to(device, dtype=dtype)
+
+    unnorm_key = _CONFIG.unnorm_key or _default_unnorm_key(_CONFIG.checkpoint)
+    with torch.no_grad():
+        action = model.predict_action(**inputs, unnorm_key=unnorm_key, do_sample=False)
+    action = np.asarray(action, dtype=float).reshape(-1)[:7]
+    return action.tolist()
+
+
+def _center_crop(image, scale: float = 0.9):
+    """Center crop matching OpenVLA LIBERO eval (crop to 90% then resize back)."""
+    w, h = image.size
+    cw, ch = int(round(w * scale)), int(round(h * scale))
+    left = (w - cw) // 2
+    top = (h - ch) // 2
+    return image.crop((left, top, left + cw, top + ch)).resize((w, h))
+
+
+def _default_unnorm_key(checkpoint: str) -> str:
+    name = checkpoint.lower()
+    for key in ("libero_spatial", "libero_object", "libero_goal", "libero_10"):
+        if key in name:
+            return key
+    return "libero_spatial"
 
 
 def zero_policy(obs: Dict[str, Any], context: Dict[str, Any]) -> List[float]:
