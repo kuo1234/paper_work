@@ -11,6 +11,32 @@ from typing import Dict, List
 import numpy as np
 
 
+def _patch_torch_load_weights_only():
+    """Default torch.load to weights_only=False for newer torch (>=2.6).
+
+    LIBERO loads numpy-pickled init-state files via torch.load. torch 2.6+ changed the
+    default to weights_only=True, which rejects numpy globals and breaks LIBERO env reset.
+    We trust these local LIBERO files, so restore the legacy behavior. No-op on older torch.
+    """
+    try:
+        import torch
+    except ImportError:
+        return
+    _orig = torch.load
+    if getattr(_orig, "_bts_patched", False):
+        return
+
+    def _patched(*args, **kwargs):
+        kwargs.setdefault("weights_only", False)
+        return _orig(*args, **kwargs)
+
+    _patched._bts_patched = True
+    torch.load = _patched
+
+
+_patch_torch_load_weights_only()
+
+
 def normalize_obj(s: str) -> str:
     return s.lower().replace(" ", "_").replace("-", "_")
 
