@@ -67,8 +67,15 @@ def _lazy_load():
     if _MODEL is not None:
         return _MODEL, _PROCESSOR
 
+    import os
     import torch
     from transformers import AutoModelForVision2Seq, AutoProcessor
+
+    # Allow per-run checkpoint override without editing code (useful in the eval loop):
+    #   OPENVLA_CHECKPOINT=openvla/openvla-7b-finetuned-libero-object
+    ckpt = os.environ.get("OPENVLA_CHECKPOINT", _CONFIG.checkpoint)
+    if ckpt != _CONFIG.checkpoint:
+        configure(checkpoint=ckpt)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype = torch.bfloat16 if device == "cuda" else torch.float32
@@ -162,7 +169,9 @@ def _center_crop(image, scale: float = 0.9):
 
 
 def _default_unnorm_key(checkpoint: str) -> str:
-    name = checkpoint.lower()
+    # Checkpoint names use hyphens (finetuned-libero-object); norm_stats keys use
+    # underscores (libero_object). Normalize before matching.
+    name = checkpoint.lower().replace("-", "_")
     for key in ("libero_spatial", "libero_object", "libero_goal", "libero_10"):
         if key in name:
             return key
