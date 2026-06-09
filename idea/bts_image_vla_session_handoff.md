@@ -38,7 +38,11 @@ Load-bearing research findings (reshape the BTS claim):
 LIBERO-Spatial: distractor-instance contact = 0.00 (OpenVLA does NOT mis-bind same-class).
 Relation-stripped probe: success 0.90->0.20 but distractor still 0.00 (ambiguity = aborted
   grasp, not confident mis-binding).
-LIBERO-Object: FIRST nonzero mis-binding -> wrong-object-type 1/10 (cream_cheese->tomato_sauce).
+LIBERO-Object: stable nonzero mis-binding -> wrong-object-type 3/30.
+Known failures: cream_cheese->tomato_sauce, butter->basket, chocolate_pudding->orange_juice.
+Targeted rerun --pairs 1:0,6:2,8:0 reproduces 3/3 wrong contacts.
+OpenVLA+BTS oracle target-gate-until-contact fixes known failures: success 0/3->2/3, wrong 3/3->0/3.
+Broader 10x1 gate check: wrong 2/10->0/10 but success 7/10->3/10, so next wrapper must be selective/evidence-based.
 => BTS real-benchmark binding claim should target OBJECT IDENTITY / attribute axis, not spatial.
 ```
 

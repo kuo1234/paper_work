@@ -25,6 +25,11 @@ OpenVLA spark-only GB10: load+predict 忠實，無 silent 失敗
   relation-stripped probe: success 0.90->0.20, distractor 仍 0.00（歧義=放棄抓取非綁錯）
   LIBERO-Object success 23/30=0.767, wrong-object-type 3/30=0.10
     cases: cream_cheese->tomato_sauce, butter->basket, chocolate_pudding->orange_juice
+  Fixed failure set --pairs 1:0,6:2,8:0 reproduces 3/3 wrong contacts
+  OpenVLA+BTS oracle acquisition gate:
+    target-gate-until-contact fixes known failures: success 0/3->2/3, wrong 3/3->0/3
+    broader 10x1: wrong 2/10->0/10, target_contact 8/10->10/10, but success 7/10->3/10
+    directional selective heuristic: first_wrong 2/10->0/10 but success still 3/10
 ```
 
 LIBERO scaffold：
