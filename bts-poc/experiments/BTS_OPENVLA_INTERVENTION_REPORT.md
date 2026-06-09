@@ -225,3 +225,36 @@ labels: language, target object, object_positions, target_pos, receptacle_pos
 ```
 
 Next milestone should be a diagnostic evidence oracle or detector, not full policy learning.
+
+### 5.1 Evidence classifier smoke: image-only target classification is the wrong problem
+
+Script: `bts-poc/experiments/train_libero_object_evidence_smoke.py`
+Artifact: `runs/libero_object_evidence_smoke.json`
+
+A tiny CNN was trained on the 50-frame evidence dataset to predict the target object label from the
+image alone. Result after 10 epochs:
+
+```text
+train_acc = 0.10
+test_acc  = 0.10
+loss ≈ 2.303 (10-way chance)
+```
+
+This is not a bug; it exposes a task-definition issue. In LIBERO-Object, the scene image contains
+multiple objects, and the target is specified by language. The image alone does not determine the
+target label. Therefore the next evidence model must be **language/candidate-conditioned**, e.g.:
+
+```text
+input: image crop/candidate evidence + target object name
+output: score(candidate matches target)
+```
+
+not:
+
+```text
+input: whole image
+output: target label
+```
+
+This aligns with BTS: belief is over object candidates conditioned on the specification, not a
+plain scene classifier.
