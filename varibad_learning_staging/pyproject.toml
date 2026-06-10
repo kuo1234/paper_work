@@ -9,5 +9,11 @@ description = "Tiny educational lab for VARIBAD-style belief-conditioned RL."
 requires-python = ">=3.10"
 dependencies = []
 
+# The bandit toy, the GridWorld environment, the hard-coded baselines, and the
+# Phase 2 posterior-tracking visualisation are all zero-dependency pure Python.
+# Only the Phase 3+ neural code (RL2 / VariBAD) needs these:
+[project.optional-dependencies]
+neural = ["torch>=2.0", "numpy>=1.24"]
+
 [tool.setuptools.packages.find]
 where = ["src"]

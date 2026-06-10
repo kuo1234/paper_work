@@ -16,6 +16,29 @@ In the full paper, the encoder is a learned variational model and the policy is
 trained with deep RL. Here, the belief update is exact so the moving parts are
 easy to see.
 
+There are two tracks in this repo:
+
+- **`varibad_toy/`** — the original two-arm *bandit* toy (this README).
+- **`varibad_gridworld/`** — the GridWorld BAMDP experiment following
+  [`spec.md`](spec.md). Phase 0 (environment) + Phase 1 (4 hard-coded baselines)
+  + Phase 2 (posterior tracking) are zero-dependency; Phase 3 (RL²) and
+  Phase 4 (Simplified VariBAD) need PyTorch (`pip install -e .[neural]`). See
+  [`GRIDWORLD_EXPERIMENT.md`](GRIDWORLD_EXPERIMENT.md). Quick start:
+
+  ```bash
+  # Phase 1: baseline comparison table
+  PYTHONPATH=src python -m varibad_gridworld.experiments.run_baselines --tasks 300 -N 4
+  # Phase 2: watch the exact posterior collapse (zero-dependency)
+  PYTHONPATH=src python -m varibad_gridworld.experiments.run_posterior_tracking --seed 7
+  # Phase 3: train the RL² baseline, then add it to the table
+  PYTHONPATH=src python -m varibad_gridworld.trainers.train_rl2 --updates 1500
+  PYTHONPATH=src python -m varibad_gridworld.experiments.run_baselines --rl2 rl2_policy.pt
+  # Phase 4: train Simplified VariBAD and inspect learned posterior vs exact belief
+  PYTHONPATH=src python -m varibad_gridworld.trainers.train_varibad --updates 3000 --beta 0.01
+  PYTHONPATH=src python -m varibad_gridworld.experiments.run_varibad_posterior --varibad varibad_policy.pt --seed 7
+  PYTHONPATH=src python -m varibad_gridworld.experiments.run_baselines --rl2 rl2_policy.pt --varibad varibad_policy.pt
+  ```
+
 ## Quick Start
 
 ```bash
