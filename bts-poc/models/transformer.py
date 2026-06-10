@@ -128,10 +128,14 @@ class TinyBTS(nn.Module):
         # 取最後一個有效 history token 的表徵；若無 mask 就用最後一個 token
         if attention_mask is None:
             ctx = h[:, -1]
+            last_obs = hist_obs[:, -1]  # v7: 對應的原始 obs token（identity-free nav 來源）
         else:
             idx = attention_mask.sum(dim=1).long()  # number of valid hist tokens
             # 因為前面有 1 個 spec token，最後有效 token = idx（而非 idx-1）
             ctx = h[torch.arange(B, device=h.device), idx]
+            # v7: 最後有效 history token 的原始 obs（hist_obs 無 spec 前綴，故用 idx-1）
+            last_hist_idx = (idx - 1).clamp_min(0)
+            last_obs = hist_obs[torch.arange(B, device=hist_obs.device), last_hist_idx]
 
         belief_logits = self.belief_head(ctx)
         belief_probs = F.softmax(belief_logits, dim=-1)
@@ -144,13 +148,21 @@ class TinyBTS(nn.Module):
             "belief_probs": belief_probs,
             "action_logits": action_logits,
             "context_repr": ctx,
+            "last_obs": last_obs,
         }
 
 
 class SinglePointBaseline(nn.Module):
     """
-    模擬「T2DA 式單點」：先從 spec/history argmax 一個 task,再只餵 one-hot task 做 policy。
-    同樣用 transformer backbone，差異只在 policy 不吃整個 belief，而是吃 argmax one-hot。
+    模擬「T2DA 式單點」：先從 spec/history argmax 一個 task，再只餵 one-hot task 做 policy。
+
+    v7（ctx bottleneck）：policy **不再吃完整 ctx**——ctx 能從 spec+history attention 解出
+    task 身分，使 belief channel 冗餘（P3 失敗的根因）。改吃 `[nav_feat, point_onehot]`：
+    - nav_feat = 最後有效 history 的原始 obs（含 agent/物件位置等導航資訊；partial-obs 下
+      物件身分維度已被遮成 0，故不洩漏被遮的身分）。
+    - point_onehot = belief argmax 出的單點 task 身分。
+    這樣 task-identity 只能經 belief channel 進來，belief channel 成為唯一 bottleneck；
+    與 belief 模型（吃整個 belief 分布）形成乾淨的「單點 vs 分布」對照。
     """
     def __init__(self, base_model: TinyBTS):
         super().__init__()
@@ -158,21 +170,22 @@ class SinglePointBaseline(nn.Module):
         d_model = base_model.d_model
         n_tasks = base_model.n_tasks
         n_actions = base_model.n_actions
+        obs_dim = base_model.obs_dim
+        # nav_feat(obs_dim) + point_onehot(n_tasks)
         self.point_policy = nn.Sequential(
-            nn.Linear(d_model + n_tasks, d_model),
+            nn.Linear(obs_dim + n_tasks, d_model),
             nn.GELU(),
             nn.Linear(d_model, n_actions),
         )
 
     def forward(self, spec_vec, hist_obs, hist_prev_actions_onehot, attention_mask=None):
         out = self.base(spec_vec, hist_obs, hist_prev_actions_onehot, attention_mask=attention_mask)
-        belief_logits = out["belief_logits"]
         belief_probs = out["belief_probs"]
-        ctx = out["context_repr"]
+        nav_feat = out["last_obs"]  # v7: identity-free 導航旁路（不吃 ctx）
 
         point_idx = torch.argmax(belief_probs, dim=-1)
         point_onehot = F.one_hot(point_idx, num_classes=belief_probs.size(-1)).float()
-        action_logits = self.point_policy(torch.cat([ctx, point_onehot], dim=-1))
+        action_logits = self.point_policy(torch.cat([nav_feat, point_onehot], dim=-1))
         out["action_logits"] = action_logits
         out["point_task_idx"] = point_idx
         return out

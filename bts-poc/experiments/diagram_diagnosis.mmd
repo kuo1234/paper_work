@@ -1,0 +1,15 @@
+graph TD
+    H0["P3 不過<br/>dual_partial return_gap −0.117"] --> H1{"假設1<br/>belief 走到但低效?"}
+    H1 -->|"診斷: 分解 rollout 結局"| R1["推翻<br/>belief 是衝去踩錯 55%, 非繞路"]
+    R1 --> H2{"假設2<br/>multi-modal 塌平均?"}
+    H2 -->|"診斷: greedy vs sample<br/>+ exact vs ambiguous"| R2["推翻<br/>連 EXACT 零 multi-modal 也崩"]
+    R2 --> H3{"假設3<br/>BC covariate shift?"}
+    H3 -->|"診斷: DAgger-lite noise=0.3"| R3["推翻<br/>DAgger 沒救 17.5→14.0%"]
+    R3 --> H4{"假設4<br/>policy 學不起來?"}
+    H4 -->|"診斷: teacher-forced acc"| R4["成立<br/>seen task TF acc 僅 55%"]
+
+    style R4 fill:#d3f9d8,stroke:#2f9e44
+    style R1 fill:#ffe3e3,stroke:#c92a2a
+    style R2 fill:#ffe3e3,stroke:#c92a2a
+    style R3 fill:#ffe3e3,stroke:#c92a2a
+    style H0 fill:#fff4e6,stroke:#e67700

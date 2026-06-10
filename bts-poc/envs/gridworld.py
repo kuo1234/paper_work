@@ -68,23 +68,37 @@ class AmbiguousSpecGridWorld:
         n_objects: int = 4,
         train_excluded_tasks: Optional[List[str]] = None,
         seed: int = 0,
+        n_hints: int = 2,
+        observe_object_identity: bool = True,
     ):
         self.size = size
         self.horizon = horizon
         self.n_objects = n_objects
+        self.n_hints = n_hints  # v6: 1=single-hint(v3 機制) / 2=dual-hint(v5)
+        # v7: partial observability。True=現狀(物件身分 t=0 全可見)；
+        # False=鄰格揭露(物件 color/shape 僅在 agent 走到 Manhattan<=1 後才揭露，
+        # 位置永遠可見)，逼 belief 跨時間累積、結構上不可繞過。
+        self.observe_object_identity = observe_object_identity
         self.rng = random.Random(seed)
         self.train_excluded_tasks = set(train_excluded_tasks or [])
 
         self.start_pos = (size // 2, size // 2)
         self.agent_pos: Tuple[int, int] = self.start_pos
         self.objects: List[ObjSpec] = []
+        # v7: 每物件的「身分是否已揭露」狀態，與 self.objects 同索引對齊。
+        # fully-obs 模式下一律 True；partial-obs 由鄰格揭露翻為 True (sticky)。
+        self.object_revealed: List[bool] = []
         self.target_task: Optional[str] = None
-        self.hint_pos: Optional[Tuple[int, int]] = None
-        self.hint_task: Optional[str] = None
-        self.hint_revealed: bool = False
-        # v3: hint 改成 partial reveal —— 只揭露 target 的單一屬性（color 或 shape）
-        self.hint_attr_kind: Optional[str] = None   # "color" | "shape"
-        self.hint_attr_value: Optional[str] = None
+        # v5: 雙 hint，兩階段揭露互補屬性（一個 color、一個 shape）。
+        # 集滿兩個 → 完全確定 target；只集一個 → 2-peak（可再被第二 hint 縮小）。
+        self.hint1_pos: Optional[Tuple[int, int]] = None
+        self.hint1_attr_kind: Optional[str] = None   # "color" | "shape"
+        self.hint1_attr_value: Optional[str] = None
+        self.hint1_revealed: bool = False
+        self.hint2_pos: Optional[Tuple[int, int]] = None
+        self.hint2_attr_kind: Optional[str] = None
+        self.hint2_attr_value: Optional[str] = None
+        self.hint2_revealed: bool = False
         self.t = 0
 
     # ------------------------------
@@ -182,13 +196,33 @@ class AmbiguousSpecGridWorld:
             objects.append(ObjSpec(c, s, pos))
         return objects
 
-    def _sample_hint_position(self) -> Tuple[int, int]:
+    def _sample_hint_position(self, extra_used: Optional[set] = None) -> Tuple[int, int]:
         used = {self.start_pos, *[o.pos for o in self.objects]}
+        if extra_used:
+            used |= set(extra_used)
         return self._random_empty_position(set(used))
 
     def _hint_attr_from_task(self, task: str, kind: str) -> str:
         color, shape = self.parse_task(task)
         return color if kind == "color" else shape
+
+    def _init_object_reveals(self) -> None:
+        # v7: 依模式初始化 object_revealed。fully-obs 全 True；
+        # partial-obs 全 False 後套用起點鄰格揭露(deterministic，可重現 data-gen)。
+        if self.observe_object_identity:
+            self.object_revealed = [True] * len(self.objects)
+        else:
+            self.object_revealed = [False] * len(self.objects)
+            self._update_object_reveals()
+
+    def _update_object_reveals(self) -> None:
+        # v7: 鄰格揭露 (Manhattan <= 1，含同格)，sticky。fully-obs 不作用。
+        if self.observe_object_identity:
+            return
+        ar, ac = self.agent_pos
+        for i, o in enumerate(self.objects):
+            if not self.object_revealed[i] and abs(o.pos[0] - ar) + abs(o.pos[1] - ac) <= 1:
+                self.object_revealed[i] = True
 
     def reset(self, target_task: Optional[str] = None) -> Dict:
         self.objects = self._sample_objects()
@@ -196,14 +230,23 @@ class AmbiguousSpecGridWorld:
         if not possible_tasks:
             possible_tasks = [o.task_id for o in self.objects]
         self.target_task = target_task or self.rng.choice(possible_tasks)
-        self.hint_pos = self._sample_hint_position()
-        self.hint_task = self.target_task
-        # v3: 隨機揭露 color 或 shape 其一，讓 hint 後仍是 2-peak 分布
-        self.hint_attr_kind = self.rng.choice(["color", "shape"])
-        self.hint_attr_value = self._hint_attr_from_task(self.target_task, self.hint_attr_kind)
-        self.hint_revealed = False
+        # v5/v6: hint1 一定有；hint2 只在 n_hints==2 時存在
+        self.hint1_pos = self._sample_hint_position()
+        self.hint1_attr_kind = self.rng.choice(["color", "shape"])
+        self.hint1_attr_value = self._hint_attr_from_task(self.target_task, self.hint1_attr_kind)
+        self.hint1_revealed = False
+        if self.n_hints >= 2:
+            self.hint2_pos = self._sample_hint_position(extra_used={self.hint1_pos})
+            self.hint2_attr_kind = "shape" if self.hint1_attr_kind == "color" else "color"
+            self.hint2_attr_value = self._hint_attr_from_task(self.target_task, self.hint2_attr_kind)
+        else:
+            self.hint2_pos = None
+            self.hint2_attr_kind = None
+            self.hint2_attr_value = None
+        self.hint2_revealed = False
         self.agent_pos = self.start_pos
         self.t = 0
+        self._init_object_reveals()
         return self.get_obs()
 
     def set_episode(
@@ -211,27 +254,49 @@ class AmbiguousSpecGridWorld:
         objects: List[ObjSpec],
         target_task: str,
         agent_pos: Optional[Tuple[int, int]] = None,
-        hint_pos: Optional[Tuple[int, int]] = None,
-        hint_task: Optional[str] = None,
-        hint_revealed: bool = False,
-        hint_attr_kind: Optional[str] = None,
-        hint_attr_value: Optional[str] = None,
+        hint1_pos: Optional[Tuple[int, int]] = None,
+        hint1_attr_kind: Optional[str] = None,
+        hint1_attr_value: Optional[str] = None,
+        hint2_pos: Optional[Tuple[int, int]] = None,
+        hint2_attr_kind: Optional[str] = None,
+        hint2_attr_value: Optional[str] = None,
+        hint1_revealed: bool = False,
+        hint2_revealed: bool = False,
+        observe_object_identity: Optional[bool] = None,
     ) -> Dict:
+        # v7: eval rollout 可強制 partial-obs；None 表示沿用 constructor 設定。
+        if observe_object_identity is not None:
+            self.observe_object_identity = observe_object_identity
         self.objects = list(objects)
         self.target_task = target_task
-        self.hint_pos = self._sample_hint_position() if hint_pos is None else hint_pos
-        self.hint_task = target_task if hint_task is None else hint_task
-        # v3: 重建 partial-reveal 屬性。eval rollout 應一律從資料帶入這兩個欄位；
-        # 缺值時 deterministic fallback 成 color（不靠 rng，確保可重現）。
-        self.hint_attr_kind = hint_attr_kind if hint_attr_kind is not None else "color"
-        self.hint_attr_value = (
-            hint_attr_value
-            if hint_attr_value is not None
-            else self._hint_attr_from_task(target_task, self.hint_attr_kind)
+        # v5/v6: eval rollout 一律從資料帶入 hint 欄位。
+        # hint1 缺值時 deterministic fallback；hint2 只在 n_hints>=2 時建立，
+        # single-hint 資料的 hint2_* 為 None，這裡保持 None（不自動補）。
+        self.hint1_pos = self._sample_hint_position() if hint1_pos is None else hint1_pos
+        self.hint1_attr_kind = hint1_attr_kind if hint1_attr_kind is not None else "color"
+        self.hint1_attr_value = (
+            hint1_attr_value if hint1_attr_value is not None
+            else self._hint_attr_from_task(target_task, self.hint1_attr_kind)
         )
-        self.hint_revealed = hint_revealed
+        if self.n_hints >= 2 and hint2_pos is not None:
+            self.hint2_pos = hint2_pos
+            self.hint2_attr_kind = (
+                hint2_attr_kind if hint2_attr_kind is not None
+                else ("shape" if self.hint1_attr_kind == "color" else "color")
+            )
+            self.hint2_attr_value = (
+                hint2_attr_value if hint2_attr_value is not None
+                else self._hint_attr_from_task(target_task, self.hint2_attr_kind)
+            )
+        else:
+            self.hint2_pos = None
+            self.hint2_attr_kind = None
+            self.hint2_attr_value = None
+        self.hint1_revealed = hint1_revealed
+        self.hint2_revealed = hint2_revealed if self.hint2_pos is not None else False
         self.agent_pos = self.start_pos if agent_pos is None else agent_pos
         self.t = 0
+        self._init_object_reveals()
         return self.get_obs()
 
     def get_obs(self) -> Dict:
@@ -239,11 +304,18 @@ class AmbiguousSpecGridWorld:
             "agent_pos": self.agent_pos,
             "objects": self.objects,
             "target_task": self.target_task,
-            "hint_pos": self.hint_pos,
-            "hint_revealed": self.hint_revealed,
-            # v3: 揭露後只透露單一屬性，不再給完整 task id
-            "hint_attr_kind": self.hint_attr_kind if self.hint_revealed else None,
-            "hint_attr_value": self.hint_attr_value if self.hint_revealed else None,
+            # v5: 兩個 hint，各自揭露後只透露單一互補屬性
+            "hint1_pos": self.hint1_pos,
+            "hint1_revealed": self.hint1_revealed,
+            "hint1_attr_kind": self.hint1_attr_kind if self.hint1_revealed else None,
+            "hint1_attr_value": self.hint1_attr_value if self.hint1_revealed else None,
+            "hint2_pos": self.hint2_pos,
+            "hint2_revealed": self.hint2_revealed,
+            "hint2_attr_kind": self.hint2_attr_kind if self.hint2_revealed else None,
+            "hint2_attr_value": self.hint2_attr_value if self.hint2_revealed else None,
+            # v7: partial-obs 揭露狀態，供 vectorize_obs 遮罩物件身分
+            "observe_object_identity": self.observe_object_identity,
+            "object_revealed": list(self.object_revealed),
             "t": self.t,
         }
 
@@ -268,8 +340,12 @@ class AmbiguousSpecGridWorld:
         self.agent_pos = (nr, nc)
         self.t += 1
 
-        if self.hint_pos is not None and self.agent_pos == self.hint_pos:
-            self.hint_revealed = True
+        if self.hint1_pos is not None and self.agent_pos == self.hint1_pos:
+            self.hint1_revealed = True
+        if self.hint2_pos is not None and self.agent_pos == self.hint2_pos:
+            self.hint2_revealed = True
+        # v7: 鄰格揭露物件身分（partial-obs 才作用），mirror hint reveal
+        self._update_object_reveals()
 
         done = False
         reward = STEP_REWARD
@@ -294,21 +370,27 @@ class AmbiguousSpecGridWorld:
     # ------------------------------
     def compatible_tasks_given_state(self, spec: Spec, agent_pos: Tuple[int, int]) -> List[str]:
         """
-        第三版 oracle compatible set（partial reveal）：
+        第五版 oracle compatible set（雙 hint 兩階段揭露）：
         1. 由 spec 給候選 Z(c)
-        2. 若 hint 已揭露，用揭露的單一屬性（color 或 shape）過濾候選
-           —— 通常從 ~4 縮到 ~2（仍是 2-peak，不直接收斂成單點）
-        3. 若 agent 已站在某個候選 task 物件上，收斂到該 task（最終單點）
+        2. 對每個「已揭露」的 hint，用其單一屬性過濾候選
+           - 揭露 0 個 → ~4；揭露 1 個 → ~2（2-peak）；揭露 2 個 → 1（收斂）
+        3. 若 agent 已站在某個候選 task 物件上，收斂到該 task
         4. 否則維持當前盤面上與 spec 相容的任務集合
         """
         candidates = self.candidate_tasks_from_spec(spec)
 
-        if self.hint_revealed and self.hint_attr_kind is not None and self.hint_attr_value is not None:
+        revealed = []
+        if self.hint1_revealed and self.hint1_attr_kind is not None and self.hint1_attr_value is not None:
+            revealed.append((self.hint1_attr_kind, self.hint1_attr_value))
+        if self.hint2_revealed and self.hint2_attr_kind is not None and self.hint2_attr_value is not None:
+            revealed.append((self.hint2_attr_kind, self.hint2_attr_value))
+
+        for kind, value in revealed:
             filtered = []
             for t in candidates:
                 tc, ts = self.parse_task(t)
-                attr = tc if self.hint_attr_kind == "color" else ts
-                if attr == self.hint_attr_value:
+                attr = tc if kind == "color" else ts
+                if attr == value:
                     filtered.append(t)
             if filtered:
                 candidates = filtered
@@ -336,8 +418,13 @@ class AmbiguousSpecGridWorld:
     def target_positions_for_task(self, task: str) -> List[Tuple[int, int]]:
         return [o.pos for o in self.objects if o.task_id == task]
 
-    def shortest_path_actions(self, start: Tuple[int, int], goals: List[Tuple[int, int]]) -> List[int]:
+    def shortest_path_actions(self, start: Tuple[int, int], goals: List[Tuple[int, int]],
+                              blocked: Optional[set] = None) -> List[int]:
+        # v7 fix: blocked = 不可踏入的格子（非 target 物件），BFS 繞過它們，
+        # 避免專家最短路穿過錯物件而觸發 wrong_object 提前失敗（污染 BC 資料）。
         goals = set(goals)
+        blocked = set(blocked or set())
+        blocked -= goals  # 目標格永遠可入（即使它剛好也在 blocked 集合裡）
         if start in goals:
             return []
         q = deque([start])
@@ -354,6 +441,8 @@ class AmbiguousSpecGridWorld:
                 nxt = (nr, nc)
                 if nxt in parent:
                     continue
+                if nxt in blocked:
+                    continue  # 繞過錯物件
                 parent[nxt] = cur
                 parent_action[nxt] = a
                 if nxt in goals:
@@ -363,6 +452,9 @@ class AmbiguousSpecGridWorld:
                 q.append(nxt)
 
         if found_goal is None:
+            # 退路：若被完全擋住（理論上罕見），允許穿過 blocked 再找一次
+            if blocked:
+                return self.shortest_path_actions(start, list(goals), blocked=None)
             return []
 
         actions = []
@@ -373,15 +465,41 @@ class AmbiguousSpecGridWorld:
         actions.reverse()
         return actions
 
+    def _non_target_object_positions(self, task: str) -> set:
+        # v7 fix: 所有「非 target task」物件的格子，專家應繞過。
+        return {o.pos for o in self.objects if o.task_id != task}
+
     def expert_trajectory(self, task: str, spec: Optional[Spec] = None) -> List[int]:
-        # 若規格是歧義的，專家先去 hint tile 再去真正目標；
-        # 若規格精確，直接去目標。
-        if spec is not None and len(self.candidate_tasks_from_spec(spec)) > 1 and self.hint_pos is not None:
-            to_hint = self.shortest_path_actions(self.agent_pos, [self.hint_pos])
-            to_goal = self.shortest_path_actions(self.hint_pos, self.target_positions_for_task(task))
-            return to_hint + to_goal
+        # v5/v6: 歧義規格 → 依序去所有 hint 收集屬性，再去 target；精確規格 → 直接去目標。
+        # v7 fix: 全程繞過非 target 物件（避免最短路穿過錯物件提前失敗）。
+        blocked = self._non_target_object_positions(task)
+        if spec is not None and len(self.candidate_tasks_from_spec(spec)) > 1 and self.hint1_pos is not None:
+            acts = self.shortest_path_actions(self.agent_pos, [self.hint1_pos], blocked=blocked)
+            cur = self.hint1_pos
+            if self.n_hints >= 2 and self.hint2_pos is not None:
+                acts += self.shortest_path_actions(cur, [self.hint2_pos], blocked=blocked)
+                cur = self.hint2_pos
+            acts += self.shortest_path_actions(cur, self.target_positions_for_task(task), blocked=blocked)
+            return acts
         goals = self.target_positions_for_task(task)
-        return self.shortest_path_actions(self.agent_pos, goals)
+        return self.shortest_path_actions(self.agent_pos, goals, blocked=blocked)
+
+    def expert_next_action(self, task: str, spec: Optional[Spec] = None) -> int:
+        """v7 DAgger: 給定**當前** agent_pos 與已揭露狀態，回下一步正確動作。
+        歧義規格：尚未集滿 hint → 先去未揭露的 hint；hint 集滿 → 去 target。
+        精確規格：直接去 target。無路可走時回 stay(4)。"""
+        ambiguous = spec is not None and len(self.candidate_tasks_from_spec(spec)) > 1
+        blocked = self._non_target_object_positions(task)  # v7 fix: 繞過錯物件
+        if ambiguous and self.hint1_pos is not None:
+            # 依序補齊未揭露的 hint，再去 target
+            if not self.hint1_revealed:
+                acts = self.shortest_path_actions(self.agent_pos, [self.hint1_pos], blocked=blocked)
+                return acts[0] if acts else 4
+            if self.n_hints >= 2 and self.hint2_pos is not None and not self.hint2_revealed:
+                acts = self.shortest_path_actions(self.agent_pos, [self.hint2_pos], blocked=blocked)
+                return acts[0] if acts else 4
+        acts = self.shortest_path_actions(self.agent_pos, self.target_positions_for_task(task), blocked=blocked)
+        return acts[0] if acts else 4
 
 
 # ------------------------------
@@ -400,33 +518,54 @@ def vectorize_spec(spec: Spec) -> List[float]:
     return v
 
 
-def vectorize_obs(obs: Dict, size: int = 7, max_objects: int = 4) -> List[float]:
-    r, c = obs["agent_pos"]
-    hint_r, hint_c = obs["hint_pos"] if obs.get("hint_pos") is not None else (-1, -1)
-    vec = [
-        r / (size - 1),
-        c / (size - 1),
+def _encode_hint(obs: Dict, idx: int, size: int) -> List[float]:
+    # v5: 單個 hint 的編碼：pos 2 維 + revealed 1 維 + 揭露屬性(color3/shape3) + kind 2 維
+    hp = obs.get(f"hint{idx}_pos")
+    hint_r, hint_c = hp if hp is not None else (-1, -1)
+    revealed = obs.get(f"hint{idx}_revealed", False)
+    kind = obs.get(f"hint{idx}_attr_kind", None)
+    value = obs.get(f"hint{idx}_attr_value", None)
+    revealed_color = value if kind == "color" else None
+    revealed_shape = value if kind == "shape" else None
+    out = [
         (hint_r / (size - 1)) if hint_r >= 0 else -1.0,
         (hint_c / (size - 1)) if hint_c >= 0 else -1.0,
-        1.0 if obs.get("hint_revealed", False) else 0.0,
+        1.0 if revealed else 0.0,
     ]
-    # v3: 不再帶完整 task one-hot；改成編碼揭露的單一屬性
-    hint_kind = obs.get("hint_attr_kind", None)
-    hint_value = obs.get("hint_attr_value", None)
-    revealed_color = hint_value if hint_kind == "color" else None
-    revealed_shape = hint_value if hint_kind == "shape" else None
-    vec += one_hot(COLORS, revealed_color)  # 3 維
-    vec += one_hot(SHAPES, revealed_shape)  # 3 維
-    vec += [
-        1.0 if hint_kind == "color" else 0.0,
-        1.0 if hint_kind == "shape" else 0.0,
-    ]  # kind 指示 2 維（未揭露時全 0）
+    out += one_hot(COLORS, revealed_color)  # 3
+    out += one_hot(SHAPES, revealed_shape)  # 3
+    out += [1.0 if kind == "color" else 0.0, 1.0 if kind == "shape" else 0.0]  # 2
+    return out
+
+
+def vectorize_obs(obs: Dict, size: int = 7, max_objects: int = 4) -> List[float]:
+    r, c = obs["agent_pos"]
+    vec = [r / (size - 1), c / (size - 1)]
+    # v5: 兩個 hint 各自編碼
+    vec += _encode_hint(obs, 1, size)
+    vec += _encode_hint(obs, 2, size)
     objs: List[ObjSpec] = list(obs["objects"])[:max_objects]
-    for obj in objs:
+    # v7: partial-obs 遮物件身分。fully-obs(預設) 保持 v6 layout、不加 seen bit
+    # → obs_dim byte-identical，舊資料/checkpoint 相容。partial-obs 每物件多 1 維 seen。
+    observe = obs.get("observe_object_identity", True)
+    revealed = obs.get("object_revealed", None)
+    for i, obj in enumerate(objs):
         vec += [obj.pos[0] / (size - 1), obj.pos[1] / (size - 1)]
-        vec += one_hot(COLORS, obj.color)
-        vec += one_hot(SHAPES, obj.shape)
-    per_obj_dim = 2 + len(COLORS) + len(SHAPES)
+        if observe:
+            # fully-obs：原 layout，身分永遠可見、無 seen bit
+            vec += one_hot(COLORS, obj.color)
+            vec += one_hot(SHAPES, obj.shape)
+        else:
+            # partial-obs：身分僅在揭露後給，否則全 0；附 seen bit
+            is_revealed = revealed is not None and i < len(revealed) and revealed[i]
+            if is_revealed:
+                vec += one_hot(COLORS, obj.color)
+                vec += one_hot(SHAPES, obj.shape)
+            else:
+                vec += [0.0] * len(COLORS)
+                vec += [0.0] * len(SHAPES)
+            vec += [1.0 if is_revealed else 0.0]
+    per_obj_dim = 2 + len(COLORS) + len(SHAPES) + (0 if observe else 1)
     while len(objs) < max_objects:
         vec += [0.0] * per_obj_dim
         objs.append(ObjSpec("red", "square", (0, 0)))

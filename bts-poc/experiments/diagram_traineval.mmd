@@ -1,0 +1,24 @@
+graph LR
+    subgraph TRAIN["訓練 teacher-forcing"]
+        direction TB
+        T1["每步餵 ground-truth<br/>expert history 到 t"]
+        T2["預測 a_t, b_t"]
+        T3["loss = action_CE<br/>+ lambda belief_KL, lambda=0.5"]
+        T1 --> T2 --> T3
+        T4["問題: TF action acc 僅 55%<br/>連 seen task 也是"]
+        T3 -.診斷.-> T4
+    end
+
+    subgraph EVAL["評估 自由 rollout"]
+        direction TB
+        E1["模型自己 argmax 動作"]
+        E2["env.step → 新 obs 進 history"]
+        E3["誤差滾雪球<br/>進入訓練沒見過的 state"]
+        E1 --> E2 --> E3 --> E1
+        E4["結果: rollout success 僅 10-19%<br/>約 0.55 的 5 次方"]
+        E3 -.診斷.-> E4
+    end
+
+    TRAIN ==>|相同權重 不同分布| EVAL
+    style T4 fill:#ffe3e3,stroke:#c92a2a
+    style E4 fill:#ffe3e3,stroke:#c92a2a

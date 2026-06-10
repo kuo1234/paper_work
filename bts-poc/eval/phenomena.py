@@ -10,7 +10,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import matplotlib.pyplot as plt
+try:
+    import matplotlib
+    matplotlib.use("Agg")  # headless backend，避免遠端無顯示器時報錯
+    import matplotlib.pyplot as plt
+    _HAS_PLT = True
+except ImportError:
+    # 本地 smoke 環境可能無 matplotlib；JSON metrics 一律輸出，圖只在有 matplotlib 時畫
+    plt = None
+    _HAS_PLT = False
 import torch
 import torch.nn.functional as F
 
@@ -106,15 +114,24 @@ def rollout_episode(model, item: Dict, device: torch.device, horizon_limit: int 
     # 從資料記錄重建環境，讓模型自己 rollout（不 teacher forcing）
     # 回傳 (success: bool, total_return: float)
     objects = [ObjSpec(o["color"], o["shape"], tuple(o["pos"])) for o in item["objects"]]
-    env = AmbiguousSpecGridWorld(size=item["grid_size"], horizon=item["horizon"], n_objects=len(objects), seed=0)
+    # v7: 用資料記錄的 observe_object_identity 重建同模式環境（fully/partial-obs）
+    observe_obj_id = item.get("observe_object_identity", True)
+    env = AmbiguousSpecGridWorld(
+        size=item["grid_size"], horizon=item["horizon"], n_objects=len(objects), seed=0,
+        observe_object_identity=observe_obj_id,
+    )
     env.set_episode(
         objects=objects,
         target_task=item["task"],
-        hint_pos=tuple(item["hint_pos"]) if item.get("hint_pos") is not None else None,
-        hint_task=item.get("hint_task", item["task"]),
-        hint_revealed=False,
-        hint_attr_kind=item.get("hint_attr_kind"),
-        hint_attr_value=item.get("hint_attr_value"),
+        hint1_pos=tuple(item["hint1_pos"]) if item.get("hint1_pos") is not None else None,
+        hint1_attr_kind=item.get("hint1_attr_kind"),
+        hint1_attr_value=item.get("hint1_attr_value"),
+        hint2_pos=tuple(item["hint2_pos"]) if item.get("hint2_pos") is not None else None,
+        hint2_attr_kind=item.get("hint2_attr_kind"),
+        hint2_attr_value=item.get("hint2_attr_value"),
+        hint1_revealed=False,
+        hint2_revealed=False,
+        observe_object_identity=observe_obj_id,
     )
     spec = Spec(**item["spec"])
     spec_vec = torch.tensor([item["spec_vec"]], dtype=torch.float, device=device)
@@ -257,14 +274,14 @@ def main():
     with (out_dir / "phenomenon1_entropy_gap.json").open("w", encoding="utf-8") as f:
         json.dump(gap, f, ensure_ascii=False, indent=2)
 
-    plt.figure(figsize=(5, 4))
-    plt.boxplot([gap["exact_all"], gap["ambiguous_all"]], labels=["exact", "ambiguous"])
-    plt.ylabel("belief entropy at t=0")
-    plt.title("Phenomenon 1: ambiguity -> higher belief entropy")
-    plt.tight_layout()
-    plt.savefig(out_dir / "phenomenon1_entropy_gap.png", dpi=150)
-    plt.close()
-
+    if _HAS_PLT:
+        plt.figure(figsize=(5, 4))
+        plt.boxplot([gap["exact_all"], gap["ambiguous_all"]], labels=["exact", "ambiguous"])
+        plt.ylabel("belief entropy at t=0")
+        plt.title("Phenomenon 1: ambiguity -> higher belief entropy")
+        plt.tight_layout()
+        plt.savefig(out_dir / "phenomenon1_entropy_gap.png", dpi=150)
+        plt.close()
     # 現象2：隨觀察 entropy 下降
     curves = phenomenon_entropy_decay(model, test_ds, device)
     p2 = entropy_decay_metrics(curves)
@@ -272,7 +289,7 @@ def main():
     with (out_dir / "phenomenon2_entropy_decay.json").open("w", encoding="utf-8") as f:
         json.dump(p2, f, ensure_ascii=False, indent=2)
 
-    if mean_curve:
+    if mean_curve and _HAS_PLT:
         plt.figure(figsize=(6, 4))
         plt.plot(list(range(len(mean_curve))), mean_curve, marker="o")
         plt.xlabel("context timestep")

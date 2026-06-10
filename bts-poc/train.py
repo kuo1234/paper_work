@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import random
 from pathlib import Path
 from typing import Dict, List
 
@@ -178,14 +179,23 @@ def main():
     parser.add_argument("--heads", type=int, default=4)
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--single-point-baseline", action="store_true")
+    parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
+
+    # v6: 讓訓練可重現（多 seed 實驗用）
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+    loader_generator = torch.Generator()
+    loader_generator.manual_seed(args.seed)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     train_ds = EpisodeDataset(args.train_jsonl)
     test_ds = EpisodeDataset(args.test_jsonl)
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn)
+    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn, generator=loader_generator)
     test_loader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn)
 
     # infer dims from one batch

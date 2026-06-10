@@ -19,7 +19,7 @@ python -m data.generate \
   --out-dir data/gridworld_mixed \
   --n-episodes 20000 \
   --size 7 \
-  --horizon 15 \
+  --horizon 20 \
   --n-objects 4 \
   --spec-mode mixed \
   --test-holdout-tasks green_triangle

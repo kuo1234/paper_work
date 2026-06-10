@@ -1,0 +1,32 @@
+graph TD
+    subgraph INPUT["輸入"]
+        SPEC["spec_vec 規格<br/>color/shape one-hot + null"]
+        HIST["history tokens<br/>每步 = obs_vec ++ prev_action_onehot"]
+    end
+
+    SPEC -->|spec_proj Linear| ST["spec token [B,1,D]"]
+    HIST -->|hist_proj Linear| HT["hist tokens [B,T,D]"]
+    ST --> CAT["concat → [B,T+1,D]"]
+    HT --> CAT
+    CAT -->|加 PositionalEncoding| PE["位置編碼"]
+    PE -->|causal mask| TF["TransformerEncoder<br/>4 layers, 4 heads, d=128, norm_first"]
+    TF --> CTX["ctx = 最後有效 token 表徵 [B,D]"]
+
+    CTX -->|belief_head MLP| BL["belief_logits [B,K=9]"]
+    BL -->|softmax| BP["belief_probs [B,K]"]
+
+    CTX --> P1["belief policy_head MLP<br/>輸入 ctx ++ belief_probs"]
+    BP --> P1
+    P1 --> A1["action_logits<br/>belief 模型"]
+
+    CTX -.->|last_obs token| NAV["nav_feat = 原始 obs<br/>位置可見, 身分 partial-obs 下遮 0"]
+    BP -->|argmax → one-hot| PO["point_onehot [B,K]"]
+    NAV --> P2["single point_policy MLP<br/>輸入 nav_feat ++ point_onehot<br/>v7 不吃 ctx"]
+    PO --> P2
+    P2 --> A2["action_logits<br/>single baseline"]
+
+    style CTX fill:#ffe8cc,stroke:#d9480f
+    style BL fill:#d3f9d8,stroke:#2f9e44
+    style P1 fill:#e7f5ff,stroke:#1971c2
+    style P2 fill:#f3d9fa,stroke:#862e9c
+    style NAV fill:#fff4e6,stroke:#e67700
