@@ -73,17 +73,17 @@ detector（CLIP-crop、OWL-ViT）有**不可校正的 per-object score bias**（
 
 ---
 
-## 4. 三個 variant
+## 4. 三個 variant（A+C 雙核心，B 作為上限）
 
-- **A — Selective Abstention（安全網）**：單一最佳訊號 + 閾值 τ → ABSTAIN。risk-coverage curve。
-- **B — Learned Gate + Disambiguation（主貢獻）**：多訊號 → 輕量 calibrator 預測 p_correct；
-  三態 gate（ANSWER / INTERVENE 消歧 / ABSTAIN）；介入只在 gate 觸發時發生。
-- **C — Belief-aware Generalized Grounding（拍板提前當核心）**：gRefCOCO，abstain 是任務
-  本身要求的正確輸出；gate 輸出 P(no-target)、referent 數量 n̂。用 GREC 指標。
+> 2026-06-11 GPT red-team 後更新：不能把 B 寫成「低 confidence 時多跑 prompt」。這會被打成普通 TTA / prompt ensemble。B 若要站得住，INTERVENE 必須是 **grounding-specific candidate-contrastive operator**。同時 C-min 必須前移，因為 no-target 是最強 fallback，不能排到最後才驗證。
 
-belief 訊號（base 免費取得）：top-1 score、top1-top2 margin、score entropy、spatial
-dispersion、cross-prompt consistency、cross-model agreement。
-**設計原則**：先算各訊號對「答對與否」的 AUROC 做 informativeness 篩選，再決定用哪些。
+- **A — Selective Abstention（安全網 / Chapter 3）**：單一最佳訊號 + 閾值 τ → ABSTAIN。risk-coverage curve。
+- **C — Belief-aware Generalized Grounding（核心 / Chapter 4，前移）**：gRefCOCO，abstain 是任務本身要求的正確輸出；gate 輸出 P(no-target)、referent 數量 n̂。先做 **C-min：no-target gate**，在 2026-09 前完成 P(no-target) AUROC / N-acc / calibration，作為第二個 go/no-go。再擴到 multi-target / full GREC。
+- **B — Belief-conditioned Candidate-Contrastive Re-ranking（上限 / Chapter 5）**：多訊號 → 輕量 calibrator 預測 p_correct；三態 policy（ANSWER / ABSTAIN / INTERVENE）。INTERVENE 不是 global paraphrase，而是 over top-m candidates 的 contrastive verification：先診斷 ambiguity phenotype（candidate competition / spatial ambiguity / semantic absence / model disagreement），再用 attribute / relation discriminative tests 重排候選。分數採 residual normalization：ΔS = S(discriminative prompt) − S(neutral prompt)，避免回到 CLIP per-object score bias。
+
+belief 訊號（base 免費或低成本取得）：top-1 score、top1-top2 margin、score entropy、spatial dispersion、cross-prompt consistency、cross-model agreement；若 M1 訊號弱，再加 candidate identity stability entropy、relation satisfaction residual。注意：relation residual 只適用 RefCOCO/RefCOCOg；**RefCOCO+ 禁止空間/位置詞**，需改用 attribute-contrastive。
+
+**設計原則**：先算各訊號對「答對與否 / no-target」的 AUROC 做 informativeness 篩選，再決定用哪些。B 若 triggered-subset lift 不明顯，降為 analysis/ablation；A+C 仍撐起主論文。
 
 ---
 
@@ -100,16 +100,34 @@ dispersion、cross-prompt consistency、cross-model agreement。
 
 ---
 
-## 6. 最大風險
+## 6. Novelty red-team 後的修正（2026-06-11）
 
-**uncertainty 訊號不 informative（與 BTS score bias 同源）。**
-前置到 M1（第 8 週前）只用 dump 算 AUROC 即可 go/no-go，**不需訓練**。
-fallback：cross-prompt consistency → 換 base → 移重心 gRefCOCO no-target → 最終防線
-「系統性證明 CLIP grounding uncertainty 為何不可靠 + oracle 上界」。
+GPT red-team 的主張大多採納，並已查證關鍵競品：
+
+- **Selective prediction 不是新東西**：Geifman & El-Yaniv 2017 已有 deep selective classification / reject option / desired risk。不能把 novelty 放在 risk-coverage 本身。
+- **GREC / no-target 不是新東西**：gRefCOCO 本身處理 no-target / multi-target；HieA2G (AAAI'25) 已用 trained architecture + Adaptive Grounding Counter 做 GREC SOTA。
+- **VIRO (ICLR'26 withdrawn)** 已做 neuro-symbolic operator verification + abstention + no-target，framing 相近但方法路線完全不同（LLM program + neuro-symbolic pipeline，不是 frozen base + 輕量 post-hoc calibrator）。
+
+因此 claim 改為：
+
+> **Grounding-specific belief policy for frozen zero-shot REC/GREC**：用 candidate geometry、prompt-induced identity stability、relation residual、cross-model agreement 構成結構化 belief，決定 ANSWER / ABSTAIN / candidate-contrastive INTERVENE，不重訓任何 base，並量化 risk-coverage 與 oracle gap。
+
+三條 contribution：
+1. Grounding-specific belief representation。
+2. Selective belief policy with candidate-contrastive intervention。
+3. Generalized grounding without retraining base。
 
 ---
 
-## 7. 與舊線關係
+## 7. 最大風險
+
+**uncertainty 訊號不 informative（與 BTS score bias 同源）。**
+前置到 M1（第 8 週前）只用 dump 算 AUROC 即可 go/no-go，**不需訓練**。
+因 C 已前移，第二安全線是 **C-min no-target gate**（全候選低分 / 不一致通常比 top1-vs-top2 correctness 更容易被訊號捕捉）。fallback：cross-prompt consistency / candidate identity stability → 換 base → C-min no-target → 最終防線「系統性證明 CLIP grounding uncertainty 為何不可靠 + oracle 上界」。
+
+---
+
+## 8. 與舊線關係
 
 - 棄：3D-DA/CALVIN、toy varibad、meta-RL+language（[[research_direction_options]]、
   [[innovation_notes]] 的舊主線），與本方向不混入。
