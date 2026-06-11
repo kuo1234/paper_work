@@ -33,6 +33,18 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 - 影響：VIRO 與本研究在 *framing* 上高度重疊（abstention + no-target + verification），差異必須建立在**方法路線**而非「它沒發表」。
 - VIRO 的具體賣點（查證自 abstract）：在 neuro-symbolic REC pipeline（LLM/VLM 把 query 拆成可執行 program）中，**每個 operator 內嵌輕量 verifier**（VIRO=Verification-Integrated Reasoning Operators），逐步驗證 object existence / spatial relation，解決「cascading error → high-confidence false positive」；以 **verification-aware abstention** 處理 no-target；report **61.1% balanced accuracy**（target-present + no-target 合併）、program failure rate ≤0.3%、可泛化到 egocentric 真實資料。abstract 未點名 RefCOCO/gRefCOCO 具體 split 數字。
 
+### 1.1b 兩篇後加查證的競品（2026-06-11 GPT 紅隊第二輪補上）
+
+- **True/False Verification REC（最危險的近鄰，威脅 B，不威脅主線）** — 已查證 arXiv:2509.09958：
+  > Jeffrey Liu, Rongbin Hu. **Zero-Shot Referring Expression Comprehension via Vision-Language True/False Verification.** arXiv:2509.09958 (v1 2025-09-12, v3 2025-11-13).
+  - 做法：把 REC 重構成 **box-wise visual-language verification** —— 用 COCO-clean generic detector（YOLO-World）給 proposals，再讓 general-purpose VLM 對**每個 region 獨立答 True/False**。**no REC-specific training、no fine-tuning**，支援 **abstention + multiple matches**。controlled study 主結論：**verification 顯著優於 selection-based prompting**，在 RefCOCO/+/g 超越 zero-shot GroundingDINO、甚至超越 trained GroundingDINO 與 GroundingDINO+CRG。
+  - **為何危險**：它也是 zero-shot / no fine-tuning / verification / abstention，且明確證「verification > selection」。所以本研究的 **B（candidate-contrastive re-ranking）不能再賣「candidate verification 本身是新的」**。
+  - **為何不致命（關鍵區辨）**：它**沒有** calibration / risk-coverage / belief policy；它沒有 gate，而是把整個 REC 換成「對每個 box 問 VLM 真假」的 workflow，且 verification 是丟給**外部 general-purpose VLM 重問**。本研究是「從 frozen base 自身副產品抽 uncertainty 訊號 → 輕量 calibrator → risk-calibrated 三態 gate」，且 B 的 verification 是**在原 base 分數空間裡做 ΔS residual**，不外掛 VLM。機制與評估語言都不同。
+- **ReCoVERR（概念近、任務遠，當 selective-prediction 成熟度佐證）** — 已查證 arXiv:2402.15610：
+  > Srinivasan, Hessel, Gupta, Lin, Choi, Thomason, Chandu. **Selective "Selective Prediction": Reducing Unnecessary Abstention in Vision-Language Reasoning.** arXiv:2402.15610, ACL Findings 2024.
+  - 做法：inference-time 演算法，VLM 低信心時不直接 abstain，改用 LLM 提相關問題、蒐集高信心 evidence，足夠才作答 —— 在 **VQAv2 / A-OKVQA** 上多答 20% 而不掉 accuracy。
+  - **定位**：證明「selective prediction / coverage-risk 在 multimodal 已是成熟框架」，所以本研究**不可**把 risk-coverage 本身當 novelty；但它是 **VQA 不是 grounding**，非直接競品，引作 motivation 與「概念光譜」對照。
+
 ### 1.2 撰寫紀律
 
 - 全文**禁用** "first" / "unique" / "novel framework"。改用可被審稿人核對的相對陳述：
@@ -53,6 +65,8 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 | HieA2G (AAAI'25) | GREC | 是 | 是（Adaptive Grounding Counter） | trained counter + 階層 align | trained counting head；本研究 no-target gate 不重訓、近零成本，定位為 post-hoc 對照 |
 | SIMMC2.0 clarification | 對話式 grounding | — | 類似（多輪澄清） | 對話 loop + 使用者回覆 | 需互動；本研究單輪自動 abstain/消歧 |
 | **VIRO** (Park et al., CVPR'26; arXiv:2601.12781) | REC + no-target | 否（凍結 LLM/VLM 組件） | 是（**verification-aware abstention**） | **LLM/VLM query→program 拆解 + operator 內嵌 verifier 逐步符號驗證** | framing 最近；**方法路線正交**：VIRO 走程式拆解 + operator-level 驗證器（驗 object existence / spatial relation）抑制 cascading error，本研究走 frozen base + 單一輕量 post-hoc calibrator，無程式合成、無 per-operator 符號驗證、base-agnostic、近零訓練。兩者可互補對照 |
+| **True/False Verification REC** (Liu & Hu; arXiv:2509.09958) | REC | 否（zero-shot，no fine-tuning） | 是（abstention + multiple matches） | **YOLO-World proposals + general-purpose VLM 對每 box 獨立答 True/False** | **最近鄰、直接威脅 B**：它證「verification > selection」。但**無 calibration / risk-coverage / belief gate**，verification 外掛 VLM；本研究做 post-hoc 訊號校準 + 三態 gate，B 的 verification 在原 base 分數空間做 ΔS residual、不外掛 VLM。B 不主張 verification novelty |
+| ReCoVERR (Srinivasan et al., ACL Findings'24; arXiv:2402.15610) | VQA（非 grounding） | — | 是（減少 over-abstention） | 低信心時 LLM 提問蒐 evidence 再決定答/棄 | 證 selective prediction 在 multimodal 已成熟 → risk-coverage 本身不可當 novelty；任務是 VQA 非 REC，引作 motivation/光譜對照 |
 | **本研究** | REC + GREC | **否** | **是（核心）** | frozen base + post-hoc risk-calibrated belief policy | — |
 
 > 表內每一列的「機制路線」是審稿人區辨本研究的關鍵欄，務必填實，不要只比「動不動 base」。
@@ -61,9 +75,39 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 
 > We study selective referring grounding under a **frozen base**: rather than retraining a grounding model to be more accurate, we attach a **post-hoc, risk-calibrated belief policy** that decides, per query, whether to **answer**, **abstain**, or run a grounding-specific **candidate-contrastive intervention**. The belief is derived from cheap by-products of any base model (candidate geometry, prompt-induced identity stability, relation/attribute residuals, cross-model agreement) plus a lightweight calibrator with no base updates. We quantify the policy on **risk–coverage** (REC) and on **no-target / generalized REC** (gRefCOCO), and we report the **oracle gap** to bound how much signal remains. In contrast to architecture-level GREC methods (LIHE, HieA2G) that train dedicated no-target/counting heads, and to neuro-symbolic pipelines that verify LLM-synthesized programs operator-by-operator (VIRO), our policy is a single base-agnostic, near-training-free calibrator.
 
-差異一句話（防「只是加 threshold」與「跟 VIRO 重複」）：
+差異一句話（防「只是加 threshold」與「跟 VIRO / True-False Verification 重複」）：
 
-> Unlike a single confidence threshold, the policy is a learned multi-signal calibrator with a conditional, grounding-specific intervention; unlike VIRO's per-operator neuro-symbolic verification over LLM-synthesized programs, our belief comes from a **single lightweight post-hoc calibrator** on cheap base by-products, with no program decomposition or operator-level symbolic executors, and transfers across frozen bases.
+> Unlike a single confidence threshold, the policy is a learned multi-signal calibrator with a conditional, grounding-specific intervention; unlike VIRO's per-operator neuro-symbolic verification over LLM-synthesized programs, our belief comes from a **single lightweight post-hoc calibrator** on cheap base by-products, with no program decomposition or operator-level symbolic executors; and unlike box-wise True/False verification that **replaces** grounding with an external VLM's per-box queries, we **keep the frozen base** and calibrate its own uncertainty into a risk-controlled answer/abstain/re-rank policy, then quantify its transferability across bases and its oracle gap.
+
+### 1.5 Framing 修正（2026-06-11 GPT 紅隊第二輪採納）
+
+**核心轉變**：論文**不再賣成「我提出新的（verification-based）grounding 方法」**——那條線已被 VIRO（CVPR'26）與 True/False Verification REC（2509.09958）壓住。改賣成：
+
+> **frozen referring grounding base 的 post-hoc reliability / calibration study**：研究「frozen zero-shot grounding base 是否暴露出可重用、grounding-specific 的不確定性結構，能否被 post-hoc 校準成可靠的 answer / abstain / re-rank 決策」，並量化其 **reliability、cost、transferability、oracle gap**，而非與 trained GREC 架構或 neuro-symbolic verification pipeline 比 accuracy。
+
+**最安全的 thesis claim（可守版本，當前主錨）**：
+
+> This thesis studies whether frozen zero-shot grounding models expose reusable, grounding-specific uncertainty signals that can be calibrated post hoc into reliable answer / abstain / re-rank decisions. Rather than competing with trained GREC architectures or neuro-symbolic verification pipelines, it quantifies the reliability, cost, transferability, and oracle gap of lightweight selective belief policies for REC/GREC.
+
+**「輕量」紀律**：單純「比 VIRO 輕」**不算**貢獻。可主張的是「輕量 + risk-calibrated + cross-base transferable + oracle-gap quantified」整組。文中凡寫到效率，一律導向 §5.x 的 cost–risk–coverage Pareto，不可當形容詞單獨用。
+
+**Thesis title 候選（暫不定案，待 M1 訊號 AUROC go/no-go 後拍板）**：
+1. *Post-hoc Reliability Calibration for Frozen Referring Grounding Models*
+2. *Risk-Calibrated Belief Policies for Frozen Zero-Shot Referring Grounding*
+3. （保留原 *Selective / Uncertainty-Aware Referring Grounding* 作 fallback，但不作對外主標）
+
+> ⚠️ 為何暫不定案：若 M1 發現 frozen-base uncertainty 訊號不 informative（與 BTS score bias 同源風險），題目要退到「系統性證明 CLIP grounding uncertainty 為何不可靠 + oracle 上界」，標題須再調。**不在訊號驗證前鎖死標題。**
+
+### 1.6 最小可防守貢獻組合（4 條，GPT 紅隊第二輪採納）
+
+主論文核心 = C1+C2+C3+C4；**B 不在核心**（成功則加分，見 §4.7）。
+
+- **C1 — Grounding-specific uncertainty audit**：證明哪些 belief 訊號對 correctness / no-target 有資訊、哪些沒有。必備圖：AUROC(correctness)、AUROC(no-target)、calibration/ECE、failure taxonomy。（對應 §2 dump + M1 go/no-go）
+- **C2 — Selective risk control**：learned/selected gate 在 RefCOCO risk-coverage 上優於 random / score-thr / margin-thr / entropy-thr，並報 oracle gap。（對應 Variant A + §5.4）
+- **C3 — Post-hoc no-target gate**：gRefCOCO no-target 上輕量 gate 優於 forced-output / 各單訊號 threshold，附 oracle no-target，並用 HieA2G / VIRO / True-False Verification 做文獻定位。（對應 §3 C-min）
+- **C4 — Cross-base / cost analysis**：同一 belief family 在 CLIP-VG / OWL-ViT 都 informative，**優先做 cross-base transfer**（§5.7），報 inference overhead，用 cost–risk Pareto 對照 VIRO（§5.8）。
+
+> 對應關係：C1↔M1、C2↔Variant A、C3↔Variant C-min（M4 擴 full-GREC）、C4↔M3+成本分析。B(Variant)↔Chapter 5 上限。
 
 ---
 
@@ -182,7 +226,14 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 
 - **HieA2G (Wang et al., AAAI'25; arXiv:2501.01416)**：trained Adaptive Grounding Counter，屬「重訓 counting head」路線。列為**對照組（trained upper reference）**，誠實標註它有監督訓練、本研究 #5 無；比的是「post-hoc 近零成本能逼近多少」。各 split N-acc 已查證（見 §3.5）。
 - **VIRO (Park et al., CVPR'26)**：neuro-symbolic verification 的 abstention（verification-aware abstention）。列為**對照路線**，標註其 LLM/VLM program 拆解 + per-operator verifier 的推論成本。**注意：VIRO 本身也凍結 base 組件**，所以「動不動 base」**不是**對 VIRO 的區辨點 —— 區辨點是「單一 post-hoc calibrator」vs「程式拆解 + 多個 operator-level 符號驗證器」。VIRO 各 split no-target 細數已查證（見 §3.4），可同表並列。
-- 兩者都**不是**用來「打贏」，而是定位本研究在 trained-architecture ↔ post-hoc 光譜上的位置。
+- **True/False Verification REC (Liu & Hu; arXiv:2509.09958)**：zero-shot box-wise VLM verification，支援 abstention/multiple matches，且證「verification > selection」。列為**對照路線**，標註其 verification 外掛 general-purpose VLM、無 calibration / risk-coverage。**主要影響在 B 不在 C**：C-min 的 baseline 階梯不受它威脅（它沒有 no-target gate 的 calibration 對照），但 B（§4）的 framing 必須因它退讓（見 §4.7）。若能取得其 no-target / abstention 數字可在 §3.5 後補表並列（其底是 YOLO-World+VLM，與本研究 CLIP-VG/OWL-ViT base 不同，需註明）。
+- 三者都**不是**用來「打贏」，而是定位本研究在 trained-architecture ↔ post-hoc 光譜上的位置（HieA2G 全監督專訓 / VIRO 凍結 base+重型 neuro-symbolic / True-False 凍結 base+外掛 VLM verification / 本研究 凍結 base+輕量 post-hoc calibrator）。
+
+### 3.3 指標
+- **No-target AUROC**（gate 分數 vs `is_no_target`）：M1 第二 go/no-go。
+- **GREC 官方**：N-acc、T-acc、Pr@(F1=1, IoU≥0.5)。
+- **Risk-coverage**：把 abstain 決策當 selective prediction，畫 RC 曲線、AURC。
+- 全部報 bootstrap CI（§5）。
 
 ### 3.4 VIRO 實測數字（已查證自全文 PDF，arXiv:2601.12781 v2）
 
@@ -250,13 +301,6 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 2. **可比性註記**：HieA2G 的 N-acc 算在完整 GREC 設定（no/single/multi-target 混合，五類 counting），與 §3.1 C-min 只做 no-target 二元 gate **設定不同**；同表需標明 HieA2G 是 full-GREC、本研究 C-min 是 no-target subset。要嚴格對齊需在 C 擴到 full-GREC（計畫 M4）後才公平並列。
 3. **VIRO vs HieA2G vs 本研究 三點定位**：HieA2G = 全監督專訓架構；VIRO = 凍結 base + 重型 neuro-symbolic program 驗證；本研究 = 凍結 base + 單一輕量 post-hoc calibrator。三者構成「訓練成本 ↓、推論成本 ↓」光譜，本研究佔最輕量端 —— 這正是 base-agnostic + near-training-free 貢獻的座標。
 
-
-### 3.3 指標
-- **No-target AUROC**（gate 分數 vs `is_no_target`）：M1 第二 go/no-go。
-- **GREC 官方**：N-acc、T-acc、Pr@(F1=1, IoU≥0.5)。
-- **Risk-coverage**：把 abstain 決策當 selective prediction，畫 RC 曲線、AURC。
-- 全部報 bootstrap CI（§5）。
-
 ---
 
 ## 4. B Operator 實作規格 — Belief-conditioned Candidate-Contrastive Re-ranking
@@ -308,6 +352,22 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 ### 4.6 退場條件
 若 B 在 `intervened` 子集的 lift 不顯著（bootstrap CI 跨 0），依計畫降為 analysis/ablation，A+C 撐主論文。此判定也在 calib_val 上先看趨勢，test 只報最終數字。
 
+### 4.7 B 的 framing 紀律（因 True/False Verification REC, arXiv:2509.09958）
+
+2509.09958 已證「box-wise verification > selection-based prompting」並支援 abstention。因此 B **不得**主張以下任一：
+
+- ❌「candidate verification / 對候選做區辨性驗證」是新的；
+- ❌「verification 能修正 grounding 錯誤」是本研究發現；
+- ❌ 把 B 當論文主貢獻去和 2509.09958 比 accuracy。
+
+B 可主張且可守的範圍：
+
+- ✅ B 是 **selective intervention**：只在 gate 觸發的歧義子集啟動，量化「在近 1× 推論成本下，post-hoc rescue 能救回多少 / 何時反傷（harm analysis）」；
+- ✅ B 的 verification 在**原 frozen base 自己的分數空間**做 ΔS residual，**不外掛 general-purpose VLM**，與 2509.09958 的 workflow 機制不同（成本與依賴都更小）；
+- ✅ B 的價值放在 **cost–risk 的 Pareto 位置**（§5.7），而非絕對 accuracy。
+
+**定位**：B 是「成功則加分」的 Chapter 5 上限實驗。主論文核心 = **A（selective risk control）+ C（no-target calibration）+ calibration/oracle-gap + cross-base transfer**。B 效果普通時不硬推為主貢獻（與 §4.6 退場一致）。
+
 ---
 
 ## 5. Split / Calibration / Threshold Protocol
@@ -325,6 +385,10 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 ### 5.2 Calibrator 訓練
 - 模型：logistic regression 或 ≤2 層小 MLP（數十～數百參數，**不碰 base**）。
 - 特徵：dump (D) 全訊號；缺值（如 RefCOCO+ 的 relation_residual=null）以 mask + 指示位處理，不可用 0 混淆。
+- **特徵分兩類（cross-base transfer 的關鍵設計，見 §5.7）**：
+  - **base-specific（跨 base 不穩）**：raw `top1_score`、raw `margin12`、raw `score_entropy` —— 絕對分數尺度因 base 而異。
+  - **base-normalized / grounding-structural（跨 base 可望可重用）**：rank-normalized margin、`identity_stability_entropy`(prompt 擾動)、`spatial_dispersion`、candidate-set entropy、`cross_model_agreement`、candidate recall upper bound、relation/attribute residual 的**rank**。
+  - cross-base transfer 主實驗**只用 base-normalized 特徵**訓 calibrator；base-specific 特徵僅在 within-base 設定用，並單獨報「加了它們 transfer 掉多少」做 ablation。
 - 標籤：REC 用 `correct@0.5`；no-target gate 用 `is_no_target`。
 - 標準化參數（mean/std）只用 `calib_train` 統計，套用到 val/test，**禁止用 test 統計**。
 - 多 seed（≥5）重訓，報平均 ± CI。
@@ -355,6 +419,42 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 - [ ] paraphrase / discriminative prompt 模板在看 test 前凍結。
 - [ ] phenotype 門檻在 val 校準。
 - [ ] cross-base join 不洩漏 GT（cross_model_agreement 只用預測框 IoU，不用 GT）。
+- [ ] cross-base transfer 的 calibrator 只用 base-normalized 特徵（§5.2），target base 的 test 統計不回流到 source base 訓練。
+
+### 5.7 Cross-base transfer（**升格為主結果**，GPT 紅隊第二輪採納）
+
+> 判準：**只做「多 base 各訓各測」不算 base-agnostic（會被打成 incremental）；必須做 train-on-A / test-on-B 的 transfer，才算「grounding uncertainty 有可重用結構」的科學主張。** 這也是對 VIRO / True-False Verification 唯一站得住的真區辨——它們都是 per-pipeline / per-VLM，無 transfer 主張。
+
+**主表（必做，非加分）**：同一 belief policy（只用 base-normalized 特徵）在不同 frozen base 間轉移：
+
+| train gate on | test on | AUROC(correct) | AURC | N-acc | ECE |
+|---|---|---|---|---|---|
+| CLIP-VG | CLIP-VG | — | — | — | — |
+| OWL-ViT | OWL-ViT | — | — | — | — |
+| CLIP-VG | OWL-ViT | — | — | — | — |
+| OWL-ViT | CLIP-VG | — | — | — | — |
+| （RefFormer 第三 base，可選加碼） | | | | | |
+
+**結論的兩種寫法（依數據誠實選一）**：
+- transfer 成立（即使 drop 一些）→ 主張「**grounding failure 有可觀察、跨 base 可重用的結構**」（強貢獻，撐 thesis novelty）。
+- transfer 失敗 → 退為「policy is plug-in across bases, but **calibration remains base-dependent**」（誠實但弱），並把重心移回 within-base 的 A+C+oracle-gap。
+- 對角線（within-base）vs 非對角線（cross-base）的差距本身就是一個科學結果（量「uncertainty 結構有多少是 base-共享 vs base-特有」）。
+
+### 5.8 Cost–Risk–Coverage Pareto（讓「輕量」變成實驗主張）
+
+> 「輕量」不可當形容詞。以一張 Pareto 表/圖把訓練成本、推論成本、reliability 一起報，回答「**在接近 1× 推論成本下，能吃到多少 VIRO/HieA2G 那類重型方法的 no-target / reliability benefit？**」
+
+| 方法 | 訓練成本 | 推論成本(相對) | Risk / N-acc | Coverage | 備註 |
+|---|---|---|---|---|---|
+| forced-output base | 0 | 1× | 高風險 | 100% | 無 abstain |
+| score threshold | 0 | 1× | 改善有限 | 下降 | naive |
+| **learned belief policy（本研究主方法）** | 小 | 1×～1.x× | 改善 | 可控 | A + C-min |
+| **+ candidate-contrastive B** | 小 | 1.x×～k× | 視 lift | 視觸發率 | selective intervention，只在歧義子集 |
+| VIRO（文獻參考） | 0 base update / heavy pipeline | 高（E2E 12.92 q/s） | balanced 61.1 | — | program + per-operator verifier |
+| HieA2G（文獻參考） | 高（全監督專訓） | 中 | N-acc 56–60 | — | trained counting head |
+
+- 推論成本以 §2.3 dump 記的「平均額外 forward 次數 / query/s」量化；B 另報觸發率。
+- VIRO/HieA2G 的成本欄是文獻定性對照（base 不同，不直接比絕對 accuracy，見 §3.2/§3.4/§3.5）。
 
 ---
 
@@ -363,4 +463,6 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 - ✅ VIRO no-target / standard REC 各 split 細數已查證並接入（§3.4 Table 2/3，全文 PDF）。
 - ✅ 查證副產品：VIRO 也評 **RefAdv**（adversarial OOD，Appendix A.6.4）與 **RefEgo**（video egocentric，含 no-target）；本研究若要加 OOD/egocentric robustness 章節可引這兩個 benchmark。
 - ✅ HieA2G no-target 官方數字已查證並接入（§3.5 Table 1，arXiv:2501.01416，gRefCOCO val/testA/testB N-acc 56–60%）。
+- ✅ 兩篇後加競品已查證接入（§1.1b/§1.3）：True/False Verification REC (arXiv:2509.09958)、ReCoVERR (arXiv:2402.15610)。
+- `〔待補〕` True/False Verification REC 的 no-target/abstention 細數（abstract 只給定性，若要同表並列需翻全文 PDF；base 是 YOLO-World+VLM，與本研究不同需註明）。
 - K（候選數）、paraphrase 數、softmax 溫度 → M0 跑通後回填 §2.3 meta。

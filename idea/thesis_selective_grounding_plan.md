@@ -104,18 +104,23 @@ belief 訊號（base 免費或低成本取得）：top-1 score、top1-top2 margi
 
 GPT red-team 的主張大多採納，並已查證關鍵競品：
 
-- **Selective prediction 不是新東西**：Geifman & El-Yaniv 2017 已有 deep selective classification / reject option / desired risk。不能把 novelty 放在 risk-coverage 本身。
-- **GREC / no-target 不是新東西**：gRefCOCO 本身處理 no-target / multi-target；HieA2G (AAAI'25) 已用 trained architecture + Adaptive Grounding Counter 做 GREC SOTA。
-- **VIRO (ICLR'26 withdrawn)** 已做 neuro-symbolic operator verification + abstention + no-target，framing 相近但方法路線完全不同（LLM program + neuro-symbolic pipeline，不是 frozen base + 輕量 post-hoc calibrator）。
+- **Selective prediction 不是新東西**：Geifman & El-Yaniv 2017 已有 deep selective classification / reject option / desired risk。不能把 novelty 放在 risk-coverage 本身。ReCoVERR (ACL Findings'24, arXiv:2402.15610) 已把 selective prediction 用在 multimodal (VQA)，再證此點。
+- **GREC / no-target 不是新東西**：gRefCOCO 本身處理 no-target / multi-target；HieA2G (AAAI'25, arXiv:2501.01416) 已用 trained architecture + Adaptive Grounding Counter 做 GREC SOTA（gRefCOCO N-acc 56–60%）。
+- **VIRO 已 CVPR 2026 發表（非 withdrawn）**（arXiv:2601.12781, Park et al.）：已做 neuro-symbolic per-operator verification + abstention + no-target（balanced acc 61.1%）。framing 相近但方法路線正交（LLM program + per-operator 符號驗證，不是 frozen base + 輕量 post-hoc calibrator）。**注意 VIRO 本身也凍結 base，故「動不動 base」不是區辨點**。
+- **True/False Verification REC（最危險近鄰）**（arXiv:2509.09958, Liu & Hu）：zero-shot box-wise VLM True/False，支援 abstention/multiple matches，證「verification > selection」。直接威脅 B → B 不得再賣「candidate verification 新」，降為 Chapter 5 上限。
 
-因此 claim 改為：
+> 完整查證引用、四方差異表、framing 修正、cross-base 升格、四貢獻組合見 [[thesis_selective_grounding_spec]]（§1.1b/§1.3/§1.5/§1.6/§5.7）與 [[plan-synergy-clip-phase-3-deadline-synchronous-hellman]]。
 
-> **Grounding-specific belief policy for frozen zero-shot REC/GREC**：用 candidate geometry、prompt-induced identity stability、relation residual、cross-model agreement 構成結構化 belief，決定 ANSWER / ABSTAIN / candidate-contrastive INTERVENE，不重訓任何 base，並量化 risk-coverage 與 oracle gap。
+因此 claim 改為（**禁用 first/unique，賣 reliability study 不賣新方法**）：
 
-三條 contribution：
-1. Grounding-specific belief representation。
-2. Selective belief policy with candidate-contrastive intervention。
-3. Generalized grounding without retraining base。
+> **Post-hoc reliability calibration for frozen zero-shot REC/GREC**：研究 frozen grounding base 是否暴露可重用、grounding-specific 的不確定性結構（candidate geometry、prompt-induced identity stability、relation/attribute residual、cross-model agreement），能否 post-hoc 校準成可靠 ANSWER / ABSTAIN / candidate-contrastive INTERVENE，量化 reliability、cost、**cross-base transferability**、oracle gap。不重訓任何 base、不與 trained GREC 架構或 neuro-symbolic verification pipeline 比 accuracy。
+
+四條 contribution（取代舊三條，對應 spec §1.6 C1–C4）：
+1. **C1** Grounding-specific uncertainty audit（哪些訊號 informative）。
+2. **C2** Selective risk control（risk-coverage dominate naive + oracle gap）。
+3. **C3** Post-hoc no-target gate（gRefCOCO，文獻定位 HieA2G/VIRO/True-False）。
+4. **C4** Cross-base transfer + cost–risk Pareto（train-on-A/test-on-B 為主表）。
+   B（candidate-contrastive intervention）= Chapter 5 上限，成功則加分，不入核心。
 
 ---
 
