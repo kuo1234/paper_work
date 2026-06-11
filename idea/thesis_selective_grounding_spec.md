@@ -181,8 +181,51 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 ### 3.2 Related-work positioning（baseline ≠ 只有 threshold）
 
 - **HieA2G (AAAI'25)**：trained Adaptive Grounding Counter，屬「重訓 counting head」路線。列為**對照組（trained upper reference）**，誠實標註它有監督訓練、本研究 #5 無；比的是「post-hoc 近零成本能逼近多少」。
-- **VIRO (Park et al., CVPR'26)**：neuro-symbolic verification 的 abstention（verification-aware abstention，report 61.1% balanced acc on target-present+no-target）。列為**對照路線**，標註其 LLM/VLM program 拆解 + per-operator verifier 的推論成本。**注意：VIRO 本身也凍結 base 組件**，所以「動不動 base」**不是**對 VIRO 的區辨點 —— 區辨點是「單一 post-hoc calibrator」vs「程式拆解 + 多個 operator-level 符號驗證器」。若能取得其 no-target 數字則同表並列（其 split 數字 abstract 未列，需查全文），取不到則只在文字 positioning。
+- **VIRO (Park et al., CVPR'26)**：neuro-symbolic verification 的 abstention（verification-aware abstention）。列為**對照路線**，標註其 LLM/VLM program 拆解 + per-operator verifier 的推論成本。**注意：VIRO 本身也凍結 base 組件**，所以「動不動 base」**不是**對 VIRO 的區辨點 —— 區辨點是「單一 post-hoc calibrator」vs「程式拆解 + 多個 operator-level 符號驗證器」。VIRO 各 split no-target 細數已查證（見 §3.4），可同表並列。
 - 兩者都**不是**用來「打贏」，而是定位本研究在 trained-architecture ↔ post-hoc 光譜上的位置。
+
+### 3.4 VIRO 實測數字（已查證自全文 PDF，arXiv:2601.12781 v2）
+
+> 評測協定：VIRO 用 **Balanced Accuracy = (TPR + TNR)/2** 同時量 no-target robustness 與 standard REC。
+> - **TNR = N-acc**（no-target accuracy，在 **gRefCOCO no-target** 樣本上算 true-negative rate）。
+> - **TPR = Acc@0.5**（在 **RefCOCO** target-present 樣本上算 IoU≥0.5 命中率）。
+> - VIRO 把 gRefCOCO 的 no-target 樣本和 RefCOCO 的 target-present 樣本**混成一個平衡測試集**，按 TestA / TestB split 報。
+
+**Table 2（no-target robustness + standard REC，TestA / TestB）**，TNR(gRef) 即各方法的 no-target accuracy：
+
+| 類別 | 方法 | TestA Bal. | TestA TNR(gRef) | TestA TPR(Ref) | TestB Bal. | TestB TNR(gRef) | TestB TPR(Ref) |
+|---|---|---|---|---|---|---|---|
+| Fully-sup REC | Qwen2.5-VL-72B-AWQ✝ | 69.5 | 47.3 | 91.7 | 66.8 | 45.1 | 88.4 |
+| Fully-sup (GREC) | GREC-MDETR-R101 | 62.0 | 34.5 | 89.6 | 56.2 | 31.0 | 81.4 |
+| Fully-sup (GREC) | GREC-UNINEXT-R50 | 70.4 | 49.3 | 91.5 | 67.6 | 48.2 | 86.9 |
+| Proposal-based | ReCLIP | 23.5 | **0.0** | 47.0 | 22.6 | **0.0** | 45.2 |
+| Proposal-based | SS-CLIP | 33.3 | **0.0** | 66.5 | 27.5 | **0.0** | 54.9 |
+| Proposal-based | GroundVLP | 30.7 | **0.0** | 61.3 | 21.8 | **0.0** | 43.5 |
+| Detector-based | GLIP-L | 37.2 | 21.7 | 52.6 | 30.0 | 18.2 | 41.8 |
+| Detector-based | GroundingDINO-T | 40.0 | 22.8 | 57.2 | 29.6 | 16.0 | 43.2 |
+| Compositional | ViperGPT | 33.4 | 0.2 | 66.7 | 27.4 | 0.1 | 54.6 |
+| Compositional | HYDRA | 35.2 | 7.5 | 62.8 | 34.7 | 7.0 | 62.4 |
+| Compositional | NAVER | 33.8 | 3.4 | 64.2 | 30.0 | 1.8 | 58.2 |
+| **Neuro-symbolic** | **VIRO (Ours)** | **61.1** | **50.2** | 71.9 | **56.9** | **52.9** | 60.8 |
+
+✝ VIRO 附帶說明：Qwen2.5-VL 需額外加 negative instruction（"If there is no object, return []"）才有 no-target 能力；不加則 TNR 掉到 3.1%（TPR 94.7%）on TestA。
+
+**Table 3（standard REC accuracy + 效率，Qwen2.5-72B-AWQ；RefCOCO/+/g）**，TPR=Acc@0.5，FR=failure rate%，Exc./Inc.=排除/含 program 失敗：
+
+| 方法 | RefCOCO Exc./Inc. | RefCOCO+ Exc./Inc. | RefCOCOg Exc./Inc. | FR(g) |
+|---|---|---|---|---|
+| Qwen2.5-VL-72B-AWQ | 94.4 / 94.3 | 91.8 / 91.6 | 89.1 / 89.0 | 0.11 |
+| GLIP-L | 52.6 / 52.6 | 48.6 / 48.6 | 52.6 / 52.6 | 0.00 |
+| GroundingDINO-T | 57.2 / 57.2 | 57.6 / 57.6 | 59.5 / 59.5 | 0.00 |
+| ViperGPT | 66.7 / 64.4 | 61.7 / 57.5 | 65.7 / 61.7 | 6.03 |
+| HYDRA | 62.8 / 44.9 | 58.4 / 37.4 | 67.1 / 45.4 | 32.37 |
+| NAVER | 64.2 / 60.3 | 60.1 / 55.6 | 68.4 / 55.8 | 9.74 |
+| **VIRO (Ours)** | **71.9 / 71.9** | **63.3 / 63.3** | **66.6 / 66.3** | 0.30 |
+
+**對本研究極有用的兩點證據（直接寫進 motivation / 差異論證）**：
+
+1. **Proposal-based REC（ReCLIP / SS-CLIP / GroundVLP）的 no-target TNR = 0.0** —— VIRO 親自證實「forced-prediction 系統在 no-target 完全失能」。這正是本研究 §3.1 baseline #0（forced-output base）會被打爆的鐵證，可直接引用支撐「base 沒有 abstain 能力 → selective gate 有結構性價值」。
+2. **VIRO 的 no-target 能力來自重型 pipeline**（LLM program + per-operator verifier，E2E 12.92 query/s vs GroundingDINO 0.20）。本研究主打「**單一 post-hoc calibrator 在凍結 base 上、近零成本**逼近多少 no-target accuracy」，對照軸天然成立：VIRO 是 heavy neuro-symbolic 上界參考，本研究是 light post-hoc。**注意 VIRO 用的是 GroundingDINO / Qwen-VL 當底，不是 CLIP-VG/OWL-ViT**，所以直接同表需註明 base 不同；公平比法是各自報「相對 forced-output base 的 N-acc 增益」。
 
 ### 3.3 指標
 - **No-target AUROC**（gate 分數 vs `is_no_target`）：M1 第二 go/no-go。
@@ -292,7 +335,8 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 ---
 
 ## 待補清單
-- ✅ VIRO 引用已查證並接入（arXiv:2601.12781, CVPR'26, Park et al.）。
-- `〔待補〕` VIRO 在 RefCOCO/gRefCOCO 各 split 的 no-target 數字（abstract 只給合併 61.1% balanced acc，需翻全文 PDF；取得後可進 §3.2 同表並列）。
+- ✅ VIRO 引用已查證並接入（arXiv:2601.12781 v2, CVPR'26, Park et al., POSTECH）。
+- ✅ VIRO no-target / standard REC 各 split 細數已查證並接入（§3.4 Table 2/3，全文 PDF）。
+- ✅ 查證副產品：VIRO 也評 **RefAdv**（adversarial OOD，Appendix A.6.4）與 **RefEgo**（video egocentric，含 no-target）；本研究若要加 OOD/egocentric robustness 章節可引這兩個 benchmark。
 - `〔待補〕` HieA2G no-target 官方數字（若同表並列需查證頁碼）。
 - K（候選數）、paraphrase 數、softmax 溫度 → M0 跑通後回填 §2.3 meta。
