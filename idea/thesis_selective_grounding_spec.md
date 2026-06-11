@@ -180,7 +180,7 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 
 ### 3.2 Related-work positioning（baseline ≠ 只有 threshold）
 
-- **HieA2G (AAAI'25)**：trained Adaptive Grounding Counter，屬「重訓 counting head」路線。列為**對照組（trained upper reference）**，誠實標註它有監督訓練、本研究 #5 無；比的是「post-hoc 近零成本能逼近多少」。
+- **HieA2G (Wang et al., AAAI'25; arXiv:2501.01416)**：trained Adaptive Grounding Counter，屬「重訓 counting head」路線。列為**對照組（trained upper reference）**，誠實標註它有監督訓練、本研究 #5 無；比的是「post-hoc 近零成本能逼近多少」。各 split N-acc 已查證（見 §3.5）。
 - **VIRO (Park et al., CVPR'26)**：neuro-symbolic verification 的 abstention（verification-aware abstention）。列為**對照路線**，標註其 LLM/VLM program 拆解 + per-operator verifier 的推論成本。**注意：VIRO 本身也凍結 base 組件**，所以「動不動 base」**不是**對 VIRO 的區辨點 —— 區辨點是「單一 post-hoc calibrator」vs「程式拆解 + 多個 operator-level 符號驗證器」。VIRO 各 split no-target 細數已查證（見 §3.4），可同表並列。
 - 兩者都**不是**用來「打贏」，而是定位本研究在 trained-architecture ↔ post-hoc 光譜上的位置。
 
@@ -226,6 +226,30 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 
 1. **Proposal-based REC（ReCLIP / SS-CLIP / GroundVLP）的 no-target TNR = 0.0** —— VIRO 親自證實「forced-prediction 系統在 no-target 完全失能」。這正是本研究 §3.1 baseline #0（forced-output base）會被打爆的鐵證，可直接引用支撐「base 沒有 abstain 能力 → selective gate 有結構性價值」。
 2. **VIRO 的 no-target 能力來自重型 pipeline**（LLM program + per-operator verifier，E2E 12.92 query/s vs GroundingDINO 0.20）。本研究主打「**單一 post-hoc calibrator 在凍結 base 上、近零成本**逼近多少 no-target accuracy」，對照軸天然成立：VIRO 是 heavy neuro-symbolic 上界參考，本研究是 light post-hoc。**注意 VIRO 用的是 GroundingDINO / Qwen-VL 當底，不是 CLIP-VG/OWL-ViT**，所以直接同表需註明 base 不同；公平比法是各自報「相對 forced-output base 的 N-acc 增益」。
+
+### 3.5 HieA2G 實測數字（已查證自全文 PDF，arXiv:2501.01416）
+
+> Wang et al., AAAI 2025。指標 = GREC 官方 **Pr@(F1=1, IoU≥0.5)** 與 **N-acc**（no-target accuracy）。HieA2G = ResNet101 backbone，在 RefCOCO/+/g + Flickr30K + gRefCOCO 合併預訓練後 finetune（**全監督、含 gRefCOCO no-target 標籤訓練**）。
+
+**Table 1（gRefCOCO GREC，val / testA / testB）**：
+
+| 方法 | val Pr | val N-acc | testA Pr | testA N-acc | testB Pr | testB N-acc |
+|---|---|---|---|---|---|---|
+| MCN✝ | 28.0 | 30.6 | 32.3 | 32.0 | 26.8 | 30.3 |
+| VLT✝ | 36.6 | 35.2 | 40.2 | 34.1 | 30.2 | 32.5 |
+| MDETR✝ | 42.7 | 36.3 | 50.0 | 34.5 | 36.5 | 31.0 |
+| UNINEXT✝ | 58.2 | 50.6 | 46.4 | 49.3 | 42.9 | 48.2 |
+| Ferret✱ | 54.8 | 48.9 | 49.5 | 45.2 | 43.5 | 43.8 |
+| **HieA2G-R101** | **67.8** | **60.3** | **66.0** | **60.1** | **56.5** | **56.0** |
+
+✝ = 被改造成可輸出多框（依 GREC, He et al. 2023）；✱ = MLLM (Ferret) 改造成 GREC。
+
+**對本研究的定位用法**：
+
+1. **HieA2G N-acc ≈ 56–60% 是「全監督 trained counting head」路線的 SOTA 參考線**。本研究 #5（learned P(no-target)，凍結 base + 輕量 calibrator）報 N-acc 時，HieA2G 是 trained upper reference，誠實說明「我們近零成本，差多少」而非聲稱打贏。
+2. **可比性註記**：HieA2G 的 N-acc 算在完整 GREC 設定（no/single/multi-target 混合，五類 counting），與 §3.1 C-min 只做 no-target 二元 gate **設定不同**；同表需標明 HieA2G 是 full-GREC、本研究 C-min 是 no-target subset。要嚴格對齊需在 C 擴到 full-GREC（計畫 M4）後才公平並列。
+3. **VIRO vs HieA2G vs 本研究 三點定位**：HieA2G = 全監督專訓架構；VIRO = 凍結 base + 重型 neuro-symbolic program 驗證；本研究 = 凍結 base + 單一輕量 post-hoc calibrator。三者構成「訓練成本 ↓、推論成本 ↓」光譜，本研究佔最輕量端 —— 這正是 base-agnostic + near-training-free 貢獻的座標。
+
 
 ### 3.3 指標
 - **No-target AUROC**（gate 分數 vs `is_no_target`）：M1 第二 go/no-go。
@@ -338,5 +362,5 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 - ✅ VIRO 引用已查證並接入（arXiv:2601.12781 v2, CVPR'26, Park et al., POSTECH）。
 - ✅ VIRO no-target / standard REC 各 split 細數已查證並接入（§3.4 Table 2/3，全文 PDF）。
 - ✅ 查證副產品：VIRO 也評 **RefAdv**（adversarial OOD，Appendix A.6.4）與 **RefEgo**（video egocentric，含 no-target）；本研究若要加 OOD/egocentric robustness 章節可引這兩個 benchmark。
-- `〔待補〕` HieA2G no-target 官方數字（若同表並列需查證頁碼）。
+- ✅ HieA2G no-target 官方數字已查證並接入（§3.5 Table 1，arXiv:2501.01416，gRefCOCO val/testA/testB N-acc 56–60%）。
 - K（候選數）、paraphrase 數、softmax 溫度 → M0 跑通後回填 §2.3 meta。
