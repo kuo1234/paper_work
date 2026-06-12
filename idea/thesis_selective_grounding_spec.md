@@ -109,6 +109,8 @@ summary: "Selective / Uncertainty-Aware Referring Grounding 的五份可實作�
 
 > 對應關係：C1↔M1、C2↔Variant A、C3↔Variant C-min（M4 擴 full-GREC）、C4↔M3+成本分析。B(Variant)↔Chapter 5 上限。
 
+> **M4 定位（紅隊裁決 2026-06-12，已落地）**：M4（full-GREC）**不是方法貢獻**，而是 C3 的延伸 **stress test / boundary analysis**，章節名 *Full-GREC Stress Test: The Boundary of Post-hoc Calibration*。結論=post-hoc calibration 能補 no-target abstention，但 multi-target exact-match（Pr@F1=1 的 T-acc）超出其能力（per-sample oracle τ 天花板僅 0.19–0.24，瓶頸=counting/set prediction 非 signal）。「ours≈conf-threshold」誠實承認不 cherry-pick。草稿見 [[chapter_m4_fullgrec_boundary]]。真正方法貢獻=C3+C4。
+
 ---
 
 ## 2. M0 / M1 Offline Dump Schema
