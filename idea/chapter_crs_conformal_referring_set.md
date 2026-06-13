@@ -174,9 +174,10 @@ gate 軸控棄答與 R2（OWL gate → 低棄答且守 R2；GD gate → 棄答 0
 COMPOSE 取兩軸最佳、reverse 取兩軸最差，兩者位於對角線兩端 ⇒ **互補性是真機制，
 非單一 base 的功勞**。這堵住「會不會只是 GDINO 候選好」的質疑。
 
-**統計穩固性（bootstrap CI，config 固定只 resample test）**：val composition 集合
-3.26 框 CI [3.09, 3.45]，R1=0.195 CI [0.172, 0.216]、R2=0.177 CI [0.158, 0.197]，
-雙保證 CI 上界皆 < 0.3 ⇒ 保證穩固有餘裕、非小樣本僥倖。
+**統計穩固性（bootstrap CI，config 固定只 resample test）**：**全量 val**（14229 shared keys）
+composition 集合 **3.21 框 CI [3.10, 3.32]**，R1=0.193 CI [0.180, 0.207]、R2=0.134 CI [0.123, 0.146]，
+雙保證 CI 上界皆 < 0.3 ⇒ 保證穩固有餘裕、非小樣本僥倖。對比純 OWL-ViT 8.16 框 CI [7.78, 8.52]
+（集合 CI 完全不重疊 ⇒ 顯著更小）。testA partial 已浮現同趨勢（純 OWL-ViT 14.49 框）。
 
 > 〔待全量〕GroundingDINO testA/testB dump 自動流水線跑中；補三 split composition + ablation + CI 後，
 > 此節升為論文主結果。
