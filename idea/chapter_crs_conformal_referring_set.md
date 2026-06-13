@@ -177,7 +177,9 @@ COMPOSE 取兩軸最佳、reverse 取兩軸最差，兩者位於對角線兩端 
 **統計穩固性（bootstrap CI，config 固定只 resample test）**：**全量 val**（14229 shared keys）
 composition 集合 **3.21 框 CI [3.10, 3.32]**，R1=0.193 CI [0.180, 0.207]、R2=0.134 CI [0.123, 0.146]，
 雙保證 CI 上界皆 < 0.3 ⇒ 保證穩固有餘裕、非小樣本僥倖。對比純 OWL-ViT 8.16 框 CI [7.78, 8.52]
-（集合 CI 完全不重疊 ⇒ 顯著更小）。testA partial 已浮現同趨勢（純 OWL-ViT 14.49 框）。
+（集合 CI 完全不重疊 ⇒ 顯著更小）。**全量 testA（19200）覆現更亮眼**：composition 集合
+**2.02 框 CI [1.97, 2.06]**（= GT 平均基數，恰好選對數量）vs 純 OWL-ViT 9.14 框，雙保證 R1=0.257/R2=0.182 守住。
+val 3.21 框 / testA 2.02 框，兩 split 均壓到 ≈GT 基數。testB dump 流水線跑中。
 
 > 〔待全量〕GroundingDINO testA/testB dump 自動流水線跑中；補三 split composition + ablation + CI 後，
 > 此節升為論文主結果。
