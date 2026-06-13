@@ -147,9 +147,11 @@ OWL-ViT 擅長判斷「**該不該答**」，GroundingDINO 擅長「**答得準*
 - 兩 base 皆 frozen、皆不訓練；join key = `(ref_id, sent_id)`（共享 gRefCOCO 標註，expression/no_target 零 mismatch）。
 - LTT 在 `(τ on OWL 分數, λ on GDINO 分數)` 二維 grid 上聯合校準 `(R1≤α, R2≤β)`。
 
-**亮眼操作點（val，α=0.3/β=0.3 聯合保證）**：可行域 Pareto frontier 上達到
-**集合 3.2 框**（≈ GT 基數）、target 棄答 0.435、R1=0.199（<α 守住）、R2=0.157（<β 守住）。
-對比純 OWL-ViT ~43 框、純 GDINO ~40 框 ⇒ **集合縮 ~13×，且雙保證同時成立**。
+**亮眼操作點（三 split 全量，α=0.3/β=0.3 聯合保證）**：在 Pareto frontier 上，
+Cross-Base Composition 於 val/testA/testB 分別輸出 **3.21 / 2.02 / 3.48 框**，R1/R2 全部守住：
+val R1=0.193/R2=0.134，testA R1=0.257/R2=0.182，testB R1=0.169/R2=0.235。
+其中 testA 的 **2.02 框 ≈ GT 平均基數**，幾乎是「恰好選對數量」；testB 也在雙保證下維持 <3.6 框。
+同一 Pareto protocol 下，純 OWL-ViT 需 8.16 / 9.14 / 7.07 框，composition 的集合 CI 與純 OWL-ViT 完全分離。
 
 > 〔這是全篇護城河〕把「沒有單一 base 兩者都強」的**限制**，轉成「組合兩個 frozen base 互補強項」的
 > **正面方法**。純 post-hoc、不訓練、接回 C4 cross-base 主軸、非 detector 比較（是互補組合）、
@@ -160,29 +162,35 @@ OWL-ViT 擅長判斷「**該不該答**」，GroundingDINO 擅長「**答得準*
 > (棄答, 集合) 雙目標 Pareto frontier。這是 selection criterion，不影響保證有效性
 > （全 frontier 都滿足保證）。
 
-**機制證實：2×2 gate×box ablation**（val，α=β=0.3）。對調 gate-base 與 box-base 的四種組合：
+**機制證實：2×2 gate×box ablation**（α=β=0.3）。對調 gate-base 與 box-base 的四種組合：
 
-| gate | box | 集合 | 棄答 | R2(誤選) |
-|---|---|---|---|---|
-| OWL | OWL | 8.61 | 0.433 | 0.150 |
-| GD | GD | 3.41 | 0.756 | 0.238 |
-| **OWL** | **GD（COMPOSE）** | **3.14** | 0.481 | **0.129** |
-| GD | OWL（reverse） | 15.95 | 0.463 | 0.244 |
+| split | gate | box | 集合 | R1 | R2 | 棄答 |
+|---|---|---|---:|---:|---:|---:|
+| val | OWL | OWL | 8.15 | 0.238 | 0.177 | 0.376 |
+| val | GD | GD | 3.22 | 0.207 | 0.215 | 0.795 |
+| val | **OWL** | **GD（COMPOSE）** | **3.21** | **0.193** | **0.134** | 0.485 |
+| val | GD | OWL（reverse） | 14.82 | 0.214 | 0.236 | 0.466 |
+| testA | OWL | OWL | 9.15 | 0.258 | 0.208 | 0.443 |
+| testA | **OWL** | **GD（COMPOSE）** | **2.02** | 0.257 | 0.183 | 0.481 |
+| testB | OWL | OWL | 7.09 | 0.235 | 0.235 | 0.417 |
+| testB | **OWL** | **GD（COMPOSE）** | **3.48** | **0.169** | 0.235 | 0.417 |
 
-兩個因子**獨立可分**：box 軸控集合大小（GD box → 3.x；OWL box → 8–16），
-gate 軸控棄答與 R2（OWL gate → 低棄答且守 R2；GD gate → 棄答 0.76 或 R2 破 0.24）。
-COMPOSE 取兩軸最佳、reverse 取兩軸最差，兩者位於對角線兩端 ⇒ **互補性是真機制，
-非單一 base 的功勞**。這堵住「會不會只是 GDINO 候選好」的質疑。
+val 是最乾淨的 2×2：COMPOSE 同時拿到 GD box 的小集合與 OWL gate 的低 R2，reverse 落到大集合+高 R2。
+testA/testB 則暴露另一個重要現象：**GD gate 可以靠 extreme over-abstention 讓表面 risk 變低**
+（GD+GD 棄答 0.938/0.873；testB reverse 棄答 0.904），但這不是可用操作點。
+在可用棄答區間（約 0.4–0.5）內，OWL gate + GD box 仍是唯一穩定組合：集合壓到 2–3.5 框，且 R1/R2 全部守 α=β=0.3。
+因此 factorization 主張更精確地成立：**OWL gate 控可用 abstention/no-target trade-off；GD box 控 target set compactness**。
 
-**統計穩固性（bootstrap CI，config 固定只 resample test）**：**全量 val**（14229 shared keys）
-composition 集合 **3.21 框 CI [3.10, 3.32]**，R1=0.193 CI [0.180, 0.207]、R2=0.134 CI [0.123, 0.146]，
-雙保證 CI 上界皆 < 0.3 ⇒ 保證穩固有餘裕、非小樣本僥倖。對比純 OWL-ViT 8.16 框 CI [7.78, 8.52]
-（集合 CI 完全不重疊 ⇒ 顯著更小）。**全量 testA（19200）覆現更亮眼**：composition 集合
-**2.02 框 CI [1.97, 2.06]**（= GT 平均基數，恰好選對數量）vs 純 OWL-ViT 9.14 框，雙保證 R1=0.257/R2=0.182 守住。
-val 3.21 框 / testA 2.02 框，兩 split 均壓到 ≈GT 基數。testB dump 流水線跑中。
+**統計穩固性（bootstrap CI，config 固定只 resample test）**：三 split 全量 shared keys = 14229 / 19200 / 16063。
 
-> 〔待全量〕GroundingDINO testA/testB dump 自動流水線跑中；補三 split composition + ablation + CI 後，
-> 此節升為論文主結果。
+| split | OWL-ViT only size | COMPOSE size | COMPOSE R1 | COMPOSE R2 | COMPOSE abst |
+|---|---:|---:|---:|---:|---:|
+| val | 8.16 [7.78, 8.52] | **3.21 [3.10, 3.32]** | 0.193 [0.180, 0.207] | 0.134 [0.123, 0.146] | 0.485 [0.467, 0.503] |
+| testA | 9.14 [8.89, 9.40] | **2.02 [1.97, 2.06]** | 0.257 [0.246, 0.267] | 0.182 [0.167, 0.199] | 0.481 [0.471, 0.492] |
+| testB | 7.07 [6.83, 7.30] | **3.48 [3.35, 3.60]** | 0.169 [0.160, 0.178] | 0.235 [0.218, 0.251] | 0.417 [0.405, 0.429] |
+
+三 split 的 R1/R2 CI 上界都低於 0.3；COMPOSE 與純 OWL-ViT 的 size CI 完全分離。
+因此結果不是 partial dump 或小樣本僥倖：**全量 val/testA/testB 皆在雙保證下達到接近 GT 基數的 compact referring set**。
 
 ---
 
@@ -215,7 +223,8 @@ consistency 兩 base within-AUROC 近相等），故猜測 label-efficiency 高�
 ---
 
 ## 4.8 待辦（實驗面）
-- [ ] GroundingDINO gref dump 三 split（val 進行中，~80min/split，免編譯 HF 路徑已跑通）。
-- [ ] 重跑 crs_gate / ltt / p1 於 GroundingDINO，出可行域對比主圖。
-- [ ] 若正面操作點出現：bootstrap CI（LTT 可行域穩定性）、P3 label-efficiency 曲線。
-- [ ] 若仍退化：把「保證代價隨 base 可分性」做成定量 scaling，仍是完整理論貢獻。
+- [x] GroundingDINO gref dump 三 split（val/testA/testB rows = 14229/19200/16063，HF 免編譯路徑跑通）。
+- [x] 三 split compose + bootstrap CI + 2×2 ablation，確認 Cross-Base Composition 是主結果。
+- [ ] 將本章改寫成英文正式稿，主表放 composition 三 split，副表放 2×2 ablation。
+- [ ] 補 cost-Pareto / feasible-region 圖，呈現「保證代價」而非只給單點。
+- [ ] 可選深化：P3 label-efficiency 曲線（新 base 少量 calibration label 即可重標定保證）。
