@@ -160,7 +160,25 @@ OWL-ViT 擅長判斷「**該不該答**」，GroundingDINO 擅長「**答得準*
 > (棄答, 集合) 雙目標 Pareto frontier。這是 selection criterion，不影響保證有效性
 > （全 frontier 都滿足保證）。
 
-> 〔待全量〕GroundingDINO testA/testB dump 自動流水線跑中；補三 split composition + bootstrap CI 後，
+**機制證實：2×2 gate×box ablation**（val，α=β=0.3）。對調 gate-base 與 box-base 的四種組合：
+
+| gate | box | 集合 | 棄答 | R2(誤選) |
+|---|---|---|---|---|
+| OWL | OWL | 8.61 | 0.433 | 0.150 |
+| GD | GD | 3.41 | 0.756 | 0.238 |
+| **OWL** | **GD（COMPOSE）** | **3.14** | 0.481 | **0.129** |
+| GD | OWL（reverse） | 15.95 | 0.463 | 0.244 |
+
+兩個因子**獨立可分**：box 軸控集合大小（GD box → 3.x；OWL box → 8–16），
+gate 軸控棄答與 R2（OWL gate → 低棄答且守 R2；GD gate → 棄答 0.76 或 R2 破 0.24）。
+COMPOSE 取兩軸最佳、reverse 取兩軸最差，兩者位於對角線兩端 ⇒ **互補性是真機制，
+非單一 base 的功勞**。這堵住「會不會只是 GDINO 候選好」的質疑。
+
+**統計穩固性（bootstrap CI，config 固定只 resample test）**：val composition 集合
+3.26 框 CI [3.09, 3.45]，R1=0.195 CI [0.172, 0.216]、R2=0.177 CI [0.158, 0.197]，
+雙保證 CI 上界皆 < 0.3 ⇒ 保證穩固有餘裕、非小樣本僥倖。
+
+> 〔待全量〕GroundingDINO testA/testB dump 自動流水線跑中；補三 split composition + ablation + CI 後，
 > 此節升為論文主結果。
 
 ---
