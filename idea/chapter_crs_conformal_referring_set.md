@@ -119,11 +119,53 @@ validity 不破。〔誠實：高召回區增益偏弱，當「nonconformity 設
 那建議針對舊 reliability-measurement framing 會把論文拉回 detector comparison；
 在 conformal-framework framing 下，多 base 是展示「保證的可達邊界如何隨 base 移動」，角色完全不同。〕
 
-> 〔待補實驗 — gdino_gref_val dump 進行中〕主圖 = OWL-ViT vs GroundingDINO 的可行域並排，
-> money claim：「stronger base → 同保證下棄答更低、集合更小」。若 GroundingDINO 在 α=0.2/β=0.2
-> 出現低棄答 + 個位數集合的操作點，CRS 就從「強框架 + 負面操作點」升級為「強框架 + 亮眼正面操作點」。
+**實證診斷（決定性）**：對 target-present 子問題，達到同一 FNR≤α 保證所需集合大小，
+GroundingDINO 比 OWL-ViT 小 **~5.4×**（α=0.2：3.46 vs 18.62 框；α=0.3：2.25 vs 12.11），
+且**不可化約召回下限 0.004 vs 0.062**（GroundingDINO 候選池幾乎涵蓋所有 GT）。
+target 平均 ~2 GT 框，GroundingDINO 在 α=0.3 只需 2.25 框 ≈「幾乎恰好選對」。主圖 `crs_money_setsize.png`。
 
 ---
+
+## 4.5b ★核心 invention：Cross-Base Conformal Composition★
+
+**問題的乾淨因式分解**（本身是貢獻）：CRS 的保證代價可分解為兩個**正交**的瓶頸，
+分別由不同的 base 能力決定，且**沒有單一 base 兩者都強**：
+
+| | no-target 可分性（abstain gate） | target 集合可分性（set selection） |
+|---|---|---|
+| OWL-ViT | **0.82**（好） | 差（α=0.3 需 12 框） |
+| GroundingDINO | 0.60（差，對任何 query 都給高信心框） | **強（α=0.3 需 2.25 框），召回下限 0.004** |
+
+OWL-ViT 擅長判斷「**該不該答**」，GroundingDINO 擅長「**答得準**」。
+單一 base 的多風險 LTT 因此必然退化：OWL-ViT 集合爆炸（~43 框）、GroundingDINO 被弱 gate 拖累
+（棄答 79%）。
+
+**解法 = 兩個 frozen base 各司其職，用 LTT 聯合校準雙保證**：
+
+- **abstain gate** ← OWL-ViT 分數 `top1_score`（no-target 可分性 0.82）
+- **set selection** ← GroundingDINO 候選 + 分數（召回下限 0.004、集合小）
+- 兩 base 皆 frozen、皆不訓練；join key = `(ref_id, sent_id)`（共享 gRefCOCO 標註，expression/no_target 零 mismatch）。
+- LTT 在 `(τ on OWL 分數, λ on GDINO 分數)` 二維 grid 上聯合校準 `(R1≤α, R2≤β)`。
+
+**亮眼操作點（val，α=0.3/β=0.3 聯合保證）**：可行域 Pareto frontier 上達到
+**集合 3.2 框**（≈ GT 基數）、target 棄答 0.435、R1=0.199（<α 守住）、R2=0.157（<β 守住）。
+對比純 OWL-ViT ~43 框、純 GDINO ~40 框 ⇒ **集合縮 ~13×，且雙保證同時成立**。
+
+> 〔這是全篇護城河〕把「沒有單一 base 兩者都強」的**限制**，轉成「組合兩個 frozen base 互補強項」的
+> **正面方法**。純 post-hoc、不訓練、接回 C4 cross-base 主軸、非 detector 比較（是互補組合）、
+> 躲過紅隊三地雷。這是「強框架 + 亮眼正面操作點」的最終解。
+>
+> 〔誠實技術註〕Pareto 選點是關鍵：LTT 可行域常有上百個 valid configs，
+> 若只取「最小棄答」會誤配最寬鬆 λ（集合爆到 45 框，假退化）；正確做法是取
+> (棄答, 集合) 雙目標 Pareto frontier。這是 selection criterion，不影響保證有效性
+> （全 frontier 都滿足保證）。
+
+> 〔待全量〕GroundingDINO testA/testB dump 自動流水線跑中；補三 split composition + bootstrap CI 後，
+> 此節升為論文主結果。
+
+---
+
+## 4.5c 〔原 4.5 收尾〕
 
 ## 4.6 跨 base 校準的樣本效率（P3，接 C4）
 
@@ -145,8 +187,9 @@ consistency 兩 base within-AUROC 近相等），故猜測 label-efficiency 高�
 | True-False Verification（2509.09958） | 單答案對錯 verify；CRS 是集合層聯合保證 + 計數。 |
 
 **護城河三句話**：(1) 第一個對 frozen referring-grounding 做 risk-controlled box-set selection 的工作；
-(2) 第一個同時控召回+棄答耦合雙風險（LTT），並給出可行域；(3) 用 conformal 框架把 frozen base 的
-不可化約召回下限與保證代價**明碼診斷**出來。皆躲過紅隊三地雷（非 TTA、非 detector comparison、不撞 verification）。
+(2) 第一個同時控召回+棄答耦合雙風險（LTT），並給出可行域；(3) 第一個用 **cross-base conformal composition**
+組合兩個異質 frozen grounding base 的互補強項（一個管棄答、一個管選框），在雙保證下達到 ≈GT 基數的精準集合。
+皆躲過紅隊三地雷（非 TTA、非 detector comparison、不撞 verification）。
 
 ---
 
