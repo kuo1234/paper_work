@@ -256,6 +256,12 @@ set size 三模式幾乎重合（random std 僅 0.03–0.11），image-disjoint 
 
 > 〔誠實邊界 — image-cluster 必寫白〕主協議以 **expression** 為 calibration unit；同影像多 expression 是 record-level exchangeability 假設。改以 **image** 為 unit（最嚴格）時，僅 val 維持 feasible（n=28，勉強），testA/testB **EMPTY**。這**不是 validity 崩塌**，而是樣本量限制：image-as-unit 把有效樣本數從 ~9000 records 降到 ~3000 images，疊加三風險 × Bonferroni（3·|grid|）的嚴格門檻後，有限校準集不足以**同時**認證三個保證。這是 frozen zero-shot base + 三風險 + 有限 calibration 的根本張力，誠實標為 limitation；主結果用 expression-level，並以 image-disjoint **split** robustness（上表）作為 exchangeability 的 empirical 緩解。
 
+**combined protocol（第四輪 #1，three-way + ratio-free R1 同時施加）**：把最嚴格的兩個有效性協議**疊加**——grid/calib/eval image-disjoint 三分 **且** R1 用 ratio-free 條件風險檢定。val sz=3.36 仍 feasible（n_feas=112），證明 headline 不只各自存活、而是**在兩個 stricter 協議同時施加下存活**。three-way 的 **5 seeds**（0–4）robustness：val 5/5 feasible，sz=3.29±0.11，R1/R2/R3 max 全在名目內——非 seed=0 僥倖。
+
+**candidate-pool 截斷（第四輪 #3，protocol 透明化）**：CRS 的候選池是 base 經 `PRED_KEEP=50` + `PRED_MIN_SCORE=0.01` 預處理後的 stored pool，非 base 完整候選池——這是實驗 protocol 的一部分，明寫。下界檢查：雖然 val 100% 樣本原始 `n_cands>50`，但通過 score≥0.01 門檻的候選**平均僅 45.9 個（<50）**，代表 `KEEP=50` 的 cap 幾乎未實際裁切，主導的是 0.01 門檻；且最終 set size 由 LTT 選出的 λ（遠高於 0.01）決定,非 dump cap。故「compact set 靠 cap 作弊」不成立。caption：*CRS controls risks over the stored proposal pool induced by the fixed candidate-dump protocol (top-50, score≥0.01); the stored cap is rarely binding.* 〔待辦：完整 `KEEP∈{20,50,100}` sweep 需重跑 GPU dump，列為 future robustness。〕
+
+> 〔誠實邊界 — expression length，第四輪 #4 的真發現，必寫白〕R2（no-target false selection）隨 expression **長度顯著惡化**：0–8 token（佔 ~70%，gRefCOCO 主體）R2=0.13–0.21 守住，9–16 token 升到 0.40–0.61，17+ token 更高。關鍵：**9–16 token 段的 OWL tokenizer 截斷率仍是 0%**，R2 卻已惡化 → 這**不純是** OWL `max_length=16` 截斷造成,而是 **OWL gate 對長 expression 的 no-target 判斷本就較弱**（長句 top1_score 訊號不可靠）；17+ token 的 100% 截斷讓它雪上加霜。aggregate headline 由短句主導故站得住,但**長 expression 的 gate 退化是真 limitation**。誠實 wording：*OWL gate's no-target reliability concentrates on short expressions; it degrades on long expressions, partly (not solely) due to text truncation. A stronger / shared text encoder is future work.*
+
 ---
 
 ## 4.5c 〔原 4.5 收尾〕
@@ -266,6 +272,9 @@ C4 舊結論「校準不可轉移（raw 數值刻度跨 base 近隨機）」在�
 **新 base 要多少 calibration label，LTT 才能達到目標 (α,β) 保證？** 訊號的**結構**可轉移（C4 已證
 consistency 兩 base within-AUROC 近相等），故猜測 label-efficiency 高。這把「不可轉移」的限制
 轉成「**少量 label 即可重標定保證**」的正面 label-efficiency 命題。
+
+> 〔第四輪 #6 — wording 紀律〕label-efficiency 目前**僅為 future-work 方向，尚未實證**，**不可**當成本研究的 contribution。
+> 安全 wording：*This suggests a future label-efficiency question, but we do not claim reduced calibration-label complexity in this work.*
 
 ---
 
@@ -287,6 +296,11 @@ calibrated box set，並用 LTT 對三個有界風險（answered-target FNR、no
 (3) 用 **cross-base conformal composition** 組合兩個異質 frozen grounding base 的互補強項
 （一個管棄答、一個管選框），在三保證下達到 ≈GT 基數的精準集合——2×2 ablation 證明這是 factorization
 而非單純 detector 比較（單 base 在三風險下退化或無解）。皆躲過紅隊三地雷（非 TTA、非 detector comparison、不撞 verification）。
+
+> 〔第四輪 #5 — factorization 主張的範圍限定〕2×2 ablation 在**主 split-specific LTT 協議**下證明 factorization；
+> 額外的 stricter validity check（ratio-free / three-way / image-cluster）只施加在最終 **COMPOSE operating point**,**未**對整個 2×2 重跑。
+> 故**不可**寫「factorization 在所有 stricter 協議下都驗證」。安全 wording：
+> *The 2×2 ablation establishes factorization under the main split-specific LTT protocol; additional stricter validity checks are reported for the final COMPOSE operating point.*
 
 > 〔wording 安全清單 — 投稿前掃〕禁用：first / 第一個 / target recall(coverage) guarantee /
 > unconditional recall / solves full-GREC / finite-sample conformal guarantee for recall / 13× shrink /
