@@ -1,9 +1,18 @@
-# M4 章節草稿 — Full-GREC Stress Test: The Boundary of Post-hoc Calibration
+# M4 章節草稿 — Full-GREC Exact-Match Wall: The Motivation for Risk-Controlled Set Prediction
 
-> 章節定位（紅隊裁決 2026-06-12）：本節**不是方法貢獻**，是 C3 的延伸性 **stress test / boundary analysis**。
-> 真正方法貢獻為 C3（no-target gate）+ C4（cross-base transfer）。本節回答：把 post-hoc belief policy 推到完整 GREC（multi-target exact-match）會在哪裡失效、為什麼失效。
-> 在論文中建議放在 gRefCOCO/GREC 章（C3 之後）的最後一節，標題：
-> **Full-GREC Stress Test: The Boundary of Post-hoc Calibration**（中：Full-GREC 壓力測試——post-hoc calibration 的適用邊界）
+> 章節定位（紅隊裁決 2026-06-12，**2026-06-13 CRS 升級後重新定位 2026-06-15**）：
+> 本節**不是方法貢獻**，是一個 **boundary / stress test**。但在 CRS 成為主台柱章之後，M4 的角色從
+> 「post-hoc calibration 的**終點**（做不到，結束）」轉成「**動機/跳板**——exact-match wall 證明 point prediction 不足，
+> 所以必須轉向 risk-controlled **set** prediction（CRS 章）」。同一批 M4 數據，敘事方向反轉：
+> 不是「我們做不到 full-GREC」，而是「full-GREC exact-match 在 frozen base 上有一道可量化的牆，這道牆**正是 CRS 的存在理由**」。
+> 本節回答：把 post-hoc point policy 推到完整 GREC（multi-target exact-match）會在哪裡撞牆、為什麼撞牆。
+> **章序建議**：放在 gRefCOCO/GREC 章末，**緊接 CRS 章之前**（M4 撞牆 → CRS 解法），標題：
+> **Full-GREC Exact-Match Wall: Why Frozen Post-hoc Point Prediction Is Not Enough**
+> （中：Full-GREC exact-match 之牆——為何凍結 base 的 post-hoc 點預測不足，需轉向有保證的集合預測）
+>
+> 〔與 CRS 章的接口〕CRS 4.1 動機段直接引用本節的兩個 take-away：(1) per-sample oracle τ 的 T-acc 天花板僅 0.19–0.24
+> → 單一信心閾值這個「動作」表達不了 per-sample counting；(2) recall 0.94 足夠、瓶頸在 FP 多餘框
+> → raw score 把 TP/FP 在分數軸交織，任何**點估計**閾值都切不乾淨。CRS 的回應：不做點估計，改輸出**有保證的集合**。
 
 ---
 
@@ -64,11 +73,23 @@ T-acc CI 全部貼近 0（最高上界僅 0.057）→ 「frozen zero-shot detect
 
 ---
 
-## M4.4 結論與在 thesis 中的角色（Takeaway）
+## M4.4 結論與在 thesis 中的角色（Takeaway → CRS 的跳板）
 
-> **post-hoc reliability calibration 可以補出 no-target abstention，但不能取代 trained counting head 或 set prediction module；full-GREC exact-match 暴露了 frozen-base post-hoc policy 的 action-space 限制。**
+> **post-hoc reliability calibration 可以補出 no-target abstention，但不能取代 trained counting head 或 set prediction module；full-GREC exact-match 暴露了 frozen-base post-hoc point policy 的 action-space 限制。**
 
-這不是減分，而是支撐全篇 framing 的一塊：本研究不追 SOTA accuracy，而是量化 frozen base 的 **reliability、cost、transferability、與 oracle gap**，以及 **post-hoc policy 的適用邊界**。M4 正是這條 framing 的「邊界」一端——明確劃出 post-hoc calibration 能做到哪裡（C3 no-target）、不能做到哪裡（full-GREC multi-target exact-match），並以 oracle gap 量化「缺的是 action space，不是 signal」。
+這道牆不是論文的終點，而是**轉折點**。它劃出兩條路:
+(a) 補一個 trained counting / set-prediction module（HieA2G 路線，但這就放棄了「凍結 base + 輕量 post-hoc」的賣點）;
+(b) **不再強迫 exact single/multi-box 點預測，改輸出有分布無關保證的 box 集合**——這正是下一章 **CRS（Risk-Controlled Referring Sets）** 的解法。
+
+M4 的兩個診斷數字直接成為 CRS 的設計依據:
+1. **per-sample oracle τ 的 T-acc 天花板僅 0.19–0.24** → 「單一信心閾值」這個動作表達不了 per-sample counting。CRS 的回應:放棄點估計，輸出集合,並把「該留幾個框」的不確定性吸收進**集合大小**與**棄答**（CRS 的 R3 target deferral）。
+2. **recall 0.94 足夠、瓶頸在 FP** → raw score 把 TP/FP 在分數軸交織,點閾值切不乾淨。CRS 的回應:用 LTT 對「漏檢率（answered-target FNR）」給有限樣本保證,而非追逐 F1=1 的 0/1 事件。
+
+因此 M4 與 CRS 是**同一條 framing 的兩端**:M4 證明 frozen base 的 point prediction 撞牆（量化「缺的是 action space，不是 signal」）;CRS 證明換成 risk-controlled set prediction 後,同一批 frozen base 能在三風險保證下輸出 ≈GT 基數的 compact 集合。本研究不追 SOTA exact-match accuracy,而是量化 frozen base 的 reliability、cost、transferability、oracle gap,並在 point prediction 撞牆處給出有保證的集合預測替代方案。
+
+> 〔誠實邊界保留〕M4 的結論本身不被 CRS 推翻:full-GREC **exact-match（F1=1）** 仍超出凍結 post-hoc 能力。
+> CRS 不宣稱「解了 full-GREC」,而是**改變問題**——從 exact-match point prediction 換成 risk-controlled set construction。
+> 這個 metric pivot 必須在兩章都寫白,避免被讀成「CRS 解了 M4 解不了的同一個問題」。
 
 **圖**：`idea/figures/grec_ladder.png`（左：三 split policy ladder bar，含 forced-output / ours / oracle / per-sample ceiling / HieA2G 對照線；右：召回足夠但 exact-F1 低的 FP 瓶頸診斷）。
 
