@@ -241,6 +241,21 @@ set size 三模式幾乎重合（random std 僅 0.03–0.11），image-disjoint 
 〔誠實：random split 的 R2/defer 單次 variance 較大（val R2 偶到 0.26、testB 到 0.29），
 屬 LTT marginal 保證的正常表現——單次抽樣可略超名目，報 mean±std 並說明即可。〕
 
+**formal-validity robustness（第三輪審查，COMPOSE，α=β=0.3 / γ=0.5）**：針對 LTT 保證的三個深層形式問題各做一個對照協議。
+
+| 協議 | val | testA | testB | 結論 |
+|---|---|---|---|---|
+| baseline（parity, Hoeffding R1） | 3.24 | 2.02 | 3.50 | — |
+| (C) **ratio-free R1**（fixed-n 條件風險檢定） | 3.25 | 2.02 | 3.51 | ✅ 幾乎完全重現 |
+| (A) **three-way split**（grid/calib/eval image-disjoint 三分） | 3.36 | 3.31 | 3.35 | ✅ 三 split 全 feasible |
+| (B) **image-cluster**（image=calib unit，最嚴格） | 3.24 (n=28) | EMPTY | EMPTY | ⚠️ 見下方誠實邊界 |
+
+- **(C) join population**：cross-base join 三 split 100% 對齊（OWL∩GD = full processed split，no_target/image/GT mismatch 全 0），故 composition 無 selection bias，保證範圍即全處理集。
+- **(C) ratio-free R1**：R1 是條件風險，原 Hoeffding 用 answered subset 的 random denominator `n1`。改用 `E[L|A]≤α ⟺ E[A(L−α)]≤0` 對 bounded fixed-n 變數 `Z=A(L−α)∈[−α,1−α]` 做 Hoeffding，分母固定為 target-present 全數。結果三 split 與 baseline 幾乎完全一致 → random-denominator 質疑**實務上不影響結論**。caption：*R1 feasibility certified by the ratio-free conditional-risk test; table reports conventional conditional FNR for interpretability.*
+- **(A) data-dependent grid**：grid 從 calib scores 建、又在同 calib 上做 LTT，理論上可質疑。three-way split（grid-design / calib / eval 三個 image-disjoint 子集）下三 split 仍 feasible，set size 3.31–3.36（略升因 eval 全新 image + 樣本變少），結論不變。
+
+> 〔誠實邊界 — image-cluster 必寫白〕主協議以 **expression** 為 calibration unit；同影像多 expression 是 record-level exchangeability 假設。改以 **image** 為 unit（最嚴格）時，僅 val 維持 feasible（n=28，勉強），testA/testB **EMPTY**。這**不是 validity 崩塌**，而是樣本量限制：image-as-unit 把有效樣本數從 ~9000 records 降到 ~3000 images，疊加三風險 × Bonferroni（3·|grid|）的嚴格門檻後，有限校準集不足以**同時**認證三個保證。這是 frozen zero-shot base + 三風險 + 有限 calibration 的根本張力，誠實標為 limitation；主結果用 expression-level，並以 image-disjoint **split** robustness（上表）作為 exchangeability 的 empirical 緩解。
+
 ---
 
 ## 4.5c 〔原 4.5 收尾〕
