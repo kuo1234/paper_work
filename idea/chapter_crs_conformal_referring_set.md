@@ -57,6 +57,14 @@ L_FNR(S, G) = 1 − |{g ∈ G : ∃ b ∈ S, IoU(b,g) ≥ 0.5}| / |G|
 > 不是藏起來的成本。R2（no-target false selection）與 R3（target deferral）語義不同：no-target 吐空集是**正確**決策，
 > target-present 吐空集才是**代價**，兩者分開計、分開控。
 
+**指標精確定義（避免誤解，必寫在 caption）**：
+
+- **answered TP set size**（主表的 "set size"）：平均集合大小**只在 answered target-present queries**（target-present 且最終非空輸出）上計算，**不是**所有 query 的平均。caption 一律標：*Set size is averaged over answered target-present queries unless otherwise specified.*
+- **R3 target deferral**：target-present 最終輸出空集的比例（gate 棄答 **或** box 門檻濾光皆計入；與形式化定義 `L_DEF=1[|S|=0]` 一致）。
+- **R1 answered-target FNR**：僅在 target-present 且最終非空的 query 上計算。
+
+**校準協定澄清（P0：勿寫成標準 benchmark held-out test）**：本研究對每個 official split（val/testA/testB）**內部**以 `ref_id` parity 切成 calibration / evaluation 兩半；threshold grid、LTT 檢定、操作點選擇**只用 calibration 半**，回報的風險與 bootstrap CI 在 held-out parity 半上計算。caption 用：*Split-specific calibration: each official split is partitioned into calibration/evaluation halves by ref_id parity; LTT selection uses only the calibration half.* **不可**寫成「在 testA/testB 上做了完全未用 label 的 held-out benchmark test」——它是 split 內的 risk-control evaluation，不是標準 train-val-test。跨 split transfer 若報，僅為 empirical stability，**不在** distribution-free LTT 保證範圍內。
+
 > 〔framing〕這正是 GREC 官方 Pr@(F1=1) 的「機率化、有保證」版本：F1=1 要求零漏檢且零多選，
 > 我們不追逐那個 0/1 事件，而是給「answered-target FNR ≤ α」的連續、有保證旋鈕。CRC 原論文 worked example 即含 bound-FNR，工具天生對齊。
 
@@ -208,11 +216,11 @@ val R1=0.191/R2=0.159/defer=0.424，testA R1=0.261/R2=0.203/defer=0.443，testB 
 
 **統計穩固性（bootstrap CI，config 固定只 resample test）**：三 split 全量 shared keys = 14229 / 19200 / 16063。
 
-| split | OWL-ViT only size | COMPOSE size | COMPOSE R1 | COMPOSE R2 | COMPOSE defer |
+| split | OWL-ViT only (answered TP size) | COMPOSE (answered TP size) | COMPOSE R1 | COMPOSE R2 | COMPOSE defer |
 |---|---:|---:|---:|---:|---:|
 | val | 8.23 [7.85, 8.57] | **3.24 [3.15, 3.36]** | 0.191 [0.179, 0.203] | 0.159 [0.146, 0.171] | 0.424 [0.405, 0.443] |
-| testA | 9.25 [9.00, 9.51] | **2.02 [1.98, 2.06]** | 0.261 [0.251, 0.271] | 0.203 [0.187, 0.221] | 0.443 [0.433, 0.454] |
-| testB | 7.12 [6.88, 7.35] | **3.50 [3.38, 3.63]** | 0.168 [0.159, 0.178] | 0.236 [0.219, 0.252] | 0.413 [0.401, 0.425] |
+| testA | 9.25 [9.00, 9.51] | **2.02 [1.98, 2.06]** | 0.260 [0.250, 0.269] | 0.203 [0.187, 0.221] | 0.443 [0.433, 0.454] |
+| testB | 7.12 [6.88, 7.35] | **3.50 [3.38, 3.63]** | 0.168 [0.159, 0.177] | 0.236 [0.219, 0.252] | 0.414 [0.401, 0.426] |
 
 三 split 的 R1/R2 CI 上界都低於 0.3、defer 都低於 γ=0.5；COMPOSE 與純 OWL-ViT 的 size CI 完全分離。
 因此結果不是 partial dump 或小樣本僥倖：**全量 val/testA/testB 皆在三保證下達到接近 GT 基數的 compact referring set**。
@@ -278,6 +286,8 @@ calibrated box set，並用 LTT 對三個有界風險（answered-target FNR、no
 - [x] **紅隊 P0 修補（2026-06-15）**：calib-only grid（修 leakage）+ 三風險 LTT（R3 target deferral，Bonferroni over 3×grid）。
       headline 3.24/2.02/3.50 存活、CI 與 OWL-only 分離；ablation 升級（pure GD/reverse 三 split 全 EMPTY）。
 - [x] **P1 robustness**：parity / 5×random / image-disjoint 三模式 set size 幾乎重合（random std 0.03–0.11）。
+- [x] **第二輪審查 P0（2026-06-15）**：R3 deferral 改 final-empty 定義（修 gate-pass-but-empty bug，影響 ≤0.001，加 unit test）；
+      set size 改名 answered TP set size + split-specific calibration caption；移除 hardcoded paths（env CRS_DUMP_DIR）。
 - [x] feasible-region 圖（Pareto 四 panel，val）：`dump/crs_pareto.png`（本地 `paperwork/crs_pareto.png`）。
 - [ ] 將本章改寫成英文正式稿，主表放 composition 三 split，副表放 2×2 ablation。
 - [ ] 可選：Pareto 圖擴成三 split 一張大圖。
