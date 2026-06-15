@@ -1,4 +1,18 @@
-# CRS Session 進度總結（2026-06-13，自主推進階段）
+# CRS Session 進度總結（2026-06-13 起；**2026-06-15 紅隊 P0/P1 修補後更新**）
+
+> **2026-06-15 最新狀態（先看這段）**：紅隊兩大 Major 修補已實跑通過，CRS 正式升碩論主結果。
+> - **修了什麼**：(1) calib-only grid 修 leakage；(2) 加 R3 target deferral 升**三風險 LTT**（Bonferroni over 3×grid，γ=0.5 三 split 全過，不必退 0.55）。
+> - **headline 存活**：COMPOSE 三風險下 val/testA/testB = **3.24 / 2.02 / 3.50 框**（修補前 3.21/2.02/3.48，位移 ≤0.03），R1/R2 全 <0.3、defer 全 <0.5，size CI 與 OWL-only 完全分離，公平 shrink **2.0–4.5×**（不用 13×）。
+> - **ablation 升級**：加 R3 後 pure GD（GD gate+GD box）與 reverse 三 split **幾乎全 EMPTY**，只 COMPOSE 對角線活 → 更強證明 factorization ≠ ensemble。
+> - **robustness**：parity / 5×random / image-disjoint 三模式 set size 幾乎重合（random std 0.03–0.11）。
+> - **產出**：共用協議 `crs_protocol.py`（單一事實來源）+ `crs_maintable.py`/`crs_ablation.py`/`crs_robust.py`/`crs_pareto_fig.py`/`gamma_precheck.py`/`minsize_check.py`；Pareto 四 panel 圖 `dump/crs_pareto.png`（本地 `paperwork/crs_pareto.png`）。
+> - **章節已對齊**：CRS 章升 v2、M4 章改成 CRS 動機跳板、Method 章升 v2 加 §3.5b、C4 章補 label-efficiency 前向指標。
+> - **唯一剩**：英文正式稿；可選 Pareto 擴三 split、P3 label-efficiency。
+> - **下方 2026-06-13 內容為修補前歷史紀錄，數字以本段為準。**
+
+---
+
+## ⬇️ 以下為 2026-06-13 原始總結（修補前，數字已被上段取代）
 
 > 你離開前下的 /goal：「繼續找出**強框架 + 亮眼正面操作點**的解決辦法，自行決定，別問」。
 > **已達成。** 以下是回來後一眼看全貌的總結。詳細記憶在 `crs-pivot-conformal-referring-set.md`。

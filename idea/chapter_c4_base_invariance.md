@@ -62,6 +62,13 @@ base-invariant 是有限定的。三個誠實的限制必須寫明，否則過�
 
 **在 thesis 中的角色**：這是本研究最接近「科學發現」的貢獻，也是對 VIRO / True-False Verification 唯一站得住的真區辨——它們是 per-pipeline / per-VLM，結構上無法提出「不確定性有 base 共享結構」這類 transfer 主張。
 
+> 〔接 CRS — 前向指標〕「結構可轉移、校準不可轉移」這個 C4 結論在 CRS 章（§4.6）升級成一個正面的
+> **label-efficiency** 命題：既然 belief 訊號的*結構*跨 base 共享（C4 已證 consistency 兩 base within-AUROC 近相等），
+> 那麼把 CRS 的 LTT 保證重標定到一個新 frozen base，理論上只需**少量** calibration label——
+> 「不可轉移的校準」從限制翻成「少量 label 即可重建保證」的正面命題。C4 提供這個猜測的訊號基礎，CRS §4.6 是其應用出口。
+> 〔另注〕CRS 的 cross-base **composition**（OWL gate + GDINO box）與 C4 的 cross-base **transfer**（同訊號跨 base 重用）
+> 是兩個不同的 cross-base 主張，寫作時勿混：transfer 講「訊號結構共享」，composition 講「不同 base 的能力互補因式分解」。
+
 > 〔自評 — 寫給自己，最終稿移除〕
 > 這是中等強度亮點：真實、有機制、誠實，足以當一個 named contribution + 一張主圖（c4_hardness.png）。
 > 但 phi 弱、effect size 差異大，主張必帶限定詞，不會是「轟動級」。
