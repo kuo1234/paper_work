@@ -1,0 +1,64 @@
+# 第 10 章　C4：定位不確定性的 base-invariant 結構
+
+C1–C3 在各自的凍結基礎模型上量測了不確定性訊號的資訊量。本章追問一個更深的問題：**這些訊號所捕捉的，是各基礎模型各自的特性，還是定位任務本身的、跨基礎模型共享的結構？** 這是全篇最接近「科學發現」的貢獻，也是對抗「只是 calibration／threshold」批評的護城河——因為 per-pipeline 的驗證方法（VIRO、True/False Verification）結構上無法提出 transfer 主張。
+
+## 10.1 動機：transfer 數字背後是什麼？
+
+先前的跨基礎模型轉移結果顯示：把 CLIP-VG 上定義的 raw consistency 訊號零參數、無 refit 直接套到 OWL-ViT，其風險—覆蓋 AURC（0.488）接近 OWL-ViT 自身原生 gate（0.489），比隨機降 15.9%。
+
+但「一個 transfer 數字」不足以支撐 thesis-level 主張。本章追問其**機制**：consistency 為什麼能轉移？轉移的到底是訊號的什麼性質？並誠實界定**哪些性質可轉移、哪些不可**。
+
+兩個基礎模型結構上極為不同（CLIP-VG 是單框迴歸、OWL-ViT 是候選評分偵測器），且 RefCOCO val 上準度差近一倍（**CLIP-VG 0.843 vs OWL-ViT 0.419**）。若同一不確定性訊號在如此不同的兩個基礎模型上仍以相同方式運作，則定位失敗存在基礎模型共享的結構。分析在兩基礎模型逐列對齊的 10834 個共同樣本上進行。
+
+## 10.2 發現一：訊號的資訊性／排序結構是 base-invariant 的
+
+對兩基礎模型共有的訊號（cross_prompt_consistency、prompt_box_dispersion）逐一比較其對 correctness 的資訊性：
+
+**表 10.1　共有訊號在兩基礎模型上的資訊性**
+
+| 訊號 | CLIP-VG within AUROC | OWL-ViT within AUROC | corr(訊號, 答對) CLIP-VG | corr OWL-ViT |
+|---|---|---|---|---|
+| cross_prompt_consistency | 0.722 | 0.641 | 0.288 | 0.271 |
+| prompt_box_dispersion | 0.654 | 0.634 | 0.153 | 0.231 |
+
+**判讀**：同一個與定位相關的訊號，在準度差近一倍的兩個基礎模型上，都以**相同方向、相近相關性**預測錯誤（consistency corr 0.288 vs 0.271，幾乎相等）。這不是「訊號剛好在各自基礎模型有用」的巧合，而是訊號所捕捉的「referential 不穩定性」是定位任務本身的性質。
+
+## 10.3 發現二：同一難度軸對兩基礎模型同向有效
+
+更根本的證據不在訊號統計，而在錯誤本身。以 CLIP-VG 的 consistency 作為**共享難度軸**（分 10 個等量分箱），檢視兩基礎模型在每個分箱的 error rate：
+
+- 兩條 error-rate 曲線**同向**：consistency 越低（查詢越不穩定），CLIP-VG 與 OWL-ViT 的 error rate **都上升**。
+- 亦即：同一個訊號標出的 hard sample，對兩個獨立、準度迥異的凍結基礎模型都更容易答錯。難度排序是查詢的性質，跨基礎模型共享。
+
+（圖 `c4_hardness.png`：x = 共享 consistency 軸，雙曲線分別為兩基礎模型的 bin error rate。）
+
+## 10.4 誠實的邊界：什麼**不**可轉移
+
+base-invariant 是有限定的。三個誠實的限制必須寫明，否則過度宣稱：
+
+1. **判別強度（effect size）是 base-specific 的。** 以最低 vs 最高 consistency 的 20% 尾端比較 error lift：CLIP-VG 達 **13.9×**（0.348 vs 0.025），OWL-ViT 僅 **1.32×**（0.677 vs 0.513）。consistency 對 CLIP-VG 是極強的難度指標，對 OWL-ViT 只是弱訊號——**方向不變，強度大不同**。
+
+2. **逐樣本 correctness 的跨基礎模型相關性是弱的**（phi = 0.186）。並非「同一批 sample 兩基礎模型一起對／一起錯」，而是「低 consistency 區域兩基礎模型各自的 error 都統計性偏高」。可轉移的是**統計趨勢**，不是**逐樣本一致性**。
+
+3. **訊號的原始數值刻度不可轉移。** 把 CLIP-VG 的 consistency 原始值直接拿去排 OWL-ViT 的 correctness，AUROC 僅 0.551（近隨機）；多特徵 fitted gate 的最佳組合權重也 base-specific（CLIP-VG consistency:dispersion ≈ 1.58:0.86，OWL-ViT native ≈ 0.66:0.07）。可轉移的是**結構**，不是**校準**。
+
+## 10.5 收斂主張
+
+> **與定位相關的不確定性訊號（cross-prompt consistency）所定義的「查詢難度排序」是 base-invariant 的**：同一訊號在準度差近一倍的兩個凍結基礎模型上，都以相同方向、相近相關性預測錯誤，且其標定的 hard sample 對兩基礎模型同向更難。**但其判別強度（effect size）、逐樣本一致性、與最佳組合權重（校準）是 base-specific 的。**
+
+換句話說：**結構可轉移，校準不可轉移。** 這一句同時解釋了 C2 的兩個觀察——為什麼 rank-based 的風險—覆蓋能轉移（只看排序結構），以及為什麼 fitted 多訊號 gate 轉移較差（吃絕對數值與 base-specific 權重）。它也呼應 C1 的觀察：絕對分數最弱、分布／擾動訊號較強，因此跨基礎模型轉移必須避開絕對分數尺度、改用 base-normalized 特徵。
+
+**在 thesis 中的角色**：這是本研究最接近「科學發現」的貢獻，也是對 VIRO / True-False Verification 唯一站得住的真區辨——它們是 per-pipeline / per-VLM，結構上無法提出「不確定性有基礎模型共享結構」這類 transfer 主張。需誠實標註：phi 弱、effect size 差異大，主張必帶限定詞。
+
+## 10.6 與 CRS 的關係與前向指標
+
+需區分兩個不同的 cross-base 主張，寫作時勿混：
+
+- **C4 的 cross-base transfer**：同一訊號跨基礎模型重用，講「訊號結構共享」。
+- **CRS 的 cross-base composition**（第 9 章，OWL gate + GDINO box）：不同基礎模型的能力互補因式分解，講「不同基礎模型的能力互補」。
+
+「結構可轉移、校準不可轉移」這個 C4 結論，在 CRS 章升級成一個正面的 **label-efficiency** 前向命題：既然 belief 訊號的*結構*跨基礎模型共享（consistency 兩基礎模型 within-AUROC 近相等），那麼把 CRS 的 LTT 保證重標定到一個新凍結基礎模型，理論上只需**少量** calibration label——「不可轉移的校準」從限制翻成「少量 label 即可重建保證」的正面命題。但需嚴守 wording 紀律：label-efficiency 目前**僅為 future-work 方向，尚未實證**，不可當成本研究的 contribution。C4 提供這個猜測的訊號基礎，其應用出口留待後續工作。
+
+## 10.7 小結
+
+C4 把跨基礎模型轉移從「一個數字」升級成一個有機制、有結構的發現：定位不確定性的**難度排序結構是 base-invariant 的**（同一訊號在兩個準度迥異的凍結基礎模型上同向預測錯誤、同向標出 hard sample），但其判別強度、逐樣本一致性與校準權重是 base-specific 的——**結構可轉移，校準不可轉移**。這是本研究最接近科學發現的貢獻，也是對 per-pipeline 驗證方法唯一站得住的真區辨；同時為 CRS 的跨基礎模型組合與未來的 label-efficiency 命題提供了訊號基礎。
