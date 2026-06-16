@@ -101,6 +101,33 @@ CHECK 1b（前一份 handoff `cardinality_candidate_feasibility_handoff.md`）�
 
 ---
 
+## 4b. Expression-Decomposition 上界檢查（2026-06-16，零 GPU，強 GO）
+
+回應 §4 的正交角度，先用現有 dump 測 decomposition 的**理論上界**（不用 VLM）。設計三條線夾出 decomposition 能買到什麼：
+
+- **L1 raw top-k**（現況）：單一 ranking 一次選 k 個。
+- **L3 完美分解 + 分數定位**：對每個 GT，在「覆蓋它的候選框」裡挑 GDINO **分數最高**的。模擬「decomposition 告訴你該找幾個子指稱，定位仍只用 detector 分數」。
+- **L2 完美分解 + 完美定位**：對每個 GT 挑 IoU 最高的框（絕對上界）。
+
+| | val | testA | testB |
+|---|---|---|---|
+| pool 對每個 GT 召回率 | 0.994 | 0.989 | 0.981 |
+| L1 raw top-k R1（現況） | 0.261 | 0.239 | 0.308 |
+| **L3 完美分解+分數定位 R1** | **0.006** | **0.011** | **0.019** |
+| L2 完美分解+完美定位 R1 | 0.006 | 0.011 | 0.019 |
+
+**關鍵發現（推翻原本「子定位會落回弱 detector」的擔憂）**：
+
+> **L3 = L2。** 一旦知道「該找幾個子指稱、各自是什麼」，即使定位仍用 GDINO 原始分數，R1 也到 0.006——跟完美定位一樣。原因：detector 分數分不開的是「多個 GT 混在一起時誰是誰」，不是「定位單一目標」。decomposition 把「一次選 k 個」拆成「k 個獨立單目標選擇」，每個只需選一個，detector 分數在單目標子問題內就夠用。
+
+這正是前 11 次 candidate-selection 失敗根因的**鏡像**：raw top-k 爛（0.26）不是因為框不好（pool 對每 GT 召回 0.98–0.99），而是單一 ranking 被擁擠度帶向同一個 GT。decomposition 的結構性改變直接解掉這點。
+
+**與 candidate-selection 上界的決定性差別**：candidate-selection 的 oracle 上界需要「知道哪個框對」這個作弊資訊；decomposition 的上界只需要「把句子拆成幾個子指稱」這個 **VLM 真正會做的事（純語言解析）**，拆完定位用現成 detector 分數即可。
+
+→ **decomposition 上界 = 強 GO**（gain 0.23–0.29 可達，且有結構性理由相信可達）。唯一剩的不確定性 = VLM 拆解品質（下一個檢查）。腳本：`dump/decomp_ceiling.py`。
+
+---
+
 ## 5. 復現
 - 第一階段腳本（spark `~/selective-grounding/dump/`）：`cardinality_check.py` `candidate_check.py` `check4.py` `check5.py` `check6.py`
 - VLM 階段（spark `~/selective-grounding/`）：`vlm_check.py`(#7) `som_check.py`(#8) `som_multi.py`(#9) `som_debug.py`(#10) `som_setpred.py`(#11a 3B) `som_setpred_7b.py`(#11b 7B)
