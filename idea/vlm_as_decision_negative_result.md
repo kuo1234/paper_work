@@ -128,6 +128,29 @@ CHECK 1b（前一份 handoff `cardinality_candidate_feasibility_handoff.md`）�
 
 ---
 
+## 4c. VLM Expression-Decomposition 品質檢查（2026-06-16，7B 純文字，GO）
+
+讓 7B 對 300 個 multi-target query 做**純語言**拆解（不看圖，只拆句子成子指稱 JSON list）。
+
+| 指標 | 數字 |
+|---|---|
+| malformed（無法 parse） | **0 / 300** |
+| n_parts == n_gt | **0.893** |
+| n_parts within±1 | **0.983** |
+| 實例人眼品質 | 8/8 合理 |
+
+（`corr=0.000` 是假象：val 幾乎全 n_gt=2 無變異，相關係數算不出；看 n_parts==n_gt 0.89 與實例。）
+
+**關鍵對比——同一批句子，VLM 從災難變乾淨**：
+- 「right bottom person and right guy above child」：看標號圖選框（#11）→ 選框全錯；純語言拆解 → `['right bottom person','right guy above child']` ✅
+- 「PARTIAL PARTS OF THE TABLE ABOVE THE SOUP and food」（大小寫亂、模糊）→ 正確拆成 `['PARTIAL PARTS OF THE TABLE ABOVE THE SOUP','food']` ✅
+
+**證明分工假設**：VLM 不會「看圖選框」（視覺定位是 detector 的事），但**會「拆語言」**（語言結構是 VLM 的事）。前 11 次失敗是逼 VLM 做不擅長的；這次讓它做擅長的，一次就成。腳本：`decomp_quality.py`。
+
+**decomposition 兩道門都過**：上界（§4b，R1 可達 0.006）+ 拆解品質（§4c，within±1 0.98）。這是 candidate-selection 從未到過的位置。剩最後一塊：end-to-end（VLM 拆 → 每個子指稱各自跑 detector → union → 實際 R1），需對子指稱重跑 GDINO。
+
+---
+
 ## 5. 復現
 - 第一階段腳本（spark `~/selective-grounding/dump/`）：`cardinality_check.py` `candidate_check.py` `check4.py` `check5.py` `check6.py`
 - VLM 階段（spark `~/selective-grounding/`）：`vlm_check.py`(#7) `som_check.py`(#8) `som_multi.py`(#9) `som_debug.py`(#10) `som_setpred.py`(#11a 3B) `som_setpred_7b.py`(#11b 7B)
