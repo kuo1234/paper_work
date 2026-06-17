@@ -151,6 +151,31 @@ CHECK 1b（前一份 handoff `cardinality_candidate_feasibility_handoff.md`）�
 
 ---
 
+## 4d. Expression-Decomposed CRS — End-to-End Pilot（2026-06-16，7B+GDINO，★突破★）
+
+真實流程：7B 拆 expression → 每個子指稱當新 query 餵 GDINO 重跑 → union 候選 → 量 R1/size。val eval 半（ref_id 奇）200 個 multi-target query。
+
+| 方法 | R1（漏檢） | set size |
+|---|---|---|
+| **full-expr top-k（現況範式）** | **0.335** | 2.00 |
+| decomp top-1/子指稱 | **0.172** | 2.06 |
+| **decomp top-2/子指稱** | **0.075** | 4.11 |
+| oracle 上界（§4b） | 0.006 | — |
+
+checkpoint 全程穩定（50/100/150/200：d2 R1 = 0.060/0.065/0.070/0.075）。avg n_gt 2.00，avg n_parts 2.06。
+
+**意義**：
+- **decomp top-1**：同 set size（2.06 vs 2.00），R1 從 0.335 砍半到 0.172——不增大集合、純靠 decomposition 選框的免費改善。
+- **decomp top-2**：R1 壓到 0.075（降 78%，逼近 oracle 0.006），代價 size 翻倍到 4.11——正是 CRS/LTT 該收的：union 後交三風險校準 trim。
+
+**17 次嘗試的轉捩點**：前 11 次 candidate-selection + 5 次 VLM-selection 沒一個贏過現況；第 17 次（decomposition）**首次大幅贏過**。機制乾淨：VLM 拆語言（品質 0.98）+ detector 單目標定位 + CRS 收風險。
+
+**三道門全過**：上界（L3=L2，0.006 可達）→ 拆解品質（within±1 0.98）→ end-to-end（0.34→0.075）。證明瓶頸從來不是「定位」，是「單一 query 混多個語義目標」；full-expression 餵 detector 的 R1 天花板（0.27–0.34，被 16 次驗證）由 decomposition 直接繞過。
+
+**注意（誠實邊界）**：此 pilot 用即時重跑 GDINO（threshold=0），其 full-expr 基線 R1=0.335 與主 CRS dump 的 0.27 不同口徑，**只能同腳本內相對比較**；尚未接 CRS/LTT 三風險校準、尚未測 no-target（R2）、尚未測 testA/testB、尚未處理 parse error 傳播。這些是 pilot→完整方法的待辦。腳本：`decomp_e2e.py`。
+
+---
+
 ## 5. 復現
 - 第一階段腳本（spark `~/selective-grounding/dump/`）：`cardinality_check.py` `candidate_check.py` `check4.py` `check5.py` `check6.py`
 - VLM 階段（spark `~/selective-grounding/`）：`vlm_check.py`(#7) `som_check.py`(#8) `som_multi.py`(#9) `som_debug.py`(#10) `som_setpred.py`(#11a 3B) `som_setpred_7b.py`(#11b 7B)
