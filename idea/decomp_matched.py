@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Matched oracle analysis on the 255 truly-decomposed cases.
+"""Matched oracle analysis on the truly-decomposed cases.
 Compares full-expr GD pool vs decomp-union pool on the SAME keys,
 bypassing LTT to isolate decomposition effect from operating-point drift."""
 import os, sys, json; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 import crs_protocol as P
 
-owl = P._read(f"{P.B}/owlvit_gref_val.jsonl")
-orig = P._read(f"{P.B}/gdino_gref_val.jsonl")
-dec  = P._read(f"{P.B}/gdino_gref_val_decomp.jsonl")
+SP = sys.argv[1] if len(sys.argv) > 1 else "val"
+owl = P._read(f"{P.B}/owlvit_gref_{SP}.jsonl")
+orig = P._read(f"{P.B}/gdino_gref_{SP}.jsonl")
+dec  = P._read(f"{P.B}/gdino_gref_{SP}_decomp.jsonl")
+print(f"### split={SP}")
 
 # keys that were truly decomposed AND present in all three
 dkeys = [k for k, v in dec.items() if v.get("decomposed") and k in orig and k in owl]

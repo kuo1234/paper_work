@@ -204,7 +204,33 @@ checkpoint 全程穩定（50/100/150/200：d2 R1 = 0.060/0.065/0.070/0.075）。
 
 **判讀＝乾淨 GO**（非弱 GO）。testA/testB decomp dump 已啟動整夜跑（`run_dd3_test.sh`，依序 testA→testB 1500），完成後跑 maintable 做跨 split 確認。
 
-腳本：`src/decomp_maintable.py`（主表）、`src/decomp_matched.py`（matched oracle 決定性分析）。
+### 跨 split 確認（2026-06-18，testA/testB dump 完成後）
+
+testA/testB decomp dump 跑完（testA 5948 行/138 真拆、testB 6173 行/123 真拆）後，主表與 matched 分裂成兩個必須分開講的故事：
+
+**① 方法層（matched oracle，繞過 LTT）= 跨 split 全 GO，零例外：**
+
+| split | size~3 full recall | size~3 decomp recall | Δ |
+|---|---|---|---|
+| val | 0.697 | 0.899 | +20pp |
+| testA | 0.743 | 0.889 | +15pp |
+| testB | 0.602 | 0.845 | +24pp |
+
+size~2/~4 也全部同向勝出（testB size~2 達 +25pp）。**decomposition 本身的有效性跨三 split 穩固。**
+
+**② 校準層（LTT 主表）在小子集上力不從心：**
+
+| split | Frozen R1 | Decomp R1 | n_feas | 狀態 |
+|---|---|---|---|---|
+| val (10405行) | 0.191 | 0.162 | 84 | ✅ |
+| testA (5948行) | 0.260 | 0.189 | **2** | ⚠️ 點估對但可行配置剩 2 |
+| testB (6173行) | 0.168 | EMPTY | — | ❌ feasible 空 |
+
+testA/testB 點估方向對（R1 降、defer 降），但 LTT 找不到（或幾乎找不到）同時守三風險的合法配置。**matched 證明這不是方法失效，是統計力問題**：子集太小（testB calib 砍半後 no-target 撐不起三風險聯合可行區間）。val 勉強撐住、更小的 testA/testB 就空了。
+
+**結論**：方法層跨 split 全 GO（核心主張坐實）；校準層需要更大 calib set → 下一步必須跑**全量 dump**（解 GDINO threshold=0 慢，handoff 已列）。子集本就是 pilot。
+
+腳本：`src/decomp_maintable.py`（主表）、`src/decomp_matched.py`（matched，吃 split 參數：`python src/decomp_matched.py {val,testA,testB}`）。
 
 ---
 
