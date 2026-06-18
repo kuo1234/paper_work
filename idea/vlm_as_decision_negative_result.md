@@ -174,6 +174,38 @@ checkpoint 全程穩定（50/100/150/200：d2 R1 = 0.060/0.065/0.070/0.075）。
 
 **注意（誠實邊界）**：此 pilot 用即時重跑 GDINO（threshold=0），其 full-expr 基線 R1=0.335 與主 CRS dump 的 0.27 不同口徑，**只能同腳本內相對比較**；尚未接 CRS/LTT 三風險校準、尚未測 no-target（R2）、尚未測 testA/testB、尚未處理 parse error 傳播。這些是 pilot→完整方法的待辦。腳本：`decomp_e2e.py`。
 
+## 4e. Decomposed CRS — 接回 LTT 三風險主表（2026-06-18，★GO★）
+
+整夜 dump `gdino_gref_val_decomp.jsonl`（10405 行 = no_target 8905 passthrough + tp 抽樣 1500，其中 **255 真被拆解**）完成後，跑 `src/decomp_maintable.py`（共用 `crs_protocol.py`，calib-only grid，α=β=0.3 γ=0.5），在 `set(owl)&set(decomp)` 共同 key 上公平比較 Frozen vs Decomposed。
+
+**val 主表（共同 key）：**
+
+| 指標 | Frozen CRS | Decomp CRS | 方向 |
+|---|---|---|---|
+| set size | 3.24 [3.15,3.36] | 3.23 [3.06,3.41] | 持平 |
+| R1（漏檢） | 0.191 [0.179,0.203] | **0.162 [0.142,0.183]** | ↓ ~15% |
+| R2（誤含） | 0.159 [0.146,0.171] | 0.209 [0.196,0.222] | ↑（仍守 β=0.3）|
+| defer | 0.424 [0.405,0.443] | **0.299 [0.264,0.331]** | ↓ ~30% |
+| n_feas | 112 | 84 | — |
+
+主表三疑慮（R1 CI 重疊、R2 反常上升、只 255/10405 真拆卻全域位移）由 **matched oracle 分析（`src/decomp_matched.py`，繞過 LTT，僅在 255 真拆 case 上比較）** 全數解消：
+
+**同輸出 size 下 recall 大幅勝出（決定性）：**
+
+| 輸出 size | full-expr recall | decomp recall | Δ |
+|---|---|---|---|
+| ~2 | 0.639 | **0.811** | +17pp |
+| ~3 | 0.697 | **0.899** | +20pp |
+| ~4 | 0.741 | **0.938** | +20pp |
+
+- **機制**：per-part GDINO query 給的 per-box 分數乾淨，threshold 時 GT-covering 框排前留得住；full-expr 分數被雜訊污染，同 size 留錯框。**與 LTT 無關，是 decomposition 本身功勞** → caveat #3（全域位移）否決。
+- **R2 上升解釋**：LTT 看到 recall 變好 → 重新最優化到較鬆 operating point（換 defer 42%→30% 大降），花掉部分 R2 預算但守 β=0.3。划算交易，非缺陷 → caveat #2 解消。
+- oracle pool ceiling 0.989→0.946（修剪 4.3pp），但那是 full pool 塞 45 框（threshold=0）下的天花板，實務無意義；可用 size 2-4 decomp 完勝。
+
+**判讀＝乾淨 GO**（非弱 GO）。testA/testB decomp dump 已啟動整夜跑（`run_dd3_test.sh`，依序 testA→testB 1500），完成後跑 maintable 做跨 split 確認。
+
+腳本：`src/decomp_maintable.py`（主表）、`src/decomp_matched.py`（matched oracle 決定性分析）。
+
 ---
 
 ## 5. 復現

@@ -1,50 +1,45 @@
-# 接手點 — Expression-Decomposed CRS（2026-06-16 晚）
+# 接手點 — Expression-Decomposed CRS（更新 2026-06-18）
 
-> 明天回來先讀這份。背景 dump 整夜跑，醒來直接接 LTT。
+> val 已 ★乾淨 GO★。testA/testB decomp dump 整夜跑中，醒來確認完成後跑 maintable 做跨 split 確認。
 
-## 一句話狀態
+## 一句話狀態（2026-06-18）
 
-Expression-Decomposed CRS 三道門全過（上界 R1 可達 0.006 / VLM 拆解品質 within±1 0.98 / e2e pilot R1 0.34→0.075）。
-**現在卡在「生成完整 decomp 候選 dump」這一步**，背景跑中，完成後跑一行指令就出主表。
+val LTT 主表 + matched oracle 分析全數確認 Decomposed CRS = **乾淨 GO**：同 size 下 recall +17~20pp（決定性，繞過 LTT），R1 0.191→0.162、defer 42%→30%。詳見 `vlm_as_decision_negative_result.md §4e`。
+**現在卡在 testA/testB decomp dump**（整夜依序跑 testA→testB），完成後跑 maintable 即得跨 split 確認。
 
-## 背景 dump 狀態（整夜跑）
-
-- **process**：spark `~/selective-grounding/`，`decomp_dump3.py val 1500`，nohup 啟動（斷線不死）。
-- **產出檔**：`dump/gdino_gref_val_decomp.jsonl`（schema 同 gdino_gref_val.jsonl，多 `decomposed`/`n_parts` 欄位）。
-- **範圍**：subset=10405 行（no_target 8905 全 passthrough + target-present 抽樣 1500 個拆解）。為何子集：全量 14229 在 GDINO threshold=0（900 候選 post_process 慢）下要 10+ 小時，故抽 1500 tp（LTT 只需 ≥200，足夠）。
-- **進度快照（睡前）**：848/10405 行，RUNNING。
-
-### 明天第一件事：確認 dump 完成
+## 明天第一件事：確認 testA/testB dump 完成
 ```bash
 ssh -i ~/nvsync.key p76141495@192.168.65.11 \
-  'cd ~/selective-grounding && grep DONE ddump_val.log; wc -l dump/gdino_gref_val_decomp.jsonl; pgrep -f decomp_dump3 && echo RUNNING || echo DONE'
+  'cd ~/selective-grounding && grep "ALL DONE" ddump_test_driver.log; \
+   wc -l dump/gdino_gref_testA_decomp.jsonl dump/gdino_gref_testB_decomp.jsonl 2>/dev/null; \
+   ps aux | grep decomp_dump3 | grep -v grep | wc -l'
 ```
-- 若 `DONE val: decomposed=N passthrough=M` 出現 → 完成，接下一步。
-- 若還 RUNNING → 再等；若數字不再增加且無 DONE → 可能卡某筆，看 `tail ddump_val.log` 排查。
+- `ALL DONE` 出現 + 兩檔都有行數 + process 數=0 → 完成，跑下方 maintable。
+- 只有 testA 檔 → testB 還在跑，看 `tail ddump_testB.log`。
+- 啟動器：`run_dd3_test.sh`（已寫好，依序 testA→testB 各 1500，driver log = `ddump_test_driver.log`）。
 
-## 完成後：跑 LTT 主表（已寫好，一行指令）
+## 完成後：跑 LTT 主表（跨 split 確認）
 
 ```bash
 ssh -i ~/nvsync.key p76141495@192.168.65.11 \
   'cd ~/selective-grounding && ./.venv/bin/python src/decomp_maintable.py'
 ```
+maintable 會自動偵測 testA/testB decomp dump（`build_decomp`），三 split 都印 Frozen vs Decomp。同時可重跑 `src/decomp_matched.py`（目前寫死 val，要看 testA/testB 需把檔名參數化）。
 
-`src/decomp_maintable.py` 已寫好放在 spark。它會輸出三組對照（同一份 records 的共同 key 上公平比較）：
-- **COMPOSE frozen**：full-expression GD 候選池（= 現有 Frozen CRS）
-- **COMPOSE decomp**：decomp-union GD 候選池（= 新方法）
-- 各報 sz / R1 / R2 / defer + bootstrap CI + n_feas
+### 判讀（跨 split go/no-go）
+- **GO**：testA/testB 與 val 同向（同 size recall 勝、defer 降、R2 守 β=0.3）→ 寫進論文第二主結果章。
+- **NO**：若某 split 反向或 R2 爆 → 回去看該 split 的 matched 分析定位原因。
 
-### 判讀（go/no-go 條件）
-- **GO**：decomp 的 R1 或 set size 明顯優於 frozen，且 R2/R3 沒爆（守 β=0.3 / γ=0.5）。
-- **R2 安全有保障**：no-target 用 v1 保守 routing，誤拆率實測 0.000（150 個全不拆），所以 decomposition 不碰 no-target，R2 理論上應與 frozen 持平。這是這步要驗證的核心。
-- **注意可比性**：decomp dump 只含 1500 tp 子集，maintable 用 `set(owl)&set(decomp)` 共同 key，frozen 也只在這些 key 上算 → 公平。但 val 整體 tp 是 5324，子集 1500 約 28%，CI 會比全量寬。
+## val 已驗證結果（2026-06-18，存 §4e）
+- 主表：sz 持平 3.24→3.23、R1 0.191→0.162、R2 0.159→0.209（守 β）、defer 0.424→0.299
+- matched oracle（255 真拆 case，繞過 LTT）：同 size recall **+17~20pp**（size~2: 0.64→0.81；~3: 0.70→0.90；~4: 0.74→0.94）
+- 機制：per-part query 分數乾淨 → 同 size 留對框；三疑慮（CI 重疊/R2 反常/全域位移）全解消
 
-## 若 val GO，後續（明天之後）
-1. testA / testB 也跑 decomp dump（`decomp_dump3.py testA 1500` / `testB 1500`）+ maintable。
-2. 全量 val（若要進論文主表，子集只是 pilot）——需解 GDINO 慢的問題（threshold 調 0.05 或 batch）。
-3. 寫成畢業論文第二主結果章。
+## 若三 split 全 GO，後續
+1. 全量 val（子集只是 pilot）——需解 GDINO threshold=0 慢（10+ 小時）：調 0.05 或 batch。
+2. 寫成畢業論文第二主結果章。
 
-## 關鍵數字回顧（已驗證，存在 vlm_as_decision_negative_result.md §4b/4c/4d）
+## 關鍵數字回顧（已驗證，存 vlm_as_decision_negative_result.md §4b/4c/4d/4e）
 - 上界：完美分解 R1 = 0.006/0.011/0.019（val/testA/testB），L3=L2（定位不是瓶頸）
 - 拆解品質：within±1 0.98、malformed 0、no-target 誤拆 0.000、single 誤拆 0.000
 - e2e pilot（200 val）：full-expr R1 0.335 → decomp top-1 0.172（同 size）→ top-2 0.075（size 4.11）
