@@ -1,0 +1,597 @@
+arXiv:2501.01416v1 [cs.CV] 2 Jan 2025  Hierarchical Alignment-enhanced Adaptive Grounding Network for Generalized
+
+                                                                  Referring Expression Comprehension
+
+                                             Yaxian Wang1,2, Henghui Ding3*, Shuting He4, Xudong Jiang5, Bifan Wei6,7, Jun Liu1,2
+
+                                                                 1School of Computer Science and Technology, Xi'an Jiaotong University, China
+                                         2Ministry of Education Key Laboratory of Intelligent Networks and Network Security, Xi'an Jiaotong University, China
+
+                                                                                     3Institute of Big Data, Fudan University, China
+                                                                                4Shanghai University of Finance and Economics, China
+
+                                                                                     5Nanyang Technological University, Singapore
+                                                                         6School of Continuing Education, Xi'an Jiaotong University, China
+                                                 7Shaanxi Province Key Laboratory of Big Data Knowledge Engineering, Xi'an Jiaotong University, China
+                                             wyx1566@stu.xjtu.edu.cn, henghui.ding@gmail.com, shuting.he@sufe.edu.cn, {weibifan,liukeen}@xjtu.edu.cn
+
+                                                                     Abstract                              Figure 1: Different visual grounding tasks. (a) Classic REC:
+                                                                                                           text expressions can only specify a single object; (b) Phrase
+                                          In this work, we address the challenging task of Generalized     grounding detects all objects mentioned in expressions; (c)
+                                          Referring Expression Comprehension (GREC). Compared              GREC (He et al. 2023; Liu, Ding, and Jiang 2023) supports
+                                          to the classic Referring Expression Comprehension (REC)          the text expressions indicating an arbitrary number of target
+                                          that focuses on single-target expressions, GREC extends the      objects from 0 to multiple, which is a more challenging task.
+                                          scope to a more practical setting by further encompassing no-
+                                          target and multi-target expressions. Existing REC methods        2016; Yu et al. 2016) that only supports the single-target text
+                                          face challenges in handling the complex cases encountered in     expressions, GREC narrows the gap with real-world sce-
+                                          GREC, primarily due to their fixed output and limitations in     narios by further encompassing no-target expressions that
+                                          multi-modal representations. To address these issues, we pro-    do not match any object in the image, and multi-target ex-
+                                          pose a Hierarchical Alignment-enhanced Adaptive Ground-          pressions that refer to multiple target objects. This task has
+                                          ing Network (HieA2G) for GREC, which can flexibly deal           great potential value for various practical applications such
+                                          with various types of referring expressions. First, a Hierar-    as visual-language navigation, embodied AI, and human-
+                                          chical Multi-modal Semantic Alignment (HMSA) module is           robot interaction.
+                                          proposed to incorporate three levels of alignments, includ-
+                                          ing word-object, phrase-object, and text-image alignment. It        Although recent methods (Zhu et al. 2022; Deng et al.
+                                          enables hierarchical cross-modal interactions across multiple    2023) have achieved remarkable performance in REC, they
+                                          levels to achieve comprehensive and robust multi-modal un-       are constrained to predict only one target that is most related
+                                          derstanding, greatly enhancing grounding ability for complex     to the text expression, leading to the inability to deal with no-
+                                          cases. Then, to address the varying number of target objects in  target and multi-target expressions. As shown in Figure 1,
+                                          GREC, we introduce an Adaptive Grounding Counter (AGC)           the text expression "the player in blue top and black pants"
+                                          to dynamically determine the number of output targets. Ad-       does not match any object within the image. In this case,
+                                          ditionally, an auxiliary contrastive loss is employed in AGC     the traditional REC models (Kamath et al. 2021; Yan et al.
+                                          to enhance object-counting ability by pulling in multi-modal     2023; Li and Sigal 2021; Luo et al. 2020) still produce a
+                                          features with the same counting and pushing away those with
+                                          different counting. Extensive experimental results show that
+                                          HieA2G achieves new state-of-the-art performance on the
+                                          challenging GREC task and also the other 4 tasks, including
+                                          REC, Phrase Grounding, Referring Expression Segmentation
+                                          (RES), and Generalized Referring Expression Segmentation
+                                          (GRES), demonstrating the remarkable superiority and gen-
+                                          eralizability of the proposed HieA2G.
+
+                                                             Introduction
+
+                                       Generalized Referring Expression Comprehension (GREC)
+                                       (He et al. 2023; Liu, Ding, and Jiang 2023; Wu et al. 2024a)
+                                       aims to detect an arbitrary number of target objects based
+                                       on a given free-form text expression. In contrast to the clas-
+                                       sic Referring Expression Comprehension (REC) (Mao et al.
+
+                                           *Corresponding authors. henghui.ding@gmail.com
+                                       Copyright © 2025, Association for the Advancement of Artificial
+                                       Intelligence (www.aaai.org). All rights reserved.
+false-negative bounding box. When given the multi-target          ring expressions flexibly. Specifically, we design a Hierar-
+text expression "all people", existing REC models also fail       chical Multi-modal Semantic Alignment (HMSA) module
+to locate all matched targets in the image, arising from the      to achieve comprehensive and robust multi-modal under-
+fact that they are enforced to locate only a single target        standing by coupling three levels of alignments including
+most related to the text expression. Despite phrase ground-       word-object, phrase-object, and text-image alignment. Due
+ing (Plummer et al. 2015; Yu et al. 2020) can locate mul-         to the absence of fine-grained region-level annotations corre-
+tiple objects, it tends to locate all objects based on the key    sponding to the entity words, we propose a text mask recov-
+noun phrases in the text expression without comprehending         ery auxiliary task to reconstruct the masked text semantics
+the entire text semantics. GREC is a more challenging task        with the visual object features to promote word-object align-
+that requires a comprehensive understanding of the intricate      ment. In this way, the visual features are facilitated to fuse
+semantics of text expressions and visual contents to handle       the semantic information of the masked entity fully. Com-
+any quantity of target objects ranging from zero to multiple.     pared with the entity word, the attribute-related information
+Therefore, it is necessary to advance a robust GREC model         is essential to distinguish the object of the same category. By
+to adapt to this kind of complex generalized scenario.            matching the descriptive phrase with the visual object, the
+                                                                  encoder can derive distinctive visual features and understand
+   The first challenge of GREC lies in how to effectively         a larger range of semantic units. After that, the high-level
+align the diverse text expressions with the corresponding im-     text-image alignment matches the overall semantics between
+ages for comprehensive multi-modal understanding. Exist-          the text and image, enabling a more comprehensive percep-
+ing methods (Kamath et al. 2021; Radford et al. 2021; Liu,        tion of global information. On the one hand, the HMSA
+Jiang, and Ding 2024; Xu et al. 2022; Liu et al. 2022) have       module can help provide holistic and robust multi-modal un-
+made significant efforts to alleviate the cross-modal seman-      derstanding to facilitate more accurate object localization.
+tic gap. Nevertheless, they tend to rely solely on single-level   On the other hand, it endows the model with the ability to
+alignment, either word-object or text-image alignment, lead-      exploit information at various levels of detail, which allows
+ing to insufficient vision-language interaction and further in-   it to accomplish other various tasks like REC and phrase
+hibiting the effective learning of exhaustive multi-modal in-     grounding. Furthermore, to address the varying number of
+formation. For one image, diverse and flexible text expres-       target objects in GREC, we design an Adaptive Grounding
+sions can specify different numbers of target objects from        Counter (AGC) to dynamically determine the number of out-
+various perspectives as shown in Figure 1, highlighting the       put target objects for each specific image-text pair. Addi-
+significance of multi-level cross-modal interactions. For ex-     tionally, an auxiliary contrastive loss is employed in AGC to
+ample, for a no-target case, the model is often required to       enhance the object-counting ability by pulling together the
+capture the fine-grained attribute details of local objects and   multi-modal features with the same counting and pushing
+have a comprehensive understanding of the global contex-          away those with different counting.
+tual information, further rejecting providing any object re-
+sponse. Therefore, it is far from satisfactory to handle the         Our contributions are summarized as follows: (1) We pro-
+complex cases in GREC leveraging the single-level align-          pose a Hierarchical Alignment-enhanced Adaptive Ground-
+ment between the flexible text expressions and images.            ing Network (HieA2G) for GREC to support text expres-
+                                                                  sions indicating an arbitrary number of target objects. (2)
+   The second challenge of GREC is how to output differ-          We design a Hierarchical Multi-modal Semantic Alignment
+ent numbers of target objects dynamically for each specific       module to enable hierarchical vision-language interactions
+image-text pair. Given a complex text expression specifying       across multiple levels for comprehensive and robust multi-
+multiple targets, a potential approach is to split the text ex-   modal semantic understanding. (3) We propose an Adaptive
+pression into multiple text expressions and query the model       Grounding Counter to dynamically determine the number
+multiple rounds to obtain the target objects one by one. How-     of output targets for each specific image-text pair, which
+ever, text expressions with implicit multi-target information     can help deal with the multi/single/no-target text expres-
+are difficult to decompose, and such an approach can not          sions flexibly. (4) Extensive experimental results show that
+solve the inherent requirement in GREC, which desires an          HieA2G achieves new SOTA results on the challenging
+efficient model to give all targets in a single forward process.  GREC task. It also exhibits superior performance across the
+More importantly, multi-target expressions such as "three         other four visual grounding tasks including REC, Phrase
+players" and "all people" necessitate a model to possess          Grounding, Referring Expression Segmentation (RES), and
+an explicit or implicit object-counting ability. Although a       Generalized Referring Expression Segmentation (GRES).
+threshold-based strategy (He et al. 2023) has demonstrated
+its advantages in selecting the target objects from multiple                           Related Work
+candidate object proposals, it is often challenging to decide
+an appropriate threshold for all samples. Moreover, using a       Referring Expression Comprehension. REC aims to de-
+unified threshold struggles to adapt to the characteristics of    tect one specific object from an image based on a refer-
+different samples, resulting in inaccurate prediction results     ring expression. Existing methods can be classified into two
+for some samples. Therefore, it is crucial to design a more       groups: two-stage (Hu et al. 2017; Zhuang et al. 2018; Yang,
+advanced strategy for selecting target objects.                   Li, and Yu 2019; Liu et al. 2019a; Li, Bu, and Cai 2021)
+                                                                  and one-stage (Liao et al. 2020; Zhou et al. 2021; Yang
+   To address the above challenges, we propose HieA2G,            et al. 2022a; Deng et al. 2023; Ye et al. 2021) methods. The
+a Hierarchical Alignment-enhanced Adaptive Grounding              recent advancements in large language models (Wu et al.
+Network, for GREC to deal with various types of refer-
+Figure 2: The framework of our proposed HieA2G. First, the visual encoder and the text encoder extract the visual feature VI
+and text feature Tw. Then, a Transformer encoder is employed to perform multi-modal feature interaction further. The learnable
+object queries and the output of the Transformer encoder are fed to the Transformer decoder, whose output is object embed-
+dings Oe corresponding to the object queries. Next, based on Oe, the Hierarchical Multi-modal Semantic Alignment (HMSA)
+module is employed to facilitate multi-level cross-modal interaction via word-object, phrase-object, and text-image alignment.
+
+Moreover, an Adaptive Grounding Counter (AGC) is utilized to decide the output number of target objects dynamically.
+
+2024d; Chen et al. 2023; You et al. 2024) have also brought     encoder to obtain the word features Tw = {wk|k 
+new opportunities to vision-language tasks requiring local-     {1, 2, ..., K}}, where K is the number of words. For the
+ization like REC. They have achieved promising results by       phrase feature, we first extract noun phrases from the text
+collecting large-scale datasets, pretraining, and fine-tuning   expression, which are then represented as Tp = {pi|i 
+the large language models. It's worth noting that our work      {1, 2, ..., M }} by average pooling the word features in each
+focuses on GREC, which detects an arbitrary number of tar-      phrase, where M is the number of phrases. For the image
+get objects. Therefore, the top-1 selection method for REC      input I, we adopt a visual encoder to obtain the visual fea-
+cannot be applied directly in this setting. Although GREC       ture VI and flatten it into a 2D feature combined with po-
+(He et al. 2023) has modified some REC methods (Luo et al.      sitional embeddings. The image feature and text feature are
+2020; Kamath et al. 2021; Ding et al. 2023c; Yan et al. 2023)   projected into the same space, and then are fused by concate-
+to output different numbers of bounding boxes, they still       nation to fed to the Transformer encoder for multi-modal
+struggle to deal with such complex and flexible referring ex-   deep fusion. Next, the output of the Transformer encoder
+pressions, leading to unsatisfactory performance.               and the learnable object queries are fed into the Transformer
+Referring Expression Segmentation. RES aims to segment          decoder. Subsequently, we obtain the text-aware object em-
+one object based on text expression (Liu, Jiang, and Ding       beddings Oe = {oj|j  {1, 2, ..., N }} corresponding to
+2022). Driven by the success of Transformer, recent works       the N object queries. Based on the object embeddings Oe,
+(Ding et al. 2021, 2023a,b,c; He and Ding 2024; He et al.       the Hierarchical Multi-modal Semantic Alignment (HMSA)
+2024; Meng et al. 2022; Li et al. 2024; Wu et al. 2024b,c;      module is performed to hierarchically incorporate the multi-
+Liu et al. 2023; Liu, Li, and Ding 2024; Li and Sigal 2021;     modal information across multiple levels for a comprehen-
+Kim et al. 2022; Yang et al. 2022b; Wang et al. 2022) have      sive multi-modal understanding. Furthermore, we propose
+extensively use it to extract visual and language features.     an Adaptive Grounding Counter (AGC) to determine the
+ReLA (Liu, Ding, and Jiang 2023) introduces the Gener-          output number of target objects dynamically and then select
+alized Referring Expression Segmentation (GRES) bench-          the desired outputs from candidate object proposals.
+mark, which further include multi-target and no-target sam-
+ples. They only study region-language and region-image re-      Hierarchical Multi-modal Semantic Alignment
+lationships. In contrast, we propose a hierarchical multi-
+modal alignment to enhance the comprehensive understand-        To fully model the relationships between the various types
+ing of visual-linguistic context. Moreover, rather than a bi-   of text expression and the images, we propose a Hierarchi-
+nary classification to judge only the existence of objects, we  cal Multi-modal Semantic Alignment (HMSA) to facilitate
+design an adaptive object-counting strategy to facilitate ro-   multi-level cross-modal interactions through word-object,
+bust object perception.                                         phrase-object, and text-image alignment. HMSA can help
+                                                                exploit information at various levels of detail and promote
+                     Methodology                                comprehensive and robust text-aware object embeddings for
+                                                                better box regression and mask segmentation.
+Architecture Overview
+                                                                Word-Object Alignment. To enable a more directly fine-
+Figure 2 shows the overall architecture of our proposed         grained word-object alignment, we introduce a masked text
+HieA2G. First, the text expression T is fed into the text       recovery task by enforcing the model to recover the missed
+key information in the text based on the matched object           Text-Image Alignment. The image feature should have
+                                                                  high feature similarity with the matched text expression and
+features. The object embeddings are then facilitated to fuse      low feature similarity with the unmatched text expression.
+                                                                  To fully model the global relationships between the image
+the semantic information of the masked entity fully. Specifi-     I and text expression T , we define a global match score
+                                                                  ST (I, T ) for each image-text pair to calculate their simi-
+cally, we first extract the entity noun in the text and randomly  larity via word-object pairs as follows:
+
+mask it with a [MASK] token. The masked text is encoded           ST (I, T ) = 1 N         K                       (5)
+by the text encoder as Tw. Then, combining the object em-                        N
+beddings Oe and the masked text feature Tw , a Transformer                                    aj,ko^j , w^k,
+layer is utilized to reconstruct the text semantic feature T^w.
+We design a masked text recovery loss Lw2o by measuring                               j=1 k=1
+the semantic similarity between the original complete text
+feature Tw and the reconstructed text feature T^w as:                                 expo^j, w^k
+
+          Lw2o = (1 - cos(Tw, T^w)),  (1)                         aj,k =              K    expo^j  ,  w^l  ,       (6)
+                                                                                      l=1
+
+where  is set to 0 when given a no-target sample, other-          where . , . represents the dot product operation of two em-
+wise set to 1. Due to the weak relevance and even total ir-       beddings, o^j and w^k denotes the projected embedding of j-
+relevance between the textual and the visual features for no-     th object query and k-th word, and ST (I, T ) is computed by
+target samples, it is meaningless and impossible to recon-        normalizing along the text dimension. Similarly, SI (I, T )
+struct the missing information for this kind of image-text
+pair, even interfering with model optimization.                   can be obtained by normalizing along the image dimension.
+                                                                     The global match score ST (I, T ) measures the degree of
+Phrase-Object Alignment. With the explicit phrase-
+object annotations in the Flickr30K Entities (Plummer et al.      semantic alignment between an image and its corresponding
+2015) dataset, it is promising to encourage the model to
+match each phrase with the corresponding object query. By         text expression. In this case, maximizing the match score
+matching the descriptive phrase with the visual object, we
+can derive distinctive object features and understand a larger    of matched image-text pairs helps ensure their strong corre-
+range of semantic units. Specifically, we first project the
+phrase features Tp  RM×Cp and the object embeddings               spondence. For an image-text pair in a batch, the objective
+Oe  RN×Cv into the same sub-space by linear layers:
+                                                                  function is defined as follows:
+
+                                                                  LtT2Ti (I) = - log    exp(ST (I, T ))            (7)
+                                                                                      T BT exp(ST (I, T )) ,
+
+                                                                  LTt2Ii(T ) = - log    exp(ST (I, T ))            (8)
+                                                                                                                ,
+
+                                                                                      IBI exp(ST (I, T ))
+
+          Tp = W1Tp, Oe = W2Oe,       (2)                         where BT , BI represents a collection of the text expressions
+                                                                  and images in a batch, LtT2Ti (I) and LTt2Ii(T ) are normal-
+where W1 and W2 are learnable parameters, Tp  RM×C                ized along text and image dimension, respectively. Similarly,
+                                                                  LtI2Ti(I) and LIt2Ii(T ) can be obtained using SI (I, T ).
+and Oe  RN×C are the projected phrase features and
+projected object embeddings, M and N is the number of                The final text-image alignment loss for each image-text
+
+phrases and object queries, respectively. The matching re-        pair is computed as follows:
+lation map S  RM×N between all noun phrases and the
+object queries is calculated as follows:                              Lt2i = LtT2Ti (I) + LIt2Ti(I)) + LTt2Ii(T ) + LtI2Ii(T ), (9)
+
+          S = Sigmoid(Tp · Oe).       (3)                            In this way, the thorough text-image alignment boosts a
+                                                                  more comprehensive understanding of global multi-modal
+   For all object queries, we adopt a bipartite matching          information.
+
+(Cheng et al. 2022) to find the matched ground-truth bound-          The final loss of HMSA is computed as Lalign = Lw2o +
+                                                                  Lp2o + Lt2i. By incorporating these three-level alignments,
+ing box. Then, we can obtain a ground-truth binary map            the object embeddings corresponding to the object queries
+Y  RM×N between phrases and object queries, indicat-              can be gradually refined for better box regression and mask
+                                                                  segmentation, further obtaining N potential object proposals
+ing their matching relationships. With the predicted match-       via box head and mask head.
+ing relation map S  RM×N , we design a phrase-object
+contrastive loss Lp2o, implemented with the binary cross-         Adaptive Grounding Counter
+entropy loss:
+                                                                  To adapt to the generalized setting such as no-target and
+          MN                                                      multi-target samples, we design an Adaptive Grounding
+                                                                  Counter (AGC) to decide the output number of target objects
+Lp2o = -           Yi,j logSi,j +(1-Yi,j )log(1-Si,j ). (4)       dynamically for each specific image-text pair. With AGC,
+                                                                  the desired target objects can be selected effectively from
+          i=1 j=1                                                 the N candidate object proposals corresponding to the ob-
+                                                                  ject queries. Specifically, we formulate it as a classification
+   In this way, the model is encouraged to generate higher        task to predict an output number. For different images, the
+scores for positive phrase-object alignments and lower            same text expression can specify different target objects. For
+scores for negative ones. Therefore, the object embeddings
+can be endowed with stronger discriminative ability by cap-
+turing fine-grained attributes within the phrase semantics.
+                                                                   Methods           val        testA       testB
+                                                                                Pr N-acc.   Pr N-acc.   Pr N-acc.
+                                                                   MCN
+                                                                   VLT         28.0 30.6   32.3 32.0   26.8 30.3
+                                                                   MDETR       36.6 35.2   40.2 34.1   30.2 32.5
+                                                                   UNITEXT     42.7 36.3   50.0 34.5   36.5 31.0
+                                                                   Ferret      58.2 50.6   46.4 49.3   42.9 48.2
+                                                                   HieA2GR101  54.8 48.9   49.5 45.2   43.5 43.8
+                                                                               67.8 60.3   66.0 60.1   56.5 56.0
+
+Figure 3: The detail of the Adaptive Grounding Counter.            Table 1: Results on gRefCOCO dataset (Liu, Ding, and
+                                                                   Jiang 2023) in terms of Pr@(F1=1, IoU0.5) and N-acc.
+example, "all kids" can denote an arbitrary number of ob-          for GREC task.  denotes these methods have been modified
+jects in different images. Therefore, it is necessary to incor-    to generate multiple boxes following (He et al. 2023).  de-
+porate both the sentence feature of the text expression and        notes the model adapted for the GREC task.
+object embeddings to predict the label. To better train AGC,
+we conducted a statistical analysis of all samples in the gRe-     Training Objective
+fCOCO dataset (Liu, Ding, and Jiang 2023; He et al. 2023).
+The distribution of objects follows a long-tailed pattern, with    To further supervise task-specific training, a series of losses
+most samples falling within the range of 0 to 3, and only a        for the box head and mask head are introduced as follows:
+small proportion exceeding the number of 3.
+                                                                   Ldet = bboxLbbox + giouLgiou + classLclass, (13)
+   Therefore, it is defined as a classification task into five
+classes. With word features Tw and object embeddings Oe at         Lseg = maskLmask + diceLdice,       (14)
+hand, we adopt the average pooling to obtain the global text
+feature and visual feature. Then, the two features are con-        where  are the hyperparameters, Lclass is cross-entropy
+catenated to obtain a global multi-modal feature Mg, which         loss for box classification, Lbbox and Lgiou are L1 loss (Ren
+is used to predict the object counting label yc as:                et al. 2015) and GIoU loss (Rezatofighi et al. 2019) for box
+                                                                   regression. The focal loss Lmask (Lin et al. 2017) and dice
+            Mg = [AP(Tw); AP(Oe)],                           (10)  loss Ldice (Milletari, Navab, and Ahmadi 2016) are intro-
+                                                                   duced to supervise mask segmentation (Ding et al. 2018).
+                    yc = MLP(Mg),                            (11)
+                                                                      We first pretrain HieA2G on a combined dataset formed
+where [;] denotes concatenation operation, AP denotes av-          by the training data of RefCOCO/+/g, Flickr30K Entities,
+erage pooling, MLP denotes a two-layer perceptron, and             and gRefCOCO datasets using the joint loss Lpretrain =
+yc  {0, 1, 2, 3, 3+}. Note that, only when the counting is         Lalign + Ldet. The goal of pretraining is to incorporate
+larger than 3, the threshold-based strategy is adopted, that is    comprehensive multi-modal information into object queries.
+object proposals with class scores above the threshold are se-     Then based on the pretrained weights, HieA2G is finetuned
+lected. Otherwise, the sorted target objects with high scores      on various downstream tasks with the task-specific loss
+are selected according to the counting.                            such as Ldet, Lmask and an additional loss Lagc introduced
+                                                                   specifically for GREC and GRES.
+   To further promote the object counting ability, we incor-
+porate contrastive learning in AGC by pulling together the                              Experiments
+multi-modal features Mg with the same counting and push-
+ing away those with the different counting in Figure 3. The        Experimental Setup
+number of negative samples is related to batch size. How-
+ever, the size of the batch size is limited by GPU memory.         Datasets. The proposed HieA2G is evaluated mainly on the
+Therefore, to facilitate contrastive learning, we introduce a      gRefCOCO dataset (He et al. 2023; Liu, Ding, and Jiang
+memory bank M (He et al. 2020) to maintain a larger num-           2023) for GREC and GRES. We also conducted experi-
+ber of negative samples. Inspired by (Khosla et al. 2020), a       ments on a phrase grounding dataset called Flickr30K En-
+supervised contrastive loss Lcon is introduced as follows:         tities (Plummer et al. 2015), and three widely-used REC and
+                                                                   RES benchmarks including RefCOCO (Yu et al. 2016), Ref-
+         1                         exp(Mgi · Mgp/ )                COCO+ (Yu et al. 2016), and RefCOCOg (Mao et al. 2016).
+Lcon  =  -                  log  aA(i) exp(Mgi · Mga/     ,  (12)  Implementation Details. We adopt ResNet101 (He et al.
+           |P (i)|                                     )           2016) and Swin-B (Liu et al. 2021) as our visual encoder,
+                    pP (i)                                         and RoBERTa-base (Liu et al. 2019b) as our text encoder.
+
+where i denotes anchor index, P (i) = {p  A(i), ycp =              Performance Comparison
+yci} is a collection of indices for the positive samples in M,
+|P (i)| denotes the cardinality of the collection, A(i) denotes    Results on GREC. As shown in Table 1, our HieA2G with
+                                                                   the ResNet101 backbone achieves superior performance on
+a collection of indices for all positive and negative samples      both metrics across three splits of the gRefCOCO dataset. It
+in M, Mg denotes the global multi-modal feature, and  is           shows an average performance gain of 14.2% in Pr@(F1=1,
+a temperature hyperparameter.                                      IoU  0.5) over Ferret (You et al. 2024) using a Multimodal
+
+   The final loss of AGC is computed as Lagc = Lcls+Lcon,
+where Lcls denotes the object counting classification loss,
+implemented by a cross-entropy loss.
+Figure 4: Visualization for the success cases and failure cases of HieA2G on gRefCOCO dataset. The ground truth is denoted
+by red bounding boxes, whereas green bounding boxes denote the predictions. The F1 score of all success cases in (A) is 1.0.
+
+Methods     RefCOCO      RefCOCO+ RefCOCOg                      Methods  RefCOCO  RefCOCO+ RefCOCOg
+
+            val testA testB val testA testB val-u test-u                 val testA testB val testA testB val-u test-u
+
+MAttNet 76.7 81.1 70.0 65.3 71.6 56.0 66.6 67.3                 MAttNet 56.5 62.4 51.7 46.7 52.4 40.1 47.6 48.6
+
+RefTR       85.7 88.7 81.2 77.6 82.3 69.0 79.3 80.0             MCN      62.4 64.2 59.7 50.6 55.0 44.7 49.2 49.4
+
+MDETR 86.8 89.9 81.4 79.5 84.1 70.6 81.6 80.9                   VLT      65.7 68.3 62.7 55.5 59.2 49.4 52.9 56.7
+
+SeqTR       83.7 86.5 81.2 71.5 76.3 64.9 74.9 74.2             HieA2GR101 73.3 75.9 69.0 64.8 69.7 56.1 62.9 63.5
+
+TransVG++ 86.3 88.4 81.0 75.4 80.5 66.3 76.2 76.3               LAVT     72.7 75.8 68.8 62.1 68.4 55.1 61.2 62.1
+
+LISA-7B 85.4 88.8 82.6 74.2 79.5 68.4 79.3 80.4                 ReLA     73.8 76.5 70.2 66.0 71.0 57.7 65.0 66.0
+
+GSVA-7B 86.3 89.2 83.8 72.8 78.8 68.0 81.6 81.8                 LISA-7B 74.9 79.1 72.3 65.1 70.8 58.1 67.9 70.6
+
+HieA2GR101 87.8 90.3 84.0 80.7 85.6 72.9 83.7 83.8              GSVA-7B 77.2 78.9 73.5 65.9 69.6 59.8 72.7 73.3
+
+                                                                HieA2GSwinB 75.1 77.6 71.1 66.5 71.4 58.9 65.3 66.6
+
+Table 2: Results comparison on RefCOCO/+/g for REC task.
+
+                                                                Table 4: Results comparison on RefCOCO/+/g for RES task.
+
+Methods     R@1     val  R@10   R@1    test  R@10               Flickr30K Entities are shown in Table 3. HieA2G with
+            68.1  R@5     86.2    -   R@5       -               ResNet101 improves performance over the previous SOTA
+VisualBert  70.4  84.0    86.3                                  MDETR on both val and test splits, suggesting that our
+VisualBert  82.5  84.5    94.9  71.3    -     86.5              method effectively enhances the multi-modal interactions.
+MDETR       75.8  92.9          83.4  85.0    95.3
+Shrika-7B   80.4            -   76.5  93.5                      Results on RES. As shown in Table 4, HieA2G outperforms
+Ferret-7B   82.9    -       -   82.2            -               the previous SOTA method ReLA (Liu, Ding, and Jiang
+HieA2GR101          -     95.1  83.7    -       -               2023) with the same Swin-B backbone. It also shows com-
+                  93.2                  -     95.6              petitive performance on RefCOCO and RefCOCO+ datasets
+                                      93.8                      to MLLM-based LISA-7B (Lai et al. 2024) and GSVA-7B.
+                                                                The results demonstrate that the comprehensive multi-modal
+Table 3: Results comparison on Flickr30K Entities dataset in    representation ability of our HieA2G can contribute a lot to
+Recall@k (ANY-BOX protocol) for Phrase Grounding task.          accurate segmentation for referring objects.
+
+Large Language Model (MLLM), and an average perfor-             Results on GRES. GRES aims to generate masks for an ar-
+mance gain of 9.4% in N-acc. over UNITEXT (Yan et al.           bitrary number of target objects. Unlike the previous SOTA
+2023). These results indicate that HieA2G has a significant     GRES method ReLA using a simple binary classification
+advantage in handling various types of text expressions to      branch for object-existence judgment, HieA2G has an ex-
+flexibly detect target objects ranging from zero to multiple.   plicit object-counting ability to facilitate accurate object per-
+Results on REC. As illustrated in Table 2, HieA2G               ception in the generalized scenario. In Table 5, HieA2G
+achieves consistent performance gains across all splits of the  with the Swin-B backbone achieves clear performance im-
+three datasets compared to existing classic REC methods.        provements over ReLA across all three evaluation sets on
+HieA2G with the ResNet101 backbone even outperforms             different metrics. It is even slightly better than the strong
+GSVA-7B (Xia et al. 2024) based on MLLM. The promising          MLLM-based GSVA-7B in CIoU and GIoU. Besides gen-
+results can be attributed to the hierarchical multi-modal se-   erating high-quality masks, HieA2G with either backbone
+mantic alignment design, which promotes a comprehensive         demonstrates outstanding performance in N-acc. and T-acc.,
+understanding of information at different granularities.
+Results on Phrase Grounding. The main results on the
+Methods   Backbone               val                                        testA                         testB
+
+MAttNet   ResNet101  cIoU  gIoU N-acc.   T-acc.                 cIoU  gIoU N-acc.     T-acc.  cIoU  gIoU N-acc.     T-acc.
+VLT       DarkNet53  47.5                 96.1                  58.7                   97.6   45.3                   95.3
+VLT+ReLA  DarkNet53  52.5  48.2 41.2      95.7                  62.2  59.3 44.0        95.9   50.5  46.1 41.3        94.7
+CRIS      ResNet101  58.7                                       66.6                          56.2
+HieA2G    ResNet101  55.3  52.0 47.2        -                   63.8  63.2 48.7          -    51.0  50.9 47.8          -
+LAVT                 62.5                   -                   67.6                     -    58.8                     -
+ReLA        Swin-B   57.6  59.4       -   97.4                  65.3  65.4         -   97.7   55.0  57.4         -   96.4
+LISA-7B     Swin-B   62.4                 96.2                  69.3                   95.1   59.9                   95.3
+GSVA-7B     ViT-H    61.8  56.3       -   96.3                  68.5  63.4         -   97.8   60.6  51.8         -   95.4
+HieA2G      ViT-H    63.3                   -                   69.9                     -    60.5                     -
+            Swin-B   64.2  67.1 60.9        -                   70.4  70.5 60.2          -    61.0  61.5 56.5          -
+                                          98.3                                         98.5                          97.5
+                           58.4 49.3                                  65.9 49.3                     55.8 48.5
+
+                           63.6 56.4                                  70.0 59.0                     61.0 58.4
+
+                           61.6 54.7                                  66.3 50.0                     58.8 51.9
+
+                           66.5 62.4                                  71.1 65.3                     62.2 60.6
+
+                           68.4 62.8                                  72.0 63.4                     62.8 60.8
+
+    Table 5: Results comparison on gRefCOCO dataset in terms of cIoU, gIoU, N-acc. and T-acc. for GRES task.
+
+#    HMSA              AGC               GREC                         Qualitative Analysis
+                                      Pr N-acc.
+    W2O P2O T2I Classifier Lcon                                       We visualize some qualitative examples of our method on
+                                                                      the validation split of gRefCOCO dataset to discuss the
+#1                           65.2 54.9                                strengths and weaknesses of HieA2G as shown in Figure 4.
+                                                                      Analysis of Success Cases. As shown in (A) of Figure 4,
+#2                           67.5 58.1                                our model can deal with various complex multi-target ex-
+                                                                      pressions in (a)-(d) and no-target expressions in (e)-(f). For
+#3                           67.1 57.3                                example, HieA2G can count accurately "two airplanes" in
+                                                                      (a) with shared attributes, and can differentiate an ordinal
+#4                           67.0 56.4                                number like "2nd" to detect the correct bus in (b). It can also
+                                                                      explicitly recognize all specified target objects for complex
+#5                                    53.9 48.0                       text expressions in (b), (c), and (d). Moreover, HieA2G can
+                                                                      grasp the fine-grained attribute details to reject the no-target
+#6                                    66.5 57.3                       expression "the board in man hand" in (e). It has a compre-
+                                                                      hensive understanding of the global contextual information
+#7                           67.8 60.3                                of all objects in (f), thereby rejecting to give a detection re-
+                                                                      sult due to no object in the image satisfying the description.
+Table 6: Ablation study of different components of HieA2G             Analysis of Failure Cases. We show some failure cases of
+for GREC. Notably, W2O, P2O and T2I indicate the word-                HieA2G in (B) of Figure 4. There are two main types of fail-
+object, phrase-object, and text-image alignment.                      ure cases.  For the three cases (a)-(c) in the first row, due to
+                                                                      the ambiguous visual clues in the image, HieA2G struggles
+indicating its robust object perception ability.                      to detect all target objects for the first two cases and fails to
+                                                                      reject giving a target for the last case.  For the three cases
+Ablation Study                                                        (d)-(f) in the second row, due to the occlusion of the key vi-
+                                                                      sual clues, HieA2G fails to detect a desired object for the
+Effect of Hierarchical Multi-modal Semantic Alignment.                first two cases and gives a false negative target for the last
+From the first to fourth rows of Table 6, we perform an in-           no-target case. The analysis of failure cases reveals the lim-
+depth study of the HMSA module to validate its effective-             itations of HieA2G, while also shedding light on potential
+ness. In the first row, removing all three-level alignments of        directions for our future research.
+the HMSA module leads to a significant decrease of 2.6% in
+Pr@(F1=1, IoU  0.5) and 5.4% in N-acc. Furthermore, we                                      Conclusion
+can find that removing any one of the alignments, including
+W2O, P2O, and T2I, all leads to performance degradation               We propose a Hierarchical Alignment-enhanced Adap-
+compared with the overall model in the seventh row. This              tive Grounding Network (HieA2G) for the challenging
+demonstrates that different levels of alignment can refine the        GREC task. The proposed Hierarchical Multi-modal Se-
+object embeddings of the object queries, further facilitating         mantic Alignment (HMSA) module enables multi-level
+accurate grounding by combining them.                                 cross-modal interactions to achieve comprehensive and ro-
+                                                                      bust multi-modal understanding for better grounding. Adap-
+Effect of Adaptive Grounding Counter. In the last three               tive Grounding Counter (AGC) determines the number of
+rows of Table 6, we test the effectiveness of AGC. The over-          output targets dynamically to help select the outputs, effec-
+all AGC is removed in the fifth row and replaced by the de-           tively tackling the varying number of target objects in flex-
+fault threshold-based strategy (He et al. 2023) to filter the         ible referring expressions. The experimental results demon-
+output objects. We can observe a 13.9% and 12.3% perfor-              strate the remarkable superiority and generalizability of the
+mance drop in terms of Pr@(F1=1, IoU  0.5) and N-acc.,                proposed HieA2G on multiple visual grounding tasks in-
+which reflects that our advanced adaptive selection strategy          cluding REC, GREC, phrase grounding, RES, and GRES.
+contributes a lot to the output of target objects. Then, we
+add the classifier in the sixth row, which achieves 12.6% and
+9.3% performance gain in both metrics respectively. When
+combined with Lcon in the last row, further improvement can
+be brought for all metrics. This suggests that Lcon is helpful
+to enhance the model's object counting ability.
+                       References                               Khosla, P.; Teterwak, P.; Wang, C.; Sarna, A.; Tian, Y.; Isola,
+                                                                P.; Maschinot, A.; Liu, C.; and Krishnan, D. 2020. Super-
+Chen, K.; Zhang, Z.; Zeng, W.; Zhang, R.; Zhu, F.; and          vised contrastive learning. Advances in Neural Information
+Zhao, R. 2023. Shikra: Unleashing multimodal llm's ref-         Processing Systems, 33: 18661­18673.
+erential dialogue magic. arXiv preprint arXiv:2306.15195.
+                                                                Kim, N.; Kim, D.; Lan, C.; Zeng, W.; and Kwak, S. 2022.
+Cheng, B.; Misra, I.; Schwing, A. G.; Kirillov, A.; and Gird-   ReSTR: Convolution-free referring image segmentation us-
+har, R. 2022. Masked-attention mask transformer for univer-     ing transformers. In Proceedings of the IEEE/CVF Confer-
+sal image segmentation. In Proceedings of the IEEE/CVF          ence on Computer Vision and Pattern Recognition.
+Conference on Computer Vision and Pattern Recognition.
+                                                                Lai, X.; Tian, Z.; Chen, Y.; Li, Y.; Yuan, Y.; Liu, S.; and
+Deng, J.; Yang, Z.; Liu, D.; Chen, T.; Zhou, W.; Zhang,         Jia, J. 2024. Lisa: Reasoning segmentation via large lan-
+Y.; Li, H.; and Ouyang, W. 2023. TransVG++: End-to-end          guage model. In Proceedings of the IEEE/CVF Conference
+visual grounding with language conditioned vision trans-        on Computer Vision and Pattern Recognition, 9579­9589.
+former. IEEE TPAMI.
+                                                                Li, L.; Bu, Y.; and Cai, Y. 2021. Bottom-up and bidirectional
+Ding, H.; Jiang, X.; Shuai, B.; Liu, A. Q.; and Wang, G.        alignment for referring expression comprehension. In ACM
+2018. Context contrasted feature and gated multi-scale ag-      MM, 5167­5175.
+gregation for scene segmentation. In Proceedings of the
+IEEE/CVF Conference on Computer Vision and Pattern              Li, M.; and Sigal, L. 2021. Referring transformer: A one-
+Recognition, 2393­2402.                                         step approach to multi-task visual grounding. Advances in
+                                                                Neural Information Processing Systems, 34: 19652­19664.
+Ding, H.; Liu, C.; He, S.; Jiang, X.; and Loy, C. C. 2023a.
+MeViS: A Large-scale Benchmark for Video Segmentation           Li, X.; Ding, H.; Yuan, H.; Zhang, W.; Pang, J.; Cheng, G.;
+with Motion Expressions. In Proceedings of the IEEE/CVF         Chen, K.; Liu, Z.; and Loy, C. C. 2024. Transformer-Based
+International Conference on Computer Vision, 2694­2703.         Visual Segmentation: A Survey. IEEE Transactions on
+                                                                Pattern Analysis and Machine Intelligence, 46(12): 10138­
+Ding, H.; Liu, C.; He, S.; Jiang, X.; Torr, P. H.; and Bai, S.  10163.
+2023b. MOSE: A new dataset for video object segmentation
+in complex scenes. In Proceedings of the IEEE/CVF Inter-        Liao, Y.; Liu, S.; Li, G.; Wang, F.; Chen, Y.; Qian, C.; and
+national Conference on Computer Vision, 20224­20234.            Li, B. 2020. A real-time cross-modality correlation filtering
+                                                                method for referring expression comprehension. In Proceed-
+Ding, H.; Liu, C.; Wang, S.; and Jiang, X. 2021. Vision-        ings of the IEEE/CVF Conference on Computer Vision and
+language transformer and query generation for referring seg-    Pattern Recognition, 10880­10889.
+mentation. In Proceedings of the IEEE/CVF International
+Conference on Computer Vision, 16321­16330.                     Lin, T.-Y.; Goyal, P.; Girshick, R.; He, K.; and Dolla´r, P.
+                                                                2017. Focal loss for dense object detection. In Proceedings
+Ding, H.; Liu, C.; Wang, S.; and Jiang, X. 2023c. VLT:          of the IEEE International Conference on Computer Vision.
+Vision-language transformer and query generation for refer-
+ring segmentation. IEEE Transactions on Pattern Analysis        Liu, C.; Ding, H.; and Jiang, X. 2023. GRES: General-
+and Machine Intelligence, 45(6): 7900­7916.                     ized Referring Expression Segmentation. In Proceedings of
+                                                                the IEEE/CVF Conference on Computer Vision and Pattern
+He, K.; Fan, H.; Wu, Y.; Xie, S.; and Girshick, R. 2020.        Recognition, 23592­23601.
+Momentum contrast for unsupervised visual representation
+learning. In Proceedings of the IEEE/CVF conference on          Liu, C.; Ding, H.; Zhang, Y.; and Jiang, X. 2023. Multi-
+computer vision and pattern recognition, 9729­9738.             modal mutual attention and iterative interaction for referring
+                                                                image segmentation. IEEE Transactions on Image Process-
+He, K.; Zhang, X.; Ren, S.; and Sun, J. 2016. Deep resid-       ing, 32: 3054­3065.
+ual learning for image recognition. In Proceedings of the
+IEEE conference on computer vision and pattern recogni-         Liu, C.; Jiang, X.; and Ding, H. 2022. Instance-specific fea-
+tion, 770­778.                                                  ture propagation for referring segmentation. IEEE Transac-
+                                                                tions on Multimedia, 25: 3657­3667.
+He, S.; and Ding, H. 2024. RefMask3D: Language-Guided
+Transformer for 3D Referring Segmentation. In ACM Inter-        Liu, C.; Jiang, X.; and Ding, H. 2024. Primitivenet: decom-
+national Conference on Multimedia, 8316­8325.                   posing the global constraints for referring segmentation. Vi-
+                                                                sual Intelligence, 2(1): 16.
+He, S.; Ding, H.; Jiang, X.; and Wen, B. 2024. SegPoint:
+Segment Any Point Cloud via Large Language Model. In            Liu, C.; Li, X.; and Ding, H. 2024. Referring Image Edit-
+European Conference on Computer Vision, 349­367.                ing: Object-level Image Editing via Referring Expressions.
+                                                                In Proceedings of the IEEE/CVF Conference on Computer
+He, S.; Ding, H.; Liu, C.; and Jiang, X. 2023. GREC: Gen-       Vision and Pattern Recognition, 13128­13138.
+eralized referring expression comprehension. arXiv preprint
+arXiv:2308.16182.                                               Liu, Q.; Wen, Y.; Han, J.; Xu, C.; Xu, H.; and Liang, X.
+                                                                2022. Open-world semantic segmentation via contrasting
+Hu, R.; Rohrbach, M.; Andreas, J.; Darrell, T.; and Saenko,     and clustering vision-language embedding. In European
+K. 2017. Modeling relationships in referential expressions      Conference on Computer Vision, 275­292.
+with compositional modular networks. In CVPR.
+                                                                Liu, X.; Wang, Z.; Shao, J.; Wang, X.; and Li, H. 2019a.
+Kamath, A.; Singh, M.; LeCun, Y.; Synnaeve, G.; Misra, I.;      Improving referring expression grounding with cross-modal
+and Carion, N. 2021. MDETR-modulated detection for end-         attention-guided erasing. In Proceedings of the IEEE/CVF
+to-end multi-modal understanding. In Proceedings of the         Conference on Computer Vision and Pattern Recognition.
+IEEE/CVF International Conference on Computer Vision.
+Liu, Y.; Ott, M.; Goyal, N.; Du, J.; Joshi, M.; Chen, D.; Levy,  Transactions on Pattern Analysis and Machine Intelligence,
+O.; Lewis, M.; Zettlemoyer, L.; and Stoyanov, V. 2019b.          46(7): 5092­5113.
+Roberta: A robustly optimized bert pretraining approach.
+arXiv preprint arXiv:1907.11692.                                 Wu, Z.; Weng, Z.; Peng, W.; Yang, X.; Li, A.; Davis, L. S.;
+                                                                 and Jiang, Y. 2024d. Building an Open-Vocabulary Video
+Liu, Z.; Lin, Y.; Cao, Y.; Hu, H.; Wei, Y.; Zhang, Z.; Lin,      CLIP Model With Better Architectures, Optimization and
+S.; and Guo, B. 2021. Swin transformer: Hierarchical vision      Data. IEEE TPAMI.
+transformer using shifted windows. In Proceedings of the
+IEEE/CVF international conference on computer vision.            Xia, Z.; Han, D.; Han, Y.; Pan, X.; Song, S.; and Huang,
+                                                                 G. 2024. Gsva: Generalized segmentation via multimodal
+Luo, G.; Zhou, Y.; Sun, X.; Cao, L.; Wu, C.; Deng, C.; and Ji,   large language models. In Proceedings of the IEEE/CVF
+R. 2020. Multi-task collaborative network for joint referring    Conference on Computer Vision and Pattern Recognition.
+expression comprehension and segmentation. In Proceed-
+ings of the IEEE/CVF Conference on Computer Vision and           Xu, J.; De Mello, S.; Liu, S.; Byeon, W.; Breuel, T.; Kautz,
+Pattern Recognition, 10034­10043.                                J.; and Wang, X. 2022. GroupViT: Semantic segmenta-
+                                                                 tion emerges from text supervision. In Proceedings of
+Mao, J.; Huang, J.; Toshev, A.; Camburu, O.; Yuille, A. L.;      the IEEE/CVF Conference on Computer Vision and Pattern
+and Murphy, K. 2016. Generation and comprehension of un-         Recognition, 18134­18144.
+ambiguous object descriptions. In Proceedings of the IEEE
+Conference on Computer Vision and Pattern Recognition.           Yan, B.; Jiang, Y.; Wu, J.; Wang, D.; Luo, P.; Yuan, Z.; and
+                                                                 Lu, H. 2023. Universal instance perception as object discov-
+Meng, L.; Li, H.; Chen, B.-C.; Lan, S.; Wu, Z.; Jiang, Y.-G.;    ery and retrieval. In Proceedings of the IEEE/CVF Confer-
+and Lim, S.-N. 2022. AdaViT: Adaptive Vision Transform-          ence on Computer Vision and Pattern Recognition.
+ers for Efficient Image Recognition. In CVPR.
+                                                                 Yang, L.; Xu, Y.; Yuan, C.; Liu, W.; Li, B.; and Hu, W.
+Milletari, F.; Navab, N.; and Ahmadi, S.-A. 2016. V-Net:         2022a. Improving visual grounding with visual-linguistic
+Fully convolutional neural networks for volumetric medical       verification and iterative reasoning. In Proceedings of the
+image segmentation. In 3DV, 565­571.                             IEEE/CVF Conference on Computer Vision and Pattern
+                                                                 Recognition, 9499­9508.
+Plummer, B. A.; Wang, L.; Cervantes, C. M.; Caicedo, J. C.;
+Hockenmaier, J.; and Lazebnik, S. 2015. Flickr30k enti-          Yang, S.; Li, G.; and Yu, Y. 2019. Dynamic graph attention
+ties: Collecting region-to-phrase correspondences for richer     for referring expression comprehension. In ICCV.
+image-to-sentence models. In Proceedings of the IEEE In-
+ternational Conference on Computer Vision, 2641­2649.            Yang, Z.; Wang, J.; Tang, Y.; Chen, K.; Zhao, H.; and
+                                                                 Torr, P. H. 2022b. LAVT: Language-aware vision trans-
+Radford, A.; Kim, J. W.; Hallacy, C.; Ramesh, A.; Goh, G.;       former for referring image segmentation. In Proceedings of
+Agarwal, S.; Sastry, G.; Askell, A.; Mishkin, P.; Clark, J.;     the IEEE/CVF Conference on Computer Vision and Pattern
+et al. 2021. Learning transferable visual models from nat-       Recognition, 18155­18165.
+ural language supervision. In International Conference on
+Machine Learning, 8748­8763.                                     Ye, J.; Lin, X.; He, L.; Li, D.; and Chen, Q. 2021. One-stage
+                                                                 visual grounding via semantic-aware feature filter. In ACM
+Ren, S.; He, K.; Girshick, R.; and Sun, J. 2015. Faster R-       MM, 1702­1711.
+CNN: Towards real-time object detection with region pro-
+posal networks. In NeurIPS.                                      You, H.; Zhang, H.; Gan, Z.; Du, X.; Zhang, B.; Wang, Z.;
+                                                                 Cao, L.; Chang, S.-F.; and Yang, Y. 2024. Ferret: Refer and
+Rezatofighi, H.; Tsoi, N.; Gwak, J.; Sadeghian, A.; Reid, I.;    Ground Anything Anywhere at Any Granularity. In Interna-
+and Savarese, S. 2019. Generalized intersection over union:      tional Conference on Learning Representations.
+A metric and a loss for bounding box regression. In Pro-
+ceedings of the IEEE/CVF Conference on Computer Vision           Yu, L.; Poirson, P.; Yang, S.; Berg, A. C.; and Berg, T. L.
+and Pattern Recognition, 658­666.                                2016. Modeling context in referring expressions. In ECCV.
+
+Wang, Z.; Lu, Y.; Li, Q.; Tao, X.; Guo, Y.; Gong, M.; and        Yu, T.; Hui, T.; Yu, Z.; Liao, Y.; Yu, S.; Zhang, F.; and Liu,
+Liu, T. 2022. CRIS: Clip-driven referring image segmenta-        S. 2020. Cross-modal omni interaction modeling for phrase
+tion. In Proceedings of the IEEE/CVF Conference on Com-          grounding. In ACM MM.
+puter Vision and Pattern Recognition, 11686­11695.
+                                                                 Zhou, Y.; Ji, R.; Luo, G.; Sun, X.; Su, J.; Ding, X.; Lin, C.-
+Wu, C.; Liu, Y.; Ji, J.; Ma, Y.; Wang, H.; Luo, G.; Ding,        W.; and Tian, Q. 2021. A real-time global inference network
+H.; Sun, X.; and Ji, R. 2024a. 3D-GRES: Generalized 3d           for one-stage referring expression comprehension. IEEE
+referring expression segmentation. In Proceedings of the         Transactions on Neural Networks and Learning Systems.
+32nd ACM International Conference on Multimedia, 7852­
+7861.                                                            Zhu, C.; Zhou, Y.; Shen, Y.; Luo, G.; Pan, X.; Lin, M.; Chen,
+                                                                 C.; Cao, L.; Sun, X.; and Ji, R. 2022. SeqTR: A simple
+Wu, J.; Li, X.; Li, X.; Ding, H.; Tong, Y.; and Tao, D. 2024b.   yet universal network for visual grounding. In European
+Towards robust referring image segmentation. IEEE Trans-         Conference on Computer Vision, 598­615.
+actions on Image Processing.
+                                                                 Zhuang, B.; Wu, Q.; Shen, C.; Reid, I.; and Van Den Hen-
+Wu, J.; Li, X.; Xu, S.; Yuan, H.; Ding, H.; Yang, Y.; Li,        gel, A. 2018. Parallel attention: A unified framework for
+X.; Zhang, J.; Tong, Y.; Jiang, X.; Ghanem, B.; and Tao, D.      visual object discovery through dialogs and queries. In Pro-
+2024c. Towards Open Vocabulary Learning: A Survey. IEEE          ceedings of the IEEE Conference on Computer Vision and
+                                                                 Pattern Recognition, 4252­4261.
+
