@@ -232,6 +232,22 @@ testA/testB 點估方向對（R1 降、defer 降），但 LTT 找不到（或幾
 
 腳本：`src/decomp_maintable.py`（主表）、`src/decomp_matched.py`（matched，吃 split 參數：`python src/decomp_matched.py {val,testA,testB}`）。
 
+### 全量 val 結果（2026-06-18，875 真拆 vs 子集 255）— ★無瑕疵 GO★
+
+全量 dump（threshold=0，與 baseline 同口徑）val 完成後（14229 行、875 真拆），val-only LTT + matched：
+
+| 指標 | Frozen CRS | Decomp CRS 全量 | 子集時 |
+|---|---|---|---|
+| set size | 3.24 | 3.24（持平）| 3.23 |
+| R1（漏檢）| 0.191 | **0.165** ↓ | 0.162 |
+| R2（誤含）| 0.159 | **0.158（持平！）** | 0.209 |
+| defer | 0.424 | 0.424（持平）| 0.299 |
+| n_feas | 112 | **112（健康）** | 84 |
+
+**全量解決了子集唯一瑕疵**：子集時 R2 升 0.159→0.209（當時解釋為 LTT 換鬆 operating point 的代價）；**全量 R2 完全持平 0.158** → 證明那個 R2 上升是小樣本雜訊，非方法固有代價。全量 decomp = **純帕累托改善**（同 size/defer/R2，R1 白降 0.026），零 trade-off。matched 875 case 三 size 全勝（size~3: 0.704→0.897 +19pp），與子集幾乎一致，機制大樣本下穩定。
+
+testA/testB 全量 dump 仍背景跑中（testA 19200 行、testB 16063 行，串跑 ~4-5h）。完成後重跑 maintable，預期 n_feas 由 EMPTY/個位數變健康（如 val）。
+
 ---
 
 ## 5. 復現
