@@ -83,8 +83,70 @@
 
 ---
 
+## 第三批：SOTA 定位 + 威脅切割 + framing + 實驗擴充（2026-06-18 完成）
+
+挑選邏輯：對準下一步論文動作 —— SOTA 定位、威脅切割、方法 framing、實驗擴充四面向。
+
+### #6 InstanceVG — Improving Generalized Visual Grounding with Instance-aware Joint Learning
+- **2509.13747**（TPAMI 2025，Ming Dai/東南大學）→ [read-instancevg-summary.pdf](read-instancevg-summary.pdf)
+- 註：InstanceVG 是系統/repo 名，標題不含此前綴。
+- **角色**：現任 GREC SOTA，要 position-under 的方法層天花板。
+- **精確數字（已核實）**：GREC val Pr@F1=1/N-acc **73.5/72.8**、testA 70.2/71.1、testB 60.8/65.2（與 memory 一致）。⚠️「all metrics SOTA」略誇 —— GRES N-acc 輸給 DeRIS（72.84 vs 77.03）。
+- **關鍵性質**：N-acc 來自訓練式 BCE existence 分支的 **point estimate + 後處理 thr_q**（val 上手動掃 0.7→0.9），**無 calibration/coverage/distribution-free 保證**；Conclusion 自承「target existence determination 準確度不足」。
+- **定位（強化而非威脅 CRS）**：(1) 不比絕對分數比可靠性，caption 誠實點明 CRS Pr@F1=1(0.26–0.61) 低於 73.5 是「保證 vs 點估計」取捨；(2) **SOTA 表用雙區塊 + 「Guarantee?」欄**（Trained 標 ✗ vs Frozen CRS 標 ✓）；(3) InstanceVG 當 box base → **不入主結果、列 future-work**（in-domain trained 非泛用 base，會稀釋 frozen 故事），最漂亮做法是小 robustness 附錄「用 InstanceVG 框替換 GD box，CRS 保證是否仍成立」展示 base-agnostic。
+- **引用優先級**：高（SOTA 對照表核心）
+
+### #7 VIRO — Verification-Integrated Reasoning Operators
+- **2601.12781v2**（POSTECH，Suha Kwak/Jungseul Ok 等）→ [read-viro-summary.pdf](read-viro-summary.pdf)
+- **角色**：威脅切割 —— neuro-symbolic REC，踩同一條軸（post-hoc/training-free/no-target/同用 CLIP+GroundingDINO）。
+- **裁定**：不構成實質威脅。三刀切割 —
+  1. 保證類型（VIRO 棄答靠啟發式 per-label CLIP 門檻、無有限樣本保證、TNR 是點估計；CRS 用 LTT 給 `P(risk>α)≤δ`）
+  2. 輸出語意（VIRO 單框或 ∅、二元 0/1、不處理 multi-target；CRS size+覆蓋受控 referring set）
+  3. 架構（single pipeline vs cross-base factorization）
+- **額外彈藥**：VIRO **未用官方 GREC Pr@(F1=1)/T-acc**，自定二元 TPR/TNR/Balanced Acc，no-target 與 target-present 分 split 各自量 → 口徑不同不可並列。**可反過來當 CRS 的 baseline**（官方 GREC metric 下重評它、凸顯無保證）。
+- **引用優先級**：高（abstention 軸必引必切割）
+
+### #8 Are foundation models for computer vision good conformal predictors?
+- **2412.06082v3**（Fillioux/Silva-Rodríguez/Ben Ayed/Dolz）→ [read-fm-conformal-summary.pdf](read-fm-conformal-summary.pdf)
+- **角色**：方法 framing —— 直接背書 CRS 的 post-hoc 設計。
+- **支撐發現**：(iv) 對 17 個凍結 FM 套 Temperature Scaling 後，adaptive conformal set 效率**一致退化**（APS set size 全面變大）→ 背書「不重校準 base 原始分數」；(v) few-shot（更過自信）反而改善 conformal 分數 → 「校準分數 ≠ 更好 conformal」；(i) 凍結 FM conformal 指標優於監督式重訓 ViT。
+- **⚠️ 外推 caveat（必寫）**：本文非一致性分數建立在封閉 K 類 softmax；CRS 用 grounding/box 分數非 softmax，APS/RAPS 機制無法原樣搬，**數值結論不可直接外推**。定位＝放 motivation（不重校準的設計理由）+ method justification 附 caveat 句；CRS 對應現象仍須自身 2×2 ablation 證成。
+- **引用優先級**：中高
+
+### #9 Enabling Calibration In The Zero-Shot Inference of Large VLMs
+- **2303.12748v4**（Scale AI, LeVine et al., ICLR 2023 **Workshop**）→ [read-vlm-calibration-summary.pdf](read-vlm-calibration-summary.pdf)
+- **角色**：方法 framing 雙重用途。
+- **裁定**：(1) 動機引用 —— 裸 CLIP zero-shot 確實 miscalibrated（ViT ECE 3–7%、弱預訓練 ResNet 26–27%），當「frozen VLM 原生信賴度不可信」實證錨點，與 Guo et al.(2017) 並列引；(2) baseline 對照 —— 它是傳統 point-calibration(TS/ECE) 代表，正是 CRS 要超越的對象。
+- **ECE vs Conformal 區分（可貼進 background）**：ECE/TS = point calibration 無保證（只讓軟分數平均逼近正確率，換分布即失效）；Conformal/LTT = set-level distribution-free guarantee（僅需 exchangeability 給有限樣本高機率上界）。一句話：ECE 答「機率數字平均準不準」、conformal 答「集合涵蓋正解機率有無被嚴格保證在門檻上」。Gap：ECE 不適用集合輸出 = CRS 差異化空間。
+- **引用優先級**：中高（framing + baseline）
+
+### #10 VL-SAM-v3 — Memory-Guided Visual Priors for Open-World Object Detection
+- **2605.03456v3**（北大王選所）→ [read-vlsamv3-summary.pdf](read-vlsamv3-summary.pdf)
+- **角色**：實驗擴充 —— 評估第 4 個 frozen base 可行性。
+- **裁定：不適合，推薦度「低」**。三硬傷：(1) 介面錯位（吃**類別字串**不吃 referring expression，零 RefCOCO/gRefCOCO 證據）；(2) 非 frozen（核心需 fine-tune base detector）；(3) 無公開 checkpoint + 重型依賴（64GiB FAISS + Qwen3-VL + DINOv3）。
+- **改用什麼（修正最高 ROI 實驗標的）**：**首選 Grounding-DINO-1.5 (2405.10300)**（現成 frozen、吃自然語言 query、出 box、與現有 GD 介面相容、最低整合風險）；次選 **DINO-X (2411.14347)**（分數分布更異質，強化 cross-base）。
+- **引用優先級**：低（排除為 base，但結論有價值：把「加第四 base」標的修正到 GD-1.5）
+
+---
+
+## 累計閱讀總表（15 篇）
+
+- 第一批（5）：Modeling Relationships、COPS-Ref、GREC、HieA2G、Zero-Shot True/False
+- 第二批（5）：SeqCRC、LazyMCoT、BCEA、CRC Non-Monotonic、Conformal Instance-Seg
+- 第三批（5）：InstanceVG、VIRO、Are-FM-Conformal、VLM-Calibration、VL-SAM-v3
+
+---
+
 ## 下一步候選（尚未讀）
-- 新 frozen base 候選（強化 cross-base 主張，最高 ROI 實驗）：VL-SAM-v3 (2605.03456) / DINO-X (2411.14347) / GD-1.5 (2405.10300)
-- framing/動機：Enabling Calibration in Zero-Shot VLM (2303.12748)、Are foundation models good conformal predictors? (2412.06082)、Does Object Grounding Really Reduce Hallucination? (2406.14492)
+- **新 base 實驗標的已修正**：~~VL-SAM-v3（已排除）~~ → **GD-1.5 (2405.10300, 首選)** / DINO-X (2411.14347)
+- framing/動機：Does Object Grounding Really Reduce Hallucination? (2406.14492)
 - benchmark 延伸：AgroVG (2605.22034, 跨域 GREC)、Ref-Adv (2602.23898, ICLR'26)
+- 方法骨幹補完：Selective Conformal Risk Control (2512.12844)、RCPS (2101.02703)
 - 投稿前人工掃描：Google Scholar `"conformal referring"` / `"selective referring expression"`
+
+## 浮現的論文動作（讀完 15 篇後）
+1. **改措辭**：別主打「set ≥1 命中保證」（instance-seg+LTT 已有），改主打「語言 grounding 上 recall+abstention 跨 base 分工聯合校準」。
+2. **方法章理論句**：用 CRC-Non-Monotonic (2602.20151) 證成「為何 LTT 而非純 CRC」。
+3. **Related Work 點名切割**：SeqCRC（結構同源三軸）、LazyMCoT（conformal 平面正交）、BCEA（同調不同任務）、VIRO（abstention 軸三刀）、Conformal-Instance-Seg（修辭層非方法層）。
+4. **SOTA 表**：雙區塊 + 「Guarantee?」欄（Trained 標 ✗ vs Frozen CRS 標 ✓）。
+5. **最高 ROI 實驗**：加 GD-1.5 當第四 base（非 VL-SAM-v3）。
