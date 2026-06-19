@@ -189,3 +189,24 @@ decomp 整個掛在 CRS 框架（同套 LTT、同套三風險）。
 > Candidate selection alone fails to close the oracle gap. Expression decomposition changes the candidate-pool construction process and improves the recall-size frontier for compositional multi-target queries. When wrapped by CRS/LTT, it can reduce answered-target FNR or set size while preserving no-target and deferral risk control.
 
 **禁用**：decisively solves the oracle gap / 決定性證據。
+
+---
+
+# §6. P1-E / P1-F 補完（2026-06-18）
+
+## P1-E 成本表（決議）
+routing 每 target-present query 都呼叫 VLM。誠實成本:VLM/q = 0.37/0.77/0.71(val/testA/testB),GDINO fwd/q = 1.06-1.08×。claim 改「training-free and weight-frozen, but with additional inference-time compute」,VLM/GDINO 分兩欄不合併(7B VLM forward 遠貴於 GDINO)。詳見 `decomp_cost_failaudit_result.md`。
+
+## P1-F 失敗審計（決議,修正原推斷）
+原「testA n_gt==1 −0.148 全是標籤歧義」(只看 12 例)**降調**:系統審計 testA n_gt==1 負增益 14 例 = ambiguity 50% + over_decomp 50%(後者因共用 head noun 無法與 ambiguity 切開,真 ambiguity 比例更高,故「至少 50%」是下界)。無 detector_miss、無 parser_error。**最終措辭**:decomposition 對 explicit multi-target 有益,對 single-target 標註下的多指稱 expression 有害(語言-標註粒度錯配),非偵測/解析失敗。
+
+## 紅隊七項全補完狀態
+| # | 項目 | 結果 |
+|---|---|---|
+| 1 降調 claim | ✅ | mechanism evidence,禁 decisive |
+| 2 robustness | ✅ | 7/8 守,testB random5 trade-off |
+| 3 frontier 四指標 | ✅ | size@rec0.8 半框,anti-cheat 守 |
+| 4 strong baseline | ✅ | decomp R1 領先但非單點全勝(testA full+NMS) |
+| 5 R_total | ✅ | R3 持平,非偷換分母 |
+| 6 成本表 | ✅ | VLM 0.37-0.77/q,誠實 inference compute |
+| 7 失敗審計 | ✅ | ambiguity ≥50%,原推斷降調 |
