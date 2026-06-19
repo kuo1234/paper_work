@@ -129,11 +129,23 @@
 
 ---
 
-## 累計閱讀總表（15 篇）
+## 補讀：MAttNet（2026-06-19）
+
+### #16 MAttNet — Modular Attention Network for REC
+- **1801.08186v3**（CVPR 2018，Licheng Yu/UNC+Adobe）→ [mattnet-summary.pdf](mattnet-summary.pdf) / [mattnet-summary.md](mattnet-summary.md)
+- **角色**：REC modular 經典/多年強 baseline，*Modeling Relationships*（CVPR'16）的直接後繼。`idea/pdfs/` 中唯一有原文卻缺 summary 者，補齊。
+- **方法**：語言 soft attention 自動把句子解析成 subject/location/relationship 三模組（取代外接 parser，勝 ~5%）+ 雙視覺 attention（subject in-box 看框內細節、relationship out-of-box 看框外支援物件）+ 屬性預測分支；res101-frcn 全模型 RefCOCO testA 85.26、RefCOCOg test 78.12，box+pixel 兩層級刷新 SOTA。box 定位與分割解耦（選 box→Mask 分支出 mask）優於 FCN 式。
+- **定位（強化非威脅）**：(1) SOTA 雙區塊表的 **「Trained」代表**，標 Guarantee ✗（point estimate 無分布無關保證）對照 Frozen CRS ✓，高絕對分數（85.26）正好佐證「準確率≠保證」framing；(2) subj→loc→rel→attr 逐步加法 ablation = CRS 2×2 factorization 的可對照前例（差別：同模型內模組可加 vs 跨異質 frozen base 分工非 ensemble）；(3) single-target+需訓練+無 calibration = 正是 selective grounding/CRS 要超越的對照組。
+- **引用優先級**：中（REC 演進敘事 + SOTA 對照表用；非直接競品，無切割壓力）
+
+---
+
+## 累計閱讀總表（16 篇）
 
 - 第一批（5）：Modeling Relationships、COPS-Ref、GREC、HieA2G、Zero-Shot True/False
 - 第二批（5）：SeqCRC、LazyMCoT、BCEA、CRC Non-Monotonic、Conformal Instance-Seg
 - 第三批（5）：InstanceVG、VIRO、Are-FM-Conformal、VLM-Calibration、VL-SAM-v3
+- 補讀（1）：MAttNet（REC modular 經典 baseline，SOTA 雙區塊表 Trained 代表）
 
 ---
 
