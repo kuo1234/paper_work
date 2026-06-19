@@ -175,24 +175,52 @@
 - **務實定位**：附錄 base-agnostic / 異質性上限實驗（類 InstanceVG future-work）+ motivation 佐證（intro 明言開集偵測器用途含「reduce MLLM hallucination」）。
 - **引用優先級**：中
 
+### #21 Does Object Grounding Really Reduce Hallucination of LVLMs? — framing/動機
+- **2406.14492v1**（Geigle/Timofte/Glavaš, Würzburg, EMNLP'24 Findings）→ [read-grounding-hallucination-summary.pdf](read-grounding-hallucination-summary.pdf) / [read-grounding-hallucination-summary.md](read-grounding-hallucination-summary.md)
+- **角色**：motivation 核心**反面背書**——實證打臉「grounding 目標減幻覺」宣稱。
+- **核心**：既有「減幻覺」證據用 MSCOCO（已進訓練=低估）+ QA 式（POPE，未經驗證 proxy）有瑕疵。本文用 3 個 LLM backbone + OOD(Objects365) + 雙互補指標(CHAIR-MEN/FaithScore) 健全協議，發現 **grounding 目標(RE/GC)對開放 caption 幻覺幾乎無影響**；推論時強制 grounded caption 只略減且犧牲細緻度(faithfulness↔informativeness tradeoff)。
+- **對 CRS**：reliability 正交於 grounding 能力，光靠更強/更多 grounding 訓練得不到→必須輸出端外加分布無關保證。與 GD-1.5(架構層 tradeoff) 接成「準確率≠可靠性」motivation 鏈。⚠️ 任務不同(LVLM caption 幻覺非 REC box)，引用框成類比勿 over-claim。
+- **引用優先級**：中高（motivation 核心反面背書）
+
+### #22 AgroVG — 跨域 GREC benchmark
+- **2605.22034v1**（China Agri Univ 等，2026-05，preprint）→ [read-agrovg-summary.pdf](read-agrovg-summary.pdf) / [read-agrovg-summary.md](read-agrovg-summary.md)
+- **角色**：benchmark 延伸——跨域(農業) generalized grounding，CRS 的現成第三/跨域資料集。
+- **核心**：農業 grounding=generalized set prediction(single/multi/target-absent)，10,071 pair/6 family/box(T1)+mask(T2)。協議＝二分圖 max-cardinality matching→**Set-F1**。zero-shot 26 配置遠未飽和(最佳 multi-target Set-F1 僅 0.35)，**所有模型 existence-aware abstention 都做不好**(幻覺 or 過度棄答)。
+- **對 CRS**：(1) 跨域 robustness 測試場(驗 LTT 保證 domain-agnostic，比 COPS-Ref 新且更貼 generalized)；(2) **abstention 痛點正中靶心**(呼應 forced-output N-acc 0.18→0.94)；(3) Set-F1 box-set matching 協議與 CRS referring-set 量法高度一致可對齊。
+- **引用優先級**：中（跨域 robustness + abstention 痛點佐證；benchmark 非競品）
+
+### #23 Ref-Adv — 抗捷徑現代 REC benchmark
+- **2602.23898v1**（Dong et al., Northeastern, **ICLR 2026**）→ [read-ref-adv-summary.pdf](read-ref-adv-summary.pdf) / [read-ref-adv-summary.md](read-ref-adv-summary.md)
+- **角色**：benchmark 延伸——**「RefCOCO 飽和/有水分」的最強最新實證**。
+- **核心**：經典 REC 三缺陷(表達式太短/distractor 太少/冗餘描述子可 grounding shortcut)→ Ref-Adv 用 hard distractor + 最小充分表達式 + negation 壓捷徑。兩 ablation(bag-of-words、descriptor-deletion)證明真需 reasoning。13 個 MLLM 在 RefCOCO >90% 卻在 Ref-Adv 大幅下滑。
+- **對 CRS**：直接背書 framing 守則「絕不踩準確率戰場」——RefCOCO 高分靠捷徑，比 COPS-Ref(2020) 新更有力。與 Grounding-Hallucination(訓練層)、GD-1.5(架構層)接成「準確率≠可靠性」完整鏈。借鏡＝hard distractor 壓力測試 + negation 軸診斷。⚠️ 是 single-target REC(非 multi/no-target set)，引用定位為「飽和證據」非 generalized 競品；作者之一 Kuo Yang 與使用者同名非同人勿混。
+- **引用優先級**：中高（RefCOCO 飽和最新權威實證，ICLR'26 新鮮度高）
+
 ---
 
-## 累計閱讀總表（20 篇）
+## 累計閱讀總表（23 篇）
 
 - 第一批（5）：Modeling Relationships、COPS-Ref、GREC、HieA2G、Zero-Shot True/False
 - 第二批（5）：SeqCRC、LazyMCoT、BCEA、CRC Non-Monotonic、Conformal Instance-Seg
 - 第三批（5）：InstanceVG、VIRO、Are-FM-Conformal、VLM-Calibration、VL-SAM-v3
 - 補讀（1）：MAttNet（REC modular 經典 baseline，SOTA 雙區塊表 Trained 代表）
-- 第四批（進行中）：RCPS、SCRC、GD-1.5、DINO-X ✅；Grounding-Hallucination、AgroVG、Ref-Adv（待續）
+- 第四批（7）：RCPS、SCRC（方法骨幹）、GD-1.5、DINO-X（新 base）、Grounding-Hallucination（framing）、AgroVG、Ref-Adv（benchmark）
 
 ---
 
-## 下一步候選（第四批剩餘）
+## 下一步候選（第四批已全讀完，剩餘為長線動作）
 - ✅ 方法骨幹補完：RCPS (2101.02703)、Selective CRC (2512.12844)
 - ✅ 新 base 實驗標的：GD-1.5 (2405.10300)、DINO-X (2411.14347) — **建議首選/次選對調＝DINO-X 優先（CLIP encoder 異質性）**
-- ⏳ framing/動機：Does Object Grounding Really Reduce Hallucination? (2406.14492)
-- ⏳ benchmark 延伸：AgroVG (2605.22034, 跨域 GREC)、Ref-Adv (2602.23898, ICLR'26)
-- 投稿前人工掃描：Google Scholar `"conformal referring"` / `"selective referring expression"`
+- ✅ framing/動機：Does Object Grounding Really Reduce Hallucination? (2406.14492)
+- ✅ benchmark 延伸：AgroVG (2605.22034)、Ref-Adv (2602.23898)
+- ⏳ 投稿前人工掃描：Google Scholar `"conformal referring"` / `"selective referring expression"`
+
+## 第四批浮現的新論文動作
+1. **motivation「準確率≠可靠性」三層證據鏈**：Ref-Adv(benchmark飽和)→Grounding-Hallucination(訓練層無效)→GD-1.5(架構層 recall-hallucination tradeoff)→CRS(輸出端保證)。寫進 introduction。
+2. **方法章理論源頭補引**：RCPS(2101.02703) 當 (α,δ)-PAC 風險控制祖先 + 「不重訓 frozen base」正當化(Remark 2)；反襯為何要 LTT(突破單調+單參數假設)。
+3. **Related Work 新增切割**：SCRC(2512.12844) = 結構最近鄰居(雙門檻雙保證)，切割三軸(跨base factorization/開放詞彙vs封閉K類/no-target正交)；借鏡 conditional-exchangeability 修補。
+4. **第四 base 順序修正**：DINO-X 優先於 GD-1.5（CLIP text encoder 提供與現有 GD box 的異質性）；但兩者 API-gated→定位附錄 base-agnostic 實驗，本地凍結仍用開源 GroundingDINO+OWL-ViT。
+5. **跨域 robustness 附錄**：用 AgroVG 驗 CRS 保證 domain-agnostic（Set-F1 協議可對齊）；hard-distractor/negation 用 Ref-Adv 補診斷。
 
 ## 浮現的論文動作（讀完 15 篇後）
 1. **改措辭**：別主打「set ≥1 命中保證」（instance-seg+LTT 已有），改主打「語言 grounding 上 recall+abstention 跨 base 分工聯合校準」。
