@@ -140,20 +140,42 @@
 
 ---
 
-## 累計閱讀總表（16 篇）
+## 第四批：方法骨幹 + 新 base + framing + benchmark（2026-06-19 進行中）
+
+挑選邏輯：把 reading-log「下一步候選」7 篇一次讀完 —— 方法骨幹補完(2)、新 base 標的(2)、framing/動機(1)、benchmark 延伸(2)。
+
+### #17 RCPS — Distribution-Free, Risk-Controlling Prediction Sets
+- **2101.02703v3**（JACM 2021，Bates/Angelopoulos/Lei/Malik/Jordan, Berkeley）→ [read-rcps-summary.pdf](read-rcps-summary.pdf) / [read-rcps-summary.md](read-rcps-summary.md)
+- **角色**：CRS 所用 **LTT 的理論祖先**（同作者群）。方法章理論源頭。
+- **核心**：(α,δ)-RCPS = holdout calibration + UCB（選整段右側信賴帶壓在 α 下的最小 λ），把任意黑箱改造成 PAC 風險受控集合預測器。**兩大假設＝單參數嵌套 + 損失單調**；Theorem 1 靠單調性把逐點收斂升級成資料驅動選 λ 有效（免 uniform convergence）。Remark 2：初始模型可來自不同分布，只要 calib/test 同分布。Bound：二元用 exact binomial、非二元有界用 WSR。
+- **定位**：(1) 必引理論源頭（CRS PAC 型態繼承自此）；(2) Remark 2 正當化「不重訓 frozen base」；(3) **反襯為何要 LTT**——CRS 雙參數+非單調 recall 損失突破 RCPS 兩假設，故升級到 LTT（與 CRC-Non-Monotonic 論證合流）。
+- **引用優先級**：高（方法章理論源頭必引）
+
+### #18 SCRC — Selective Conformal Risk Control
+- **2512.12844v2**（2026-04，Xu/Guo/Wei, NJIT）→ [read-selective-crc-summary.pdf](read-selective-crc-summary.pdf) / [read-selective-crc-summary.md](read-selective-crc-summary.md)
+- **角色**：方法骨幹標的中**與 CRS 最直接相關**＝結構最近鄰居（雙門檻雙階段、棄答+risk 雙保證）。必引必切割。
+- **核心**：兩階段——λ1 棄答 gate + λ2 集合大小。關鍵理論＝**conditional exchangeability（Lemma 1）**：選擇破壞 exchangeability，需 symmetric selection rule（門檻用 calib+test 對稱算）才能在被選子集恢復可交換，Theorem 2 給「條件風險 + 選擇覆蓋」雙保證。SCRC-T(exact/每點重算) vs SCRC-I(PAC/可部署)。
+- **切割三軸**：(1) 跨 base factorization（SCRC 雙門檻同屬一模型 f/g；CRS 兩異質 frozen base + 2×2 ablation 證非 ensemble）；(2) 任務維度（封閉 K 類 softmax vs 開放詞彙 box grounding）；(3) 棄答語意（低信賴 reject vs no-target 正交軸）。
+- **可借鏡（最高價值）**：conditional-exchangeability 修補——CRS OWL gate 棄答後校準 GD recall 同樣會破壞 exchangeability，SCRC 的對稱門檻修補可移植（對照 [[crs-redteam-p0-fixes]] 已修的 calib-only leakage）。feasibility check `m ≥ 1/α−1` 可用於高棄答率 robustness 討論。
+- **引用優先級**：高（必引必切割，同期同源；切割比照 BCEA「concurrent 不同任務」）
+
+---
+
+## 累計閱讀總表（18 篇）
 
 - 第一批（5）：Modeling Relationships、COPS-Ref、GREC、HieA2G、Zero-Shot True/False
 - 第二批（5）：SeqCRC、LazyMCoT、BCEA、CRC Non-Monotonic、Conformal Instance-Seg
 - 第三批（5）：InstanceVG、VIRO、Are-FM-Conformal、VLM-Calibration、VL-SAM-v3
 - 補讀（1）：MAttNet（REC modular 經典 baseline，SOTA 雙區塊表 Trained 代表）
+- 第四批（進行中）：RCPS、SCRC ✅；GD-1.5、DINO-X、Grounding-Hallucination、AgroVG、Ref-Adv（待續）
 
 ---
 
-## 下一步候選（尚未讀）
-- **新 base 實驗標的已修正**：~~VL-SAM-v3（已排除）~~ → **GD-1.5 (2405.10300, 首選)** / DINO-X (2411.14347)
-- framing/動機：Does Object Grounding Really Reduce Hallucination? (2406.14492)
-- benchmark 延伸：AgroVG (2605.22034, 跨域 GREC)、Ref-Adv (2602.23898, ICLR'26)
-- 方法骨幹補完：Selective Conformal Risk Control (2512.12844)、RCPS (2101.02703)
+## 下一步候選（第四批剩餘）
+- ✅ 方法骨幹補完：RCPS (2101.02703)、Selective CRC (2512.12844)
+- ⏳ 新 base 實驗標的：**GD-1.5 (2405.10300, 首選)** / DINO-X (2411.14347)
+- ⏳ framing/動機：Does Object Grounding Really Reduce Hallucination? (2406.14492)
+- ⏳ benchmark 延伸：AgroVG (2605.22034, 跨域 GREC)、Ref-Adv (2602.23898, ICLR'26)
 - 投稿前人工掃描：Google Scholar `"conformal referring"` / `"selective referring expression"`
 
 ## 浮現的論文動作（讀完 15 篇後）
