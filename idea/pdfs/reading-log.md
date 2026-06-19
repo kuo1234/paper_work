@@ -159,21 +159,37 @@
 - **可借鏡（最高價值）**：conditional-exchangeability 修補——CRS OWL gate 棄答後校準 GD recall 同樣會破壞 exchangeability，SCRC 的對稱門檻修補可移植（對照 [[crs-redteam-p0-fixes]] 已修的 calib-only leakage）。feasibility check `m ≥ 1/α−1` 可用於高棄答率 robustness 討論。
 - **引用優先級**：高（必引必切割，同期同源；切割比照 BCEA「concurrent 不同任務」）
 
+### #19 Grounding DINO 1.5 — 新 base 標的（reading-log 原訂首選）
+- **2405.10300v2**（IDEA Research，2024-06，technical report）→ [read-gd15-summary.pdf](read-gd15-summary.pdf) / [read-gd15-summary.md](read-gd15-summary.md)
+- **角色**：評估當 CRS 第四個 frozen base 的可行性。
+- **裁定（有條件可行但更受限）**：(1) 介面相容 ✅（text→box，GD 直系升級）；(2) frozen ⚠️ **Pro 僅 API-gated 無公開權重**；(3) 異質性 ⚠️ box score 與現有 GD base **同源**，當「第四異質 base」增益有限；(4) **無 RefCOCO/REC 評測**（評 COCO/LVIS/ODinW）。
+- **最有價值 take-away**：**early-fusion 高 recall 必伴高幻覺、late-fusion 抗幻覺但低 recall** 的 tradeoff 自白 → CRS「base 越強越需 recall+abstention 雙保證」的 motivation 外部佐證。
+- **建議**：當 base 退次選（同源+API-gated），最佳用途＝motivation 引用 recall-hallucination tradeoff。
+- **引用優先級**：中
+
+### #20 DINO-X — 新 base 標的（reading-log 原訂次選，實則更切題）
+- **2411.14347v3**（IDEA Research，2025-05，technical report）→ [read-dino-x-summary.pdf](read-dino-x-summary.pdf) / [read-dino-x-summary.md](read-dino-x-summary.md)
+- **角色**：評估當 CRS 第四個 frozen base 的可行性（GD-1.5 直系後繼）。
+- **裁定（比 GD-1.5 更適合）**：關鍵差異＝**text encoder BERT→CLIP** + Grounding-100M + 長尾領先 → 分數分布與現有 BERT-based GD box base **顯著異質**，正是 cross-base 想要的異質分工。
+- **⚠️ 重要修正**：reading-log 原訂「GD-1.5 首選 / DINO-X 次選」**建議對調**——GD-1.5 與現有 GD box 太同源，DINO-X 的 CLIP encoder 才真正提供異質性。但兩者同病＝**Pro API-gated 無公開權重**；RefCOCOg 證據停在 caption/classification 非 REC box 定位。
+- **務實定位**：附錄 base-agnostic / 異質性上限實驗（類 InstanceVG future-work）+ motivation 佐證（intro 明言開集偵測器用途含「reduce MLLM hallucination」）。
+- **引用優先級**：中
+
 ---
 
-## 累計閱讀總表（18 篇）
+## 累計閱讀總表（20 篇）
 
 - 第一批（5）：Modeling Relationships、COPS-Ref、GREC、HieA2G、Zero-Shot True/False
 - 第二批（5）：SeqCRC、LazyMCoT、BCEA、CRC Non-Monotonic、Conformal Instance-Seg
 - 第三批（5）：InstanceVG、VIRO、Are-FM-Conformal、VLM-Calibration、VL-SAM-v3
 - 補讀（1）：MAttNet（REC modular 經典 baseline，SOTA 雙區塊表 Trained 代表）
-- 第四批（進行中）：RCPS、SCRC ✅；GD-1.5、DINO-X、Grounding-Hallucination、AgroVG、Ref-Adv（待續）
+- 第四批（進行中）：RCPS、SCRC、GD-1.5、DINO-X ✅；Grounding-Hallucination、AgroVG、Ref-Adv（待續）
 
 ---
 
 ## 下一步候選（第四批剩餘）
 - ✅ 方法骨幹補完：RCPS (2101.02703)、Selective CRC (2512.12844)
-- ⏳ 新 base 實驗標的：**GD-1.5 (2405.10300, 首選)** / DINO-X (2411.14347)
+- ✅ 新 base 實驗標的：GD-1.5 (2405.10300)、DINO-X (2411.14347) — **建議首選/次選對調＝DINO-X 優先（CLIP encoder 異質性）**
 - ⏳ framing/動機：Does Object Grounding Really Reduce Hallucination? (2406.14492)
 - ⏳ benchmark 延伸：AgroVG (2605.22034, 跨域 GREC)、Ref-Adv (2602.23898, ICLR'26)
 - 投稿前人工掃描：Google Scholar `"conformal referring"` / `"selective referring expression"`
