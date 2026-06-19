@@ -29,7 +29,7 @@
 
 ### 主結果 2：Expression-Decomposed CRS — 今天剛跨 split 確認，全量跑中
 - 機制：VLM（Qwen2.5-VL，凍結，只 prompt）把複合指稱拆成子指稱 → 各子指稱單獨餵 GDINO → union 候選 → 接回 CRS/LTT。
-- **今天（2026-06-18）的決定性證據**（matched oracle 分析，繞過 LTT，同輸出 size 比 recall）：
+- **今天（2026-06-18）的 mechanism evidence**（Matched Recall-Size Frontier，繞過 LTT，同輸出 size 比 recall；紅隊裁決：這是 mechanism evidence 非最終主證據）：
 
   | split | size~3 full-expr recall | size~3 decomp recall | Δ |
   |---|---|---|---|

@@ -176,6 +176,11 @@ checkpoint 全程穩定（50/100/150/200：d2 R1 = 0.060/0.065/0.070/0.075）。
 
 ## 4e. Decomposed CRS — 接回 LTT 三風險主表（2026-06-18，★GO★）
 
+> **紅隊裁決校準 claim（2026-06-18）**：matched recall@size 是 **mechanism evidence（Matched Recall-Size Frontier）**，**不是最終主證據**。最終主證據＝full split + LTT 三風險 + robustness。
+> 安全 claim：「Candidate selection alone fails to close the oracle gap. Expression decomposition changes the candidate-pool construction process and improves the recall-size frontier for compositional multi-target queries. When wrapped by CRS/LTT, it can reduce answered-target FNR or set size while preserving no-target and deferral risk control.」
+> **禁用**：「decisively solves the oracle gap」「決定性證據」。
+> 紅隊 §9 待補實驗（見 `decomp_redteam_questions.md` + 任務清單）：robustness / recall-size 四指標 / strong full+NMS baseline / R_total / 成本表 / 失敗審計。
+
 整夜 dump `gdino_gref_val_decomp.jsonl`（10405 行 = no_target 8905 passthrough + tp 抽樣 1500，其中 **255 真被拆解**）完成後，跑 `src/decomp_maintable.py`（共用 `crs_protocol.py`，calib-only grid，α=β=0.3 γ=0.5），在 `set(owl)&set(decomp)` 共同 key 上公平比較 Frozen vs Decomposed。
 
 **val 主表（共同 key）：**
@@ -190,7 +195,7 @@ checkpoint 全程穩定（50/100/150/200：d2 R1 = 0.060/0.065/0.070/0.075）。
 
 主表三疑慮（R1 CI 重疊、R2 反常上升、只 255/10405 真拆卻全域位移）由 **matched oracle 分析（`src/decomp_matched.py`，繞過 LTT，僅在 255 真拆 case 上比較）** 全數解消：
 
-**同輸出 size 下 recall 大幅勝出（決定性）：**
+**同輸出 size 下 recall 大幅勝出（Matched Recall-Size Frontier，mechanism evidence，非最終主證據）：**
 
 | 輸出 size | full-expr recall | decomp recall | Δ |
 |---|---|---|---|
@@ -202,7 +207,7 @@ checkpoint 全程穩定（50/100/150/200：d2 R1 = 0.060/0.065/0.070/0.075）。
 - **R2 上升解釋**：LTT 看到 recall 變好 → 重新最優化到較鬆 operating point（換 defer 42%→30% 大降），花掉部分 R2 預算但守 β=0.3。划算交易，非缺陷 → caveat #2 解消。
 - oracle pool ceiling 0.989→0.946（修剪 4.3pp），但那是 full pool 塞 45 框（threshold=0）下的天花板，實務無意義；可用 size 2-4 decomp 完勝。
 
-**判讀＝乾淨 GO**（非弱 GO）。testA/testB decomp dump 已啟動整夜跑（`run_dd3_test.sh`，依序 testA→testB 1500），完成後跑 maintable 做跨 split 確認。
+**判讀＝GO（mechanism + 子集 LTT 支持）**。testA/testB decomp dump 已啟動整夜跑（`run_dd3_test.sh`，依序 testA→testB 1500），完成後跑 maintable 做跨 split 確認。
 
 ### 跨 split 確認（2026-06-18，testA/testB dump 完成後）
 
@@ -232,7 +237,7 @@ testA/testB 點估方向對（R1 降、defer 降），但 LTT 找不到（或幾
 
 腳本：`src/decomp_maintable.py`（主表）、`src/decomp_matched.py`（matched，吃 split 參數：`python src/decomp_matched.py {val,testA,testB}`）。
 
-### 全量 val 結果（2026-06-18，875 真拆 vs 子集 255）— ★無瑕疵 GO★
+### 全量 val 結果（2026-06-18，875 真拆 vs 子集 255）— ★全量 LTT GO★
 
 全量 dump（threshold=0，與 baseline 同口徑）val 完成後（14229 行、875 真拆），val-only LTT + matched：
 
@@ -248,7 +253,7 @@ testA/testB 點估方向對（R1 降、defer 降），但 LTT 找不到（或幾
 
 testA/testB 全量 dump 仍背景跑中（testA 19200 行、testB 16063 行，串跑 ~4-5h）。完成後重跑 maintable，預期 n_feas 由 EMPTY/個位數變健康（如 val）。
 
-### ★全量三 split 定論（2026-06-18）★ — Decomposed CRS 跨 split 無瑕疵 GO，可進論文主表
+### ★全量三 split 定論（2026-06-18）★ — Decomposed CRS 跨 split LTT 純帕累托改善（最終主證據待 robustness 補全）
 
 全量 dump 三 split 全完成（val 875 / testA 1243 / testB 974 真拆，threshold=0 同口徑）。完整三 split LTT + matched：
 
@@ -262,9 +267,9 @@ testA/testB 全量 dump 仍背景跑中（testA 19200 行、testB 16063 行，�
 
 **三 split n_feas 全健康（112/58/56=與 frozen 同）**——子集時 testA n_feas=2 / testB EMPTY 完全消失，證實純小樣本統計力問題、非方法失效。全量下 decomp = **乾淨帕累托改善，零例外**：val R1 白降；testA R1 降且 size 更小；testB size 降。無任何 split R2 爆或 trade-off。子集所有瑕疵（R2 升、可行崩潰）全是小樣本假象。
 
-**matched oracle 三 split（決定性，size~3）：** val 0.704→0.897 / testA 0.717→0.905 / testB 0.603→0.834（+19~23pp），大樣本與子集幾乎一致，機制穩固。
+**matched oracle 三 split（Matched Recall-Size Frontier，mechanism evidence，size~3）：** val 0.704→0.897 / testA 0.717→0.905 / testB 0.603→0.834（+19~23pp），大樣本與子集幾乎一致，機制穩固。
 
-**結論：Decomposed CRS 跨 split 全量無瑕疵 GO，這是論文第二主結果的最終數字。** 子集 pilot 備份在 `gdino_gref_{sp}_decomp_sub.jsonl`，全量在 `gdino_gref_{sp}_decomp.jsonl`。
+**結論：Decomposed CRS 跨 split 全量 LTT 純帕累托改善，是論文第二主結果的核心數字；但「最終主證據」地位需補齊 robustness（random5/image-disjoint）+ strong full+NMS baseline + R_total（紅隊 §9）。** 子集 pilot 備份在 `gdino_gref_{sp}_decomp_sub.jsonl`，全量在 `gdino_gref_{sp}_decomp.jsonl`。
 
 ### Subgroup 分析（2026-06-18，全量真拆 case，matched recall@size~3）
 

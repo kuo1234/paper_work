@@ -159,3 +159,33 @@ decomp 整個掛在 CRS 框架（同套 LTT、同套三風險）。
 - **G/H** 關乎論文結構（decomp 算不算第二主結果）。
 - **D/E/F** 我有部分答案，想被壓力測試。
 - B 我打算自己先補（split_calib_test 已支援 random/imagedisj，一個指令能跑）。請紅隊集中火力在 A 和 G/H 這種我自己堵不掉的概念性弱點。
+
+---
+
+# §5. 紅隊回覆與裁決（2026-06-18）
+
+> 總裁決：**Decomp CRS 站得住，但不能再把 matched recall@size 稱「決定性證據」。它是強 mechanism evidence，不是最終主證據。最終主證據＝full split + LTT 三風險 + robustness。**
+
+## 逐點回覆
+
+- **A（matched 指標）**：不是偽指標，但不夠當最終證據。它合理地比較「平均輸出成本相同時哪個 pool 更保留 GT-covering boxes」，但兩 pool 各自 sweep λ、分數分布不同，只能說「各自最佳 operating point 下 decomp 的 recall-size frontier 較好」，不能說「decomp 絕對更會 grounding」。→ §2.2 改名 **Matched Recall-Size Frontier Analysis**；補四指標：(1) recall@matched size (2) size@matched recall (3) AURC (4) **calib-selected λ 在 calib 選、eval 評**（最重要，堵偷看 eval sweep）。
+- **B（split robustness）**：最該補的硬漏洞。補 parity(main)/random5(mean±std)/image-disjoint(robustness)，各報 R1/R2/R3/size/n_feas。方向一致即站得住；image-disjoint 變弱則誠實寫成 image-level generalization limitation。
+- **C（R1 定義域）**：補 R_total = R3 + (1-R3)*R1，並把 answered/defer/target-failure 一起報，證明非靠改 deferral denominator 美化 R1。
+- **D（baseline 稻草人）**：補 strong full baseline = full raw / full+NMS-merge / full+top-K(calib-tuned)，全接同套 CRS/LTT。decomp 連 full+NMS 都贏才穩。
+- **E（成本）**：不能說 cheap。改 claim「training-free and weight-frozen, but with additional inference-time compute」，報 avg GDINO forwards/query + VLM parser calls/query。
+- **F（負信號）**：標籤歧義不能只靠 12 例。對負增益 subgroup 抽 50-100 例標註錯誤類型（parser error / over-decomp / annotation ambiguity / detector miss / merge issue）報比例。
+- **G（新穎性）**：不能主張「拆句 grounding」新（撞 compositional grounding / modular networks）。安全新穎性＝**decomposition as candidate-pool reconstruction for frozen, post-hoc, multi-risk controlled referring sets**，壓在三件組合：candidate-selection boundary analysis + decomposition-based pool reconstruction + CRS/LTT multi-risk guarantee。
+- **H（章節定位）**：只停在 matched＝ablation；補完 full split LTT + robustness + R2 不爆 + full+NMS 仍輸 + subgroup＝正式第二主結果。章名用 **Expression-Decomposed CRS / Expression-Decomposed Candidate Pool Construction**。
+
+## §9 待補實驗順序（1/3 最硬防線）
+1. random5 + image-disjoint LTT robustness
+2. recall-size curve / AURC / matched frontier 四指標
+3. full-expression strong baseline（full + NMS / top-K / same consolidation）
+4. overall target failure R_total = R3 + (1-R3)R1
+5. cost table（VLM calls + detector forwards）
+6. negative subgroup systematic failure audit
+
+## 最終 claim（紅隊認可）
+> Candidate selection alone fails to close the oracle gap. Expression decomposition changes the candidate-pool construction process and improves the recall-size frontier for compositional multi-target queries. When wrapped by CRS/LTT, it can reduce answered-target FNR or set size while preserving no-target and deferral risk control.
+
+**禁用**：decisively solves the oracle gap / 決定性證據。

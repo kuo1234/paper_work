@@ -1,25 +1,29 @@
-# 接手點 — Expression-Decomposed CRS（更新 2026-06-18 深夜，全量三 split 完成）
+# 接手點 — Expression-Decomposed CRS（更新 2026-06-18 深夜，全量三 split + 紅隊裁決）
 
-> ★Decomposed CRS = 跨 split 全量無瑕疵 GO，論文第二主結果數字已定。★ 全量三 split LTT n_feas 全健康(112/58/56)，decomp 純帕累托改善零例外。下一步＝subgroup 分析（GPT (B)§6，現在樣本量夠了）。
+> Decomposed CRS = 跨 split 全量 LTT 純帕累托改善 + subgroup 機制證據齊備。**紅隊裁決：站得住，但 matched 只能當 mechanism evidence，不是最終主證據；要成為正式第二主結果需補 robustness + strong baseline 等 6 項（§9）。** 下一步＝跑紅隊 §9 排序（robustness 跑中）。
 
 ## 一句話狀態（2026-06-18 深夜）
 
-全量 dump 三 split 全完成（val 875 / testA 1243 / testB 974 真拆）。完整 LTT + matched：
-- **LTT 主表**：val R1 0.191→0.165；testA R1 0.260→0.244 且 size 2.02→1.96（雙贏）；testB size 3.50→3.34。**三 split n_feas 全健康(112/58/56=frozen)**，子集時 testA=2/testB EMPTY 完全消失。
-- **matched**：三 split size~3 +19~23pp，大樣本穩固。
+全量 dump 三 split 全完成（val 875 / testA 1243 / testB 974 真拆）。完整 LTT + matched + subgroup 已做：
+- **LTT 主表**：val R1 0.191→0.165；testA R1 0.260→0.244 且 size 2.02→1.96（雙贏）；testB size 3.50→3.34。三 split n_feas 全健康(112/58/56=frozen)。
+- **matched（mechanism evidence）**：三 split size~3 +19~23pp。
+- **subgroup**：長句受益更大（機制）、雙目標甜蜜點、testA n_gt==1 負信號（待 §6 系統審計）。
 - 子集所有瑕疵（R2 升、可行崩潰）證實為小樣本假象。
 
-詳見 `vlm_as_decision_negative_result.md §4e`「全量三 split 定論」段。**這是論文第二主結果的最終數字。**
+詳見 `vlm_as_decision_negative_result.md §4e`。**紅隊裁決見 `decomp_redteam_questions.md`（已含完整架構簡報 + 攻擊點 + 紅隊回覆）。**
 
-## 下一步：subgroup 分析（GPT (B)§6，現在可做）
+## ★下一步：紅隊 §9 待補實驗（任務清單 #1-#7）★
 
-全量後樣本量夠了（真拆 875/1243/974），可安全做分組風險分析回答「decomposition 贏在哪種 query」：
-- 分組：no-target / single / multi-target / long / conjunction / high-n_gt
-- 每組報 R1/R2/R3 + set size + 真拆佔比
-- 目標證明：decomposition 主要幫 compositional multi-target；vanilla CRS 已足夠 simple query
-- 裁決依據見 `decomp_vs_gpt_framing_verdict.md §5.1`（唯一值得加的新工作）
+claim 已降調（#1 done）。剩 6 項實驗，紅隊排序（1/3 是最硬防線）：
+1. **random5 + image-disjoint robustness**（#2，跑中 `src/decomp_robust.py`）— 含 R_total（#5）
+2. recall-size frontier 四指標 + calib/eval λ 分離（#3）`src/decomp_matched.py` 待擴
+3. **strong full+NMS / top-K baseline**（#4）— 排除 threshold=0 稻草人
+4. overall target failure R_total（#5，併入 #2）
+5. 誠實成本表 VLM calls + detector forwards（#6）
+6. 負增益 subgroup 系統失敗審計 50-100 例（#7）
 
-順手可補（GPT (B)§7）：Pareto 加 detector-forwards 軸（decomp 多跑 N 次 detector 的真實 compute 成本）。
+**最終 claim（紅隊認可，禁用「decisive/決定性」）**：
+> Candidate selection alone fails to close the oracle gap. Expression decomposition changes the candidate-pool construction process and improves the recall-size frontier for compositional multi-target queries. When wrapped by CRS/LTT, it can reduce answered-target FNR or set size while preserving no-target and deferral risk control.
 
 ## 重跑全量分析指令
 ```bash
@@ -27,6 +31,10 @@ ssh -i ~/nvsync.key p76141495@192.168.65.11 \
   'cd ~/selective-grounding && ./.venv/bin/python src/decomp_maintable.py'           # 三 split LTT 主表
 ssh -i ~/nvsync.key p76141495@192.168.65.11 \
   'cd ~/selective-grounding && for sp in val testA testB; do ./.venv/bin/python src/decomp_matched.py $sp; done'  # matched
+ssh -i ~/nvsync.key p76141495@192.168.65.11 \
+  'cd ~/selective-grounding && ./.venv/bin/python src/decomp_robust.py'              # robustness + R_total (慢, ~30min+)
+ssh -i ~/nvsync.key p76141495@192.168.65.11 \
+  'cd ~/selective-grounding && for sp in val testA testB; do ./.venv/bin/python src/decomp_subgroup.py $sp; done'  # subgroup
 ```
 
 ## dump 檔案狀態
