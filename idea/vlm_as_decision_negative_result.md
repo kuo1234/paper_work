@@ -248,6 +248,24 @@ testA/testB 點估方向對（R1 降、defer 降），但 LTT 找不到（或幾
 
 testA/testB 全量 dump 仍背景跑中（testA 19200 行、testB 16063 行，串跑 ~4-5h）。完成後重跑 maintable，預期 n_feas 由 EMPTY/個位數變健康（如 val）。
 
+### ★全量三 split 定論（2026-06-18）★ — Decomposed CRS 跨 split 無瑕疵 GO，可進論文主表
+
+全量 dump 三 split 全完成（val 875 / testA 1243 / testB 974 真拆，threshold=0 同口徑）。完整三 split LTT + matched：
+
+**LTT 主表（α=β=0.3, γ=0.5）：**
+
+| split | Frozen sz/R1/R2/defer | Decomp sz/R1/R2/defer | n_feas | 方向 |
+|---|---|---|---|---|
+| val | 3.24/0.191/0.159/0.424 | 3.24/**0.165**/0.158/0.424 | 112/112 | R1↓餘持平 |
+| testA | 2.02/0.260/0.203/0.443 | **1.96**/**0.244**/0.201/0.444 | 58/58 | R1↓且size↓(雙贏) |
+| testB | 3.50/0.168/0.236/0.414 | **3.34**/0.163/0.236/0.414 | 56/56 | size↓R1微降 |
+
+**三 split n_feas 全健康（112/58/56=與 frozen 同）**——子集時 testA n_feas=2 / testB EMPTY 完全消失，證實純小樣本統計力問題、非方法失效。全量下 decomp = **乾淨帕累托改善，零例外**：val R1 白降；testA R1 降且 size 更小；testB size 降。無任何 split R2 爆或 trade-off。子集所有瑕疵（R2 升、可行崩潰）全是小樣本假象。
+
+**matched oracle 三 split（決定性，size~3）：** val 0.704→0.897 / testA 0.717→0.905 / testB 0.603→0.834（+19~23pp），大樣本與子集幾乎一致，機制穩固。
+
+**結論：Decomposed CRS 跨 split 全量無瑕疵 GO，這是論文第二主結果的最終數字。** 子集 pilot 備份在 `gdino_gref_{sp}_decomp_sub.jsonl`，全量在 `gdino_gref_{sp}_decomp.jsonl`。
+
 ---
 
 ## 5. 復現

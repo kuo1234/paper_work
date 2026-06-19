@@ -1,44 +1,40 @@
-# 接手點 — Expression-Decomposed CRS（更新 2026-06-18 晚，全量 dump 跑中）
+# 接手點 — Expression-Decomposed CRS（更新 2026-06-18 深夜，全量三 split 完成）
 
-> 方法層跨三 split 全 GO（matched +15~24pp）；LTT 小子集 testA n_feas=2 / testB EMPTY。**全量 dump 已背景跑中（threshold=0，三 split 串跑，~數十小時）**，完成後重跑 maintable，LTT 應有健康可行區間 → 寫進論文。
+> ★Decomposed CRS = 跨 split 全量無瑕疵 GO，論文第二主結果數字已定。★ 全量三 split LTT n_feas 全健康(112/58/56)，decomp 純帕累托改善零例外。下一步＝subgroup 分析（GPT (B)§6，現在樣本量夠了）。
 
-## 一句話狀態（2026-06-18 晚）
+## 一句話狀態（2026-06-18 深夜）
 
-跨 split 確認跑完，分裂成兩個故事：
-- **方法層（matched oracle，繞過 LTT）= 三 split 全 GO**：同 size recall val +20pp / testA +15pp / testB +24pp，零例外。核心主張坐實。
-- **校準層（LTT 主表）小子集力不從心**：testA n_feas=2、testB EMPTY feasible。matched 證明非方法失效，是統計力問題。
+全量 dump 三 split 全完成（val 875 / testA 1243 / testB 974 真拆）。完整 LTT + matched：
+- **LTT 主表**：val R1 0.191→0.165；testA R1 0.260→0.244 且 size 2.02→1.96（雙贏）；testB size 3.50→3.34。**三 split n_feas 全健康(112/58/56=frozen)**，子集時 testA=2/testB EMPTY 完全消失。
+- **matched**：三 split size~3 +19~23pp，大樣本穩固。
+- 子集所有瑕疵（R2 升、可行崩潰）證實為小樣本假象。
 
-→ 已啟動**全量 dump** 補統計力。詳見 `vlm_as_decision_negative_result.md §4e`。
+詳見 `vlm_as_decision_negative_result.md §4e`「全量三 split 定論」段。**這是論文第二主結果的最終數字。**
 
-## 進行中：全量 dump（背景跑）
+## 下一步：subgroup 分析（GPT (B)§6，現在可做）
 
-- **launcher**：`run_dd2_full.sh`（三 split 依序 val→testA→testB 串跑），driver log `ddump_full_driver.log`，各 split log `ddump_full_{sp}.log`。
-- **腳本**：`decomp_dump2.py`（全量版，不抽樣，跑全部 canonical rows）。
-- **threshold=0（刻意不調 0.05）**：保持與既有 baseline dump（`gdino_gref_{sp}.jsonl`，撐起所有既有 CRS 主結果 3.24/2.02/3.50）同口徑，公平比較優先於速度。代價＝慢（val 14229 rows，三 split 串跑 ~數十小時）。
-- **輸出**：覆寫 `gdino_gref_{sp}_decomp.jsonl`。子集 pilot 已備份成 `gdino_gref_{sp}_decomp_sub.jsonl`（勿刪，是今天 §4e 證據來源）。
+全量後樣本量夠了（真拆 875/1243/974），可安全做分組風險分析回答「decomposition 贏在哪種 query」：
+- 分組：no-target / single / multi-target / long / conjunction / high-n_gt
+- 每組報 R1/R2/R3 + set size + 真拆佔比
+- 目標證明：decomposition 主要幫 compositional multi-target；vanilla CRS 已足夠 simple query
+- 裁決依據見 `decomp_vs_gpt_framing_verdict.md §5.1`（唯一值得加的新工作）
 
-### 確認全量 dump 狀態
+順手可補（GPT (B)§7）：Pareto 加 detector-forwards 軸（decomp 多跑 N 次 detector 的真實 compute 成本）。
+
+## 重跑全量分析指令
 ```bash
 ssh -i ~/nvsync.key p76141495@192.168.65.11 \
-  'cd ~/selective-grounding && cat ddump_full_driver.log; \
-   grep -a "DONE\|canonical" ddump_full_*.log; \
-   wc -l dump/gdino_gref_*_decomp.jsonl; \
-   ps aux | grep decomp_dump2 | grep -v grep | wc -l'
-```
-- `=== ALL FULL DONE ===` + 三 split 都有 `DONE {sp}: decomposed=...` + process=0 → 完成。
-- 注意：`pgrep`/`ps aux` 數字若含自己的 ssh 字串會假高，認 `grep decomp_dump2 | grep -v grep | wc -l`。
-
-## 完成後：重跑分析（dump 在手時）
-```bash
+  'cd ~/selective-grounding && ./.venv/bin/python src/decomp_maintable.py'           # 三 split LTT 主表
 ssh -i ~/nvsync.key p76141495@192.168.65.11 \
-  'cd ~/selective-grounding && ./.venv/bin/python src/decomp_maintable.py'           # LTT 主表(三 split)
-ssh -i ~/nvsync.key p76141495@192.168.65.11 \
-  'cd ~/selective-grounding && for sp in val testA testB; do ./.venv/bin/python src/decomp_matched.py $sp; done'  # matched(決定性)
+  'cd ~/selective-grounding && for sp in val testA testB; do ./.venv/bin/python src/decomp_matched.py $sp; done'  # matched
 ```
-- **GO 判讀**：全量後 LTT 三 split 都有健康 n_feas（≫2）、R1 降 / defer 降 / R2 守 β=0.3、matched 仍 +15~24pp → 寫進論文第二主結果章。
-- **若仍 EMPTY**：非統計力問題，回去查該 split 的 routing / no-target 分布。
 
-## 已驗證結果（2026-06-18 子集 pilot，存 §4e）
+## dump 檔案狀態
+- 全量（現用）：`dump/gdino_gref_{val,testA,testB}_decomp.jsonl`（14229/19200/16063 行）
+- 子集 pilot 備份：`dump/gdino_gref_{sp}_decomp_sub.jsonl`（勿刪）
+- launcher：`run_dd2_full.sh`（全量，已跑完）
+
+## 已驗證結果（2026-06-18，存 §4e）
 - **matched oracle 三 split**（繞過 LTT，size~3）：val 0.70→0.90 / testA 0.74→0.89 / testB 0.60→0.85（+15~24pp，零例外）
 - **LTT 主表**：val sz 3.24→3.23 R1 0.191→0.162 defer 0.42→0.30 n_feas 84（健康）；testA R1 0.260→0.189 n_feas=2；testB EMPTY
 - 機制：per-part query 分數乾淨 → 同 size 留對框；val 三疑慮（CI 重疊/R2 反常/全域位移）已全解消
