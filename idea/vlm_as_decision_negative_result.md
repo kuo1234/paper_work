@@ -266,6 +266,33 @@ testA/testB 全量 dump 仍背景跑中（testA 19200 行、testB 16063 行，�
 
 **結論：Decomposed CRS 跨 split 全量無瑕疵 GO，這是論文第二主結果的最終數字。** 子集 pilot 備份在 `gdino_gref_{sp}_decomp_sub.jsonl`，全量在 `gdino_gref_{sp}_decomp.jsonl`。
 
+### Subgroup 分析（2026-06-18，全量真拆 case，matched recall@size~3）
+
+`src/decomp_subgroup.py`，繞過 LTT（分組後樣本太少 LTT 不穩），在真拆 case 上按 query 特性分組比 full vs decomp recall@size~3。三個論文級洞察：
+
+**① 長句受益更大（機制因果證據，三 split 一致）：**
+
+| split | short(<12詞) Δ | long(≥12詞) Δ |
+|---|---|---|
+| val | +0.181 | +0.241 |
+| testA | +0.198 | +0.240 |
+| testB | +0.136 | +0.253 |
+
+句子越長 decomposition 收益越大 → 直接佐證「長句最易把 detector 搞混、最需要拆」。
+
+**② 雙目標是甜蜜點，n_gt≥3 收益遞減（界定有效邊界）：**
+
+| split | n_gt==2 Δ | n_gt≥3 Δ |
+|---|---|---|
+| testA | +0.239 | +0.163 |
+| testB | +0.246 | +0.064 |
+
+目標越多 → 子指稱越多 → union pool 越雜 → per-part 分數乾淨的優勢被稀釋。
+
+**③ 唯一負信號已澄清＝標籤歧義非方法缺陷：** testA n_gt==1（61 例，佔 5%）decomp −0.148。逐案檢視這些 expression（如 "person in black pants far left **and** man in white shirt"、"right half of sandwich **and** sandwich on left"）發現它們語言上明明是雙指稱、routing 拆 2-part 正確；是 gRefCOCO 把它們標成 n_gt==1（GT 單框）造成「語言指稱數 vs GT 框數」錯配。非 routing 誤拆。
+
+腳本：`src/decomp_subgroup.py`（吃 split 參數）。
+
 ---
 
 ## 5. 復現
