@@ -54,7 +54,17 @@
 
 - **M4　完整 GREC 的壓力測試（邊界分析，非方法貢獻）。** 我們把點預測策略推到完整 GREC 的 exact-match 評估（官方 Pr@(F1=1, IoU≥0.5) / N-acc / T-acc），定位出事後校準停止有效之處：逐樣本的 oracle-τ 上界僅 0.19–0.24，瓶頸是多目標的計數／集合預測，超出單一信心閾值的能力。這是對方法邊界的明確界定。
 
-- **CRS　跨基礎模型保形組合指稱集合（主結果）。** 讓 `π` 輸出基數可為 0／1／多的風險受控集合。以 Learn-then-Test（搭配 Bonferroni 校正）在校準 split 上**聯合**校準三個有界風險（R1 已作答目標漏檢率、R2 無目標誤選率、R3 目標棄答率），給出有限樣本保證；並把代價因式分解為 gate（OWL-ViT）與 box（GroundingDINO）兩個正交瓶頸。在 α=β=0.3 下，組合於三個 split 輸出 3.24 / 2.02 / 3.50 個框，三風險全守、集合大小信賴區間與純 OWL-ViT 分離；2×2 消融證明此因式分解並非單純集成。
+- **CRS　跨基礎模型保形組合指稱集合（主結果之一）。** 讓 `π` 輸出基數可為 0／1／多的風險受控集合。以 Learn-then-Test（搭配 Bonferroni 校正）在校準 split 上**聯合**校準三個有界風險（R1 已作答目標漏檢率、R2 無目標誤選率、R3 目標棄答率），給出有限樣本保證；並把代價因式分解為 gate（OWL-ViT）與 box（GroundingDINO）兩個正交瓶頸。在 α=β=0.3 下，組合於三個 split 輸出 3.24 / 2.02 / 3.50 個框，三風險全守、集合大小信賴區間與純 OWL-ViT 分離；2×2 消融證明此因式分解並非單純集成。
+
+**三正交維度（CRS 之上的兩個額外主結果 + 統一框架）**
+
+CRS 確立 base claim 之後，我們進一步發現：在 frozen detector 給定下，CRS 系統有三個**正交、可獨立替換**的可改善維度——候選池（candidate pool）、閘分數（gate score）、憑證（certificate）。兩個額外主結果分別實例化前兩個維度：
+
+- **main 2（Decomp CRS，候選池維度）。** 在不碰 detector、不訓練的前提下，用 frozen VLM router 把 target-present expression 拆成子部件、各跑 GroundingDINO 後取 union 候選池。同一 LTT 協議下只換候選池，R1（多目標漏檢）三個 split 全部 ≤ frozen（0.165/0.244/0.163 vs 0.191/0.260/0.168），R2 與集合大小持平——**純賺 R1**。並以三道硬防線（robustness、strong full-pool baseline、frontier）堵住 matched 假象。
+
+- **main 3（WB-Gate CRS，閘分數維度）。** 把單一 OWL top1 gate 換成 21 維 frozen 特徵上的可解釋 white-box gate（EBM）。同分布下把單一分數 infeasible 的設定變 feasible（rule INFEASIBLE → WB #feas=115），大幅改善 R2/R3，並與 Decomp 互補疊加（set size 3.68→2.37）。但 learned gate boundary **cross-dataset 不轉移**（rule pass 0.88→0.81 穩 vs WB 0.89→0.35 崩），構成一個有研究價值的 negative finding。**第三維度（certificate）** 由 Hoeffding→Hoeffding-Bentkus 免費實例化（feasible 區 ×3，set size 5.07→3.72）。
+
+- **統一框架。** 三維度正交可組合；在 frozen detector 給定下，(pool, gate, bound) 三軸共同決定可達的 risk-cost frontier。我們測繪此 frontier 並釘出天花板（frozen OWL+GDINO 的 scoring 上限）。
 
 ## 1.5 論文結構
 
@@ -63,8 +73,11 @@
 - **第 4 章（實驗設定）**：資料集、基礎模型、split／校準／閾值協定、指標、防洩漏 checklist。
 - **第 5–7 章（C1–C3）**：不確定性訊號審計、選擇性風險控制、事後無目標閘的結果章。
 - **第 8 章（M4）**：完整 GREC exact-match 的邊界分析。
-- **第 9 章（CRS）**：主方法與主結果——跨基礎模型保形組合指稱集合。
+- **第 9 章（CRS）**：主方法與主結果——跨基礎模型保形組合指稱集合（base claim）。
+- **第 9b 章（Decomp CRS）**：候選池維度——第二主結果，純賺 R1。
+- **第 9c 章（WB-Gate CRS）**：閘分數維度——第三主結果，feasibility/R2/R3 改善 + cross-dataset 不轉移的 negative finding。
+- **第 9d 章（統一框架）**：三正交維度收斂、互補性論證、frozen detector frontier 與天花板。
 - **第 10–11 章**：跨基礎模型轉移（C4）、成本—風險 Pareto。
-- **第 12 章（結論）**：四貢獻收束、兩項誠實限制、未來工作。
+- **第 12 章（結論）**：六貢獻收束、限制全景、未來工作。
 
-> 章序邏輯：C1→C2→C3 是難度遞增的測量地基，M4 證明點預測撞牆，CRS 是把框架推到「有保證的集合預測」的解法與高潮，C4／cost 是橫向分析，最後收束於結論。
+> 章序邏輯：C1→C2→C3 是難度遞增的測量地基，M4 證明點預測撞牆，CRS 是把框架推到「有保證的集合預測」的解法；9b/9c/9d 沿三正交維度把可達 frontier 推開並收斂成統一框架，C4／cost 是橫向分析，最後收束於結論。

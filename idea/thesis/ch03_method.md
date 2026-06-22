@@ -63,6 +63,31 @@ M4 的牆（多目標 exact-match 超出單一信心閾值的動作空間）促�
 
 CRS 把 C1–C4 的 measurement 與 M4 的 boundary 縫進同一條線：訊號可測（C1–C4）→ 點預測撞牆（M4）→ 換成有保證的集合預測（CRS）。本章不放 CRS 數字（數字在第 9 章），避免重複。CRS 不宣稱解決完整 GREC 的 exact-match，而是把問題從 exact-match 點預測 pivot 成 risk-controlled 集合建構——這個 metric pivot 在第 8、9 章都會明寫。
 
+## 3.5c 三正交維度：CRS 系統的可改善軸
+
+CRS（§3.5b）確立 base claim 後，本論文進一步把 CRS 系統拆成三個**正交、可獨立替換**的維度。
+關鍵觀察：在 frozen detector 給定下，一個 risk-controlled referring set 的產生鏈是
+
+```
+候選池 (pool) → 閘分數 (gate) → LTT 憑證 (certificate) → referring set
+```
+
+三個環節各自可在**不碰 detector 權重、不改其他兩環**的前提下替換，因此互相正交，可獨立疊加：
+
+- **維度 1 候選池（pool）**：CRS 用 frozen base 的原生候選池。可換成 decomposition-union pool
+  （凍結 VLM router 拆子部件 → 各跑 GDINO → union），只改 box 候選來源，gate 與 certificate 不變。
+  主攻 R1（多目標漏檢）。完整方法與結果見第 9b 章。
+- **維度 2 閘分數（gate）**：CRS 用單一 OWL top1 分數當棄答 gate。可換成 21 維 frozen 特徵上的
+  可解釋 learned gate（EBM），只改 gate decision 層，pool 與 certificate 不變。主攻 R2/R3 與可行性。
+  完整方法與結果見第 9c 章。
+- **維度 3 憑證（certificate）**：CRS 的 LTT 用 Hoeffding bound 算 p-value。可換成更緊的
+  Hoeffding–Bentkus（HB），同切分／grid／Bonferroni、**只換 p-value**，免費擴大可行域。見第 9c 章。
+
+**統一協議的意義**：因為三維度共用同一套 LTT 風險定義（R1/R2/R3）、同一套 calib/test 切分與
+防洩漏規則，任意 (pool, gate, bound) 組合都套同一協議，四個版本（Rule / Decomp / WB-Gate /
+WB+Decomp）可在同一張表逐欄比較。三維度共同決定 frozen detector 給定下可達的 risk–cost frontier
+（統一論述見第 9d 章）。
+
 ## 3.6 評測協定
 
 - **切分與洩漏**：所有閾值／標準化／校準器擬合都來自校準 split；test 只評估一次。跨基礎模型轉移不讓 target-test 統計回流到 source 訓練。

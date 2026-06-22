@@ -1,7 +1,7 @@
 # 選擇性指稱定位：凍結基礎模型的事後可靠性與風險受控指稱集合
 
 > 碩士論文中文初稿（合併稿，由 ch00–ch12 串接生成；單章可見同目錄各檔）
-> 生成日期：2026-06-16　主線：Selective Grounding / CRS
+> 生成日期：2026-06-22　主線：Selective Grounding / CRS（三貢獻整合版）
 
 ---
 
@@ -16,10 +16,16 @@
 - 第 6 章　C2：選擇性風險控制
 - 第 7 章　C3：事後無目標閘
 - 第 8 章　M4：完整 GREC 的 exact-match 之牆
-- 第 9 章　CRS：跨基礎模型保形組合指稱集合（主結果）
+- 第 9 章　CRS：跨基礎模型保形組合指稱集合（base claim）
+- 第 9b 章　Decomp CRS：候選池維度（第二主結果）
+- 第 9c 章　WB-Gate CRS：閘分數維度（第三主結果）
+- 第 9d 章　統一框架：三正交維度與 frozen detector frontier
 - 第 10 章　C4：定位不確定性的 base-invariant 結構
 - 第 11 章　Cost–Risk Pareto
 - 第 12 章　結論與限制
+
+---
+
 
 ---
 
@@ -45,8 +51,11 @@
 
 我們亦誠實標註兩項限制：影像層級分群評估在 testA/testB 上樣本量不足而留空；長指稱語句下 R2（無目標誤選）會退化，反映 OWL-ViT 閘對長句的弱點。
 
-**關鍵詞**：指稱語表達理解、廣義 REC、選擇性預測、棄答、保形預測、Learn-then-Test、風險控制、凍結基礎模型、不確定性校準、跨模型轉移。
+在 CRS 確立「凍結基礎模型 + 事後 LTT = 有保證的指稱集合」這個基礎主張之後，我們進一步指出此系統有**三個正交、可獨立替換的可改善維度**——候選池（candidate pool）、閘分數（gate score）、憑證（certificate）——並各給出實例化。**Decomp CRS（候選池維度）** 以凍結 VLM router 把目標語句拆成子部件、各跑 GroundingDINO 後取聯集候選池；同一 LTT 協議下只換候選池，多目標漏檢率 R1 在三個 split 全部 ≤ frozen（0.165/0.244/0.163 vs 0.191/0.260/0.168）而 R2／集合大小持平，且贏過所有 full-pool 整理（NMS／top-K），是純賺 R1 而不付代價的第二主結果。**WB-Gate CRS（閘分數維度）** 以 21 維凍結特徵上的可解釋白箱閘（EBM）取代單一分數閘，在同分布下把原本 infeasible 的設定變 feasible（rule INFEASIBLE → 可行集 #feas=115）並大幅改善 R2/R3，與 Decomp 互補疊加（集合大小 3.68→2.37）；**憑證維度** 則以 Hoeffding→Hoeffding-Bentkus 免費把可行區擴大三倍（集合大小 5.07→3.72）。三維度正交可組合，共同決定凍結偵測器給定下可達的 risk–cost frontier，我們測繪此 frontier 並釘出天花板。
 
+我們對這兩個額外主結果也誠實標註三項新限制：(1) WB-Gate 的 learned 閘邊界**不跨資料集轉移**——固定門檻下目標通過率在 testA/testB 崩塌（0.89→0.35），而無訓練的規則閘反而穩定（0.88→0.81），顯示「學一個更強的可靠性訊號 ≠ 更可靠的跨分布轉移」，這是 selective prediction 的誠實教訓；(2) Decomp 的 over-decomposition——單目標語句的退步約半數源於 router 過度拆解（自身錯）；(3) Decomp 雖 training-free 但**非 compute-free**，每個目標語句多一次 VLM router 呼叫。
+
+**關鍵詞**：指稱語表達理解、廣義 REC、選擇性預測、棄答、保形預測、Learn-then-Test、風險控制、凍結基礎模型、不確定性校準、跨模型轉移。
 
 ---
 
@@ -106,7 +115,17 @@
 
 - **M4　完整 GREC 的壓力測試（邊界分析，非方法貢獻）。** 我們把點預測策略推到完整 GREC 的 exact-match 評估（官方 Pr@(F1=1, IoU≥0.5) / N-acc / T-acc），定位出事後校準停止有效之處：逐樣本的 oracle-τ 上界僅 0.19–0.24，瓶頸是多目標的計數／集合預測，超出單一信心閾值的能力。這是對方法邊界的明確界定。
 
-- **CRS　跨基礎模型保形組合指稱集合（主結果）。** 讓 `π` 輸出基數可為 0／1／多的風險受控集合。以 Learn-then-Test（搭配 Bonferroni 校正）在校準 split 上**聯合**校準三個有界風險（R1 已作答目標漏檢率、R2 無目標誤選率、R3 目標棄答率），給出有限樣本保證；並把代價因式分解為 gate（OWL-ViT）與 box（GroundingDINO）兩個正交瓶頸。在 α=β=0.3 下，組合於三個 split 輸出 3.24 / 2.02 / 3.50 個框，三風險全守、集合大小信賴區間與純 OWL-ViT 分離；2×2 消融證明此因式分解並非單純集成。
+- **CRS　跨基礎模型保形組合指稱集合（主結果之一）。** 讓 `π` 輸出基數可為 0／1／多的風險受控集合。以 Learn-then-Test（搭配 Bonferroni 校正）在校準 split 上**聯合**校準三個有界風險（R1 已作答目標漏檢率、R2 無目標誤選率、R3 目標棄答率），給出有限樣本保證；並把代價因式分解為 gate（OWL-ViT）與 box（GroundingDINO）兩個正交瓶頸。在 α=β=0.3 下，組合於三個 split 輸出 3.24 / 2.02 / 3.50 個框，三風險全守、集合大小信賴區間與純 OWL-ViT 分離；2×2 消融證明此因式分解並非單純集成。
+
+**三正交維度（CRS 之上的兩個額外主結果 + 統一框架）**
+
+CRS 確立 base claim 之後，我們進一步發現：在 frozen detector 給定下，CRS 系統有三個**正交、可獨立替換**的可改善維度——候選池（candidate pool）、閘分數（gate score）、憑證（certificate）。兩個額外主結果分別實例化前兩個維度：
+
+- **main 2（Decomp CRS，候選池維度）。** 在不碰 detector、不訓練的前提下，用 frozen VLM router 把 target-present expression 拆成子部件、各跑 GroundingDINO 後取 union 候選池。同一 LTT 協議下只換候選池，R1（多目標漏檢）三個 split 全部 ≤ frozen（0.165/0.244/0.163 vs 0.191/0.260/0.168），R2 與集合大小持平——**純賺 R1**。並以三道硬防線（robustness、strong full-pool baseline、frontier）堵住 matched 假象。
+
+- **main 3（WB-Gate CRS，閘分數維度）。** 把單一 OWL top1 gate 換成 21 維 frozen 特徵上的可解釋 white-box gate（EBM）。同分布下把單一分數 infeasible 的設定變 feasible（rule INFEASIBLE → WB #feas=115），大幅改善 R2/R3，並與 Decomp 互補疊加（set size 3.68→2.37）。但 learned gate boundary **cross-dataset 不轉移**（rule pass 0.88→0.81 穩 vs WB 0.89→0.35 崩），構成一個有研究價值的 negative finding。**第三維度（certificate）** 由 Hoeffding→Hoeffding-Bentkus 免費實例化（feasible 區 ×3，set size 5.07→3.72）。
+
+- **統一框架。** 三維度正交可組合；在 frozen detector 給定下，(pool, gate, bound) 三軸共同決定可達的 risk-cost frontier。我們測繪此 frontier 並釘出天花板（frozen OWL+GDINO 的 scoring 上限）。
 
 ## 1.5 論文結構
 
@@ -115,12 +134,14 @@
 - **第 4 章（實驗設定）**：資料集、基礎模型、split／校準／閾值協定、指標、防洩漏 checklist。
 - **第 5–7 章（C1–C3）**：不確定性訊號審計、選擇性風險控制、事後無目標閘的結果章。
 - **第 8 章（M4）**：完整 GREC exact-match 的邊界分析。
-- **第 9 章（CRS）**：主方法與主結果——跨基礎模型保形組合指稱集合。
+- **第 9 章（CRS）**：主方法與主結果——跨基礎模型保形組合指稱集合（base claim）。
+- **第 9b 章（Decomp CRS）**：候選池維度——第二主結果，純賺 R1。
+- **第 9c 章（WB-Gate CRS）**：閘分數維度——第三主結果，feasibility/R2/R3 改善 + cross-dataset 不轉移的 negative finding。
+- **第 9d 章（統一框架）**：三正交維度收斂、互補性論證、frozen detector frontier 與天花板。
 - **第 10–11 章**：跨基礎模型轉移（C4）、成本—風險 Pareto。
-- **第 12 章（結論）**：四貢獻收束、兩項誠實限制、未來工作。
+- **第 12 章（結論）**：六貢獻收束、限制全景、未來工作。
 
-> 章序邏輯：C1→C2→C3 是難度遞增的測量地基，M4 證明點預測撞牆，CRS 是把框架推到「有保證的集合預測」的解法與高潮，C4／cost 是橫向分析，最後收束於結論。
-
+> 章序邏輯：C1→C2→C3 是難度遞增的測量地基，M4 證明點預測撞牆，CRS 是把框架推到「有保證的集合預測」的解法；9b/9c/9d 沿三正交維度把可達 frontier 推開並收斂成統一框架，C4／cost 是橫向分析，最後收束於結論。
 
 ---
 
@@ -183,7 +204,6 @@ REC 的主流做法是訓練一個專用定位器。CLIP-VG 以對比式預訓�
 | ReCoVERR (ACL Findings'24) | VQA（非 grounding） | — | 是（減少過度棄答） | 低信心時 LLM 提問蒐證 | 證 selective prediction 已成熟 |
 | Conformal OD / VLM conformal | 偵測／分類 | —（多為後處理） | 集合化 | 保形集合保證 | CRS 的方法淵源，但對象與三風險不同 |
 | **本研究（C1–C4 + CRS）** | REC + GREC | **否** | **是（核心）** | 凍結 base + 事後風險校準 belief policy；CRS 跨 base 保形組合 | — |
-
 
 ---
 
@@ -252,6 +272,31 @@ M4 的牆（多目標 exact-match 超出單一信心閾值的動作空間）促�
 
 CRS 把 C1–C4 的 measurement 與 M4 的 boundary 縫進同一條線：訊號可測（C1–C4）→ 點預測撞牆（M4）→ 換成有保證的集合預測（CRS）。本章不放 CRS 數字（數字在第 9 章），避免重複。CRS 不宣稱解決完整 GREC 的 exact-match，而是把問題從 exact-match 點預測 pivot 成 risk-controlled 集合建構——這個 metric pivot 在第 8、9 章都會明寫。
 
+## 3.5c 三正交維度：CRS 系統的可改善軸
+
+CRS（§3.5b）確立 base claim 後，本論文進一步把 CRS 系統拆成三個**正交、可獨立替換**的維度。
+關鍵觀察：在 frozen detector 給定下，一個 risk-controlled referring set 的產生鏈是
+
+```
+候選池 (pool) → 閘分數 (gate) → LTT 憑證 (certificate) → referring set
+```
+
+三個環節各自可在**不碰 detector 權重、不改其他兩環**的前提下替換，因此互相正交，可獨立疊加：
+
+- **維度 1 候選池（pool）**：CRS 用 frozen base 的原生候選池。可換成 decomposition-union pool
+  （凍結 VLM router 拆子部件 → 各跑 GDINO → union），只改 box 候選來源，gate 與 certificate 不變。
+  主攻 R1（多目標漏檢）。完整方法與結果見第 9b 章。
+- **維度 2 閘分數（gate）**：CRS 用單一 OWL top1 分數當棄答 gate。可換成 21 維 frozen 特徵上的
+  可解釋 learned gate（EBM），只改 gate decision 層，pool 與 certificate 不變。主攻 R2/R3 與可行性。
+  完整方法與結果見第 9c 章。
+- **維度 3 憑證（certificate）**：CRS 的 LTT 用 Hoeffding bound 算 p-value。可換成更緊的
+  Hoeffding–Bentkus（HB），同切分／grid／Bonferroni、**只換 p-value**，免費擴大可行域。見第 9c 章。
+
+**統一協議的意義**：因為三維度共用同一套 LTT 風險定義（R1/R2/R3）、同一套 calib/test 切分與
+防洩漏規則，任意 (pool, gate, bound) 組合都套同一協議，四個版本（Rule / Decomp / WB-Gate /
+WB+Decomp）可在同一張表逐欄比較。三維度共同決定 frozen detector 給定下可達的 risk–cost frontier
+（統一論述見第 9d 章）。
+
 ## 3.6 評測協定
 
 - **切分與洩漏**：所有閾值／標準化／校準器擬合都來自校準 split；test 只評估一次。跨基礎模型轉移不讓 target-test 統計回流到 source 訓練。
@@ -261,7 +306,6 @@ CRS 把 C1–C4 的 measurement 與 M4 的 boundary 縫進同一條線：訊號�
 - **Oracle gap**：每張選擇性圖都附 oracle 線，界定還有多少訊號未被利用。
 
 這六條（洩漏、成本、顯著性、保證≠CI、網格 calib-only、oracle 上界）是審查最常攻的點；方法章先把協定講死，結果章便能省去反覆辯護。
-
 
 ---
 
@@ -359,7 +403,6 @@ CRS 把 C1–C4 的 measurement 與 M4 的 boundary 縫進同一條線：訊號�
 
 所有 dump 與校準在單機 GPU（NVIDIA GB10）上完成，PyTorch 2.12 / CUDA 13.0。推論成本以「每查詢平均前向傳遞次數」加實測 throughput（query/s）量化，不以形容詞描述（詳見第 11 章成本—風險 Pareto）。
 
-
 ---
 
 # 第 5 章　C1：與定位相關的不確定性訊號審計
@@ -424,7 +467,6 @@ OWL-ViT 作為凍結 REC 基礎模型則弱得多（以 argmax 候選為預測�
 
 C1 確立了地基結論：凍結指稱定位基礎模型的不確定性**確實可由前向傳遞的廉價副產品捕捉**，且訊號是與定位相關的（指稱身分穩定度、分數分布形狀），而非泛用信心的搬移。最具資訊量的訊號家族依基礎模型架構而異（CLIP-VG 用擾動、OWL-ViT 用分數熵），但跨提示一致性在兩個基礎模型上都 informative。這為 C2 的選擇性風險控制、C3 的無目標閘提供了可校準的原料；同時，「絕對分數最弱、分布／擾動訊號較強」這個觀察，預示了跨基礎模型轉移必須避開絕對分數尺度（第 10 章）。
 
-
 ---
 
 # 第 6 章　C2：選擇性風險控制
@@ -484,7 +526,6 @@ OWL-ViT 是較弱的 REC 基礎模型（base error 0.58–0.62），但選擇性
 
 C2 確立：以 C1 審計出的訊號做選擇性預測，在兩個結構迥異的凍結基礎模型上都使風險—覆蓋曲線優於隨機與弱訊號基線——CLIP-VG 上 AURC 約降至隨機的一半，OWL-ViT 上降約 20–26%。oracle gap 同時量化了未用盡的訊號與單訊號天花板。這證明凍結基礎模型的不確定性不只是「可測量」（C1），更是「可用於風險控制」（C2）。但 oracle gap 與基礎模型本身的高 base error 也提示：單一信心閾值的點預測有其上限，後續章節將以無目標棄答（C3）與有保證的集合預測（CRS）突破之。
 
-
 ---
 
 # 第 7 章　C3：事後無目標閘
@@ -532,7 +573,6 @@ C3 證明事後閘能加上「該不該答」的二元能力。但廣義 REC 的
 ## 7.5 小結
 
 C3 確立：在 gRefCOCO 上，一個以凍結基礎模型副產品為輸入的輕量事後閘，能把 forced-output 基線結構性為零的棄答能力提升到無目標 AUROC 0.741–0.824（三個 split）、balanced accuracy 0.69–0.76。這是基礎模型原本不具備的能力，且以近乎零訓練成本達成。本章亦以 HieA2G / VIRO / True-False Verification 把此能力定位在成本—reliability 光譜的輕量端，而非與其比絕對準確率。棄答能力的確立，為 CRS 把「該不該答」納入風險受控集合鋪好了路。
-
 
 ---
 
@@ -609,7 +649,6 @@ M4 的兩個診斷數字直接成為 CRS 的設計依據：
 需明寫的誠實邊界：M4 的結論本身不被 CRS 推翻——完整 GREC 的 **exact-match（F1=1）** 仍超出凍結事後能力。CRS 不宣稱「解了完整 GREC」，而是**改變問題**——從 exact-match 點預測換成風險受控集合建構。這個 metric pivot 在兩章都寫白，避免被讀成「CRS 解了 M4 解不了的同一個問題」。
 
 對照定位（trained ↔ post-hoc 光譜）：HieA2G（全監督專訓 counting head）／ VIRO（凍結基礎模型 + 重型 neuro-symbolic per-operator verifier）／ 本研究（凍結基礎模型 + 單一輕量事後校準器）。三者在「訓練成本 ↓、推論成本 ↓」光譜上，本研究佔最輕量端；M4 誠實標明在此端，多目標 exact-match 是能力邊界，而非可由校準跨越的目標。
-
 
 ---
 
@@ -834,6 +873,402 @@ set size 三模式幾乎重合（random std 僅 0.03–0.11），image-disjoint 
 
 CRS 把全篇從「測量凍結基礎模型的不確定性」推進到「在凍結基礎模型上建構有分布無關保證的指稱集合」。它以 LTT 聯合校準三個有界風險、把代價因式分解為 gate 與 box 兩個正交瓶頸、並以跨基礎模型組合在三保證下達到接近真實基數的緊緻集合（val/testA/testB 為 3.24 / 2.02 / 3.50 框，集合大小信賴區間與純 OWL-ViT 完全分離）。2×2 消融、bootstrap CI、三種切分模式與 formal-validity 對照共同支撐結論的穩固性，兩項限制（image-cluster 樣本量、長 expression gate 退化）誠實標註。這是本論文「強框架 + 亮眼正面操作點」的最終解，也是 M4 撞牆之後的回答：不做點估計，改輸出有保證的集合。
 
+---
+
+# 第 9b 章　Decomp CRS：候選池維度（第二主結果）
+
+> 本章是三正交維度中的 **candidate pool** 軸。CRS（第 9 章）以 frozen base 的原生候選池為輸入；
+> 本章證明：在**完全不碰 detector、不訓練**的前提下，把候選池從「full-expression pool」
+> 換成「decomposition-union pool」，可在同一 LTT 協議下**純賺 R1（多目標漏檢）**而不付代價。
+
+## 9b.1 動機：候選池是一個獨立可改善的維度
+
+第 9 章的 CRS 把風險控制代價因式分解為 gate（該不該答）與 box（答得準）。但在 box 軸之前，
+還有一個更上游的瓶頸：**候選池本身**。GroundingDINO 對一條完整 referring expression 跑一次前向，
+產生的候選框集合，未必涵蓋 multi-target query 的所有 GT——尤其當 expression 描述多個語意子部件時
+（「the man in red **and** the woman beside him」），單次整句 forward 容易偏重其中一個子部件。
+
+這定義了第二個正交維度：**在 gate 與 box 都不變的情況下，能不能用更好的候選池降低 R1（已作答目標漏檢率）？**
+關鍵約束是不能違反 frozen——任何改善都必須來自 frozen detector 已能產出的資訊，不更新任何權重。
+
+## 9b.2 方法：VLM-routed decomposition union pool
+
+**流程**（training-free，weight-frozen）：
+
+1. 對 target-present query，用一個 frozen VLM（Qwen2.5-VL-7B）作為 **router**，判斷 expression 是否含多個可拆解的指稱子部件；若是，輸出子部件清單。
+2. 每個子部件各自餵 GroundingDINO 跑一次前向，得到 per-part 候選框。
+3. 把整句 forward 的候選池與各子部件的候選池取 **union**，得到 decomposition-union pool。
+4. **其餘完全沿用第 9 章 CRS 協議**：同樣的 OWL gate、同樣的 GDINO box scoring、同樣的三風險 LTT、同樣的 calib-only grid 與 min-size 選點。**只換候選池這一個變因**。
+
+設計重點：decomposition 只擴充候選池，不改任何分數、不改 gate、不改 certificate。因此它與 gate 維度（第 9c 章）、certificate 維度正交，可獨立疊加。
+
+**防洩漏的關鍵**：router 只對 target-present query 觸發會造成「decomposed 旗標 100% 蘊含 has_target」的標籤洩漏，因此 decomposition 旗標**不可**作為 gate 特徵；本章 decomposition 只用於候選池建構，gate 仍只看 frozen detector 分數（與第 9 章一致）。
+
+## 9b.3 主結果：三 split 純賺 R1
+
+協議：a=b=0.3、g=0.5（與第 9 章 CRS 同協議），parity split，bootstrap CI。**只有候選池不同**。
+
+**表 9b.1　Decomp CRS vs Frozen CRS（同協議，只換候選池）**
+
+| method | split | pool | R1 | R2 | set size | n_feas |
+|---|---|---|---:|---:|---:|---:|
+| Frozen CRS | val | full | 0.191 | 0.159 | 3.24 | 112 |
+| Frozen CRS | testA | full | 0.260 | 0.203 | 2.02 | 58 |
+| Frozen CRS | testB | full | 0.168 | 0.236 | 3.50 | 56 |
+| **Decomp CRS** | val | decomp | **0.165** | 0.158 | 3.24 | 112 |
+| **Decomp CRS** | testA | decomp | **0.244** | 0.201 | 1.96 | 58 |
+| **Decomp CRS** | testB | decomp | **0.163** | 0.236 | 3.34 | 56 |
+
+**結論**：Decomp 的 R1 在三個 split **全部 ≤ Frozen**（0.165/0.244/0.163 vs 0.191/0.260/0.168），
+而 R2 與 set size **持平**（差異在小數第三位或 set size <0.2 框）。也就是說，換更好的候選池
+**單方向降低多目標漏檢，不付任何其他風險或集合大小的代價**。這正是「候選池維度可獨立改善」的鐵證。
+
+## 9b.4 硬防線：三道紅隊補強
+
+主結果之外，本章對三個最可能的攻擊各補一道防線。
+
+### 9b.4.1 Robustness（三切分模式）
+
+Decomp R1 在 parity / random5 / image-disjoint 三種切分下均 ≤ Frozen。val random5：
+Decomp R1 0.164±0.003 vs Frozen 0.191±0.007。**誠實標註**：testB random5 下 Decomp 變異較大
+（R1 0.226±0.053、set size 2.55±0.65）——某些 seed 壓小集合但升高 R1，是一個不穩點，記入 limitation。
+
+### 9b.4.2 Strong full-expression baselines（堵 matched 假象）
+
+最強的質疑是：Decomp 的 R1 優勢只是「拿擴大的池跟未經整理的 full 池比」的 matched 假象。
+為此，我們讓 full-expression pool 也吃各種 consolidation（NMS、top-K），在 val 上正面對比：
+
+**表 9b.2　Decomp vs 強化版 full-pool baseline（val）**
+
+| method | R1 | set size |
+|---|---:|---:|
+| full raw (threshold=0) | 0.191 | 3.24 |
+| full + NMS@0.5 | 0.211 | 2.31 |
+| full + NMS@0.7 | 0.174 | 2.99 |
+| full + top-10 | 0.241 | 2.64 |
+| full + top-20 | 0.237 | 2.69 |
+| **Decomp** | **0.165** | 3.24 |
+
+Decomp 的 R1 **低於所有** full-pool consolidation（NMS@0.5/0.7、top-10/20），且此結論三 split 一致。
+這證明 R1 優勢來自候選池**涵蓋了 full-pool 整理不出來的 GT**，而非 matched 指標假象——硬防線成立。
+
+### 9b.4.3 Frontier（truly-decomposed 子集的可達邊界）
+
+把分析限縮到 router **真正觸發拆解**的子集（val n=875），畫 recall–size frontier：
+
+**表 9b.3　Truly-decomposed 子集的 frontier（val n=875）**
+
+| pool | rec@sz2 | rec@sz3 | rec@sz4 | size@rec0.8 | AURC |
+|---|---:|---:|---:|---:|---:|
+| full | 0.589 | 0.686 | 0.753 | 5.48 | 0.690 |
+| decomp | **0.823** | **0.913** | **0.937** | **2.08** | **0.875** |
+
+在真正需要拆解的 query 上，decomp 池在 set size=3 時的召回 0.913 vs full 0.686，
+達到 recall 0.8 所需集合大小 2.08 vs 5.48 框。**Anti-cheat**：用 calib 選 λ、在 disjoint eval
+評估（calib n=419 / eval n=456），target size~3.0 時 decomp eval rec=0.912 vs full 0.682，
+結論在 held-out 上維持，非校準集過擬合。
+
+## 9b.5 兩項誠實限制
+
+**1. Over-decomposition（自身錯，非全資料集模糊）。** 失敗審計（P1-F failaudit）顯示，
+testA 上 n_gt==1 的 negative-gain case（n=14）中，約 **50% 是標註本身的歧義（annotation ambiguity）、
+50% 是 over-decomposition**——router 把一個單目標 expression 錯誤拆成多部件，反而引入多餘候選、
+升高 R1。這修正了早期「退步全是標註模糊」的過度宣稱（原宣稱有一半是錯的）。抑制 over-decomposition
+（更保守的 VLM router）是明確的 future work。
+
+**2. Training-free 但非 compute-free。** Decomp 不更新任何權重，但有額外推論開銷。
+成本量化（P1-E cost）：
+
+**表 9b.4　Decomp 推論成本（vs frozen full-expression）**
+
+| Method | VLM calls / query (val/testA/testB) | GDINO forwards / query | Avg set size |
+|---|---|---|---|
+| Frozen (full-expr) | 0 / 0 / 0 | 1.00 / 1.00 / 1.00 | 3.24 / 2.02 / 3.50 |
+| Decomp (VLM-routed) | 0.37 / 0.77 / 0.71 | 1.06 / 1.08 / 1.07 | 3.24 / 1.96 / 3.34 |
+
+VLM router 對**每個 target-present query** 呼叫一次（actual cost；val 0.37 / testA 0.77 / testB 0.71
+calls/query，差異反映各 split 的 target-present 比例），但真正觸發拆解的只有約 6% 的 query
+（平均拆 2.1 部件），故 GDINO forward 只多 1.06–1.08x。誠實 claim：**training-free 且 weight-frozen，
+但有額外 inference-time compute**——不能宣稱 cheap，只能宣稱不訓練。
+
+## 9b.6 小結
+
+Decomp CRS 證明 candidate pool 是一個**正交且可獨立改善**的維度：在 gate、box scoring、
+certificate 全部不變、不碰任何 detector 權重的前提下，VLM-routed decomposition union pool
+讓 R1 三 split 全降而 R2/set size 持平。三道硬防線（robustness、strong baseline、frontier）
+堵住 matched 假象與過擬合質疑；兩項誠實限制（over-decomposition、compute cost）標明邊界。
+這是論文的第二主結果，也是統一框架（第 9d 章）中 pool 軸的實例化。
+
+---
+
+# 第 9c 章　WB-Gate CRS：閘分數維度（第三主結果）
+
+> 本章是三正交維度中的 **gate score** 軸。第 9 章 CRS 用單一 OWL top1 分數當棄答 gate；
+> 本章問：把它換成一個**可解釋的 learned gate**，能否在保留 LTT 風險保證下改善 R2/R3 與可行性？
+> 答案是肯定的——但**只在同分布成立**，cross-dataset 的 learned boundary 不轉移，這構成本章
+> 最有研究價值的 negative finding。
+
+## 9c.1 動機：單一分數的 gate 太弱嗎？
+
+CRS 的 2×2 消融（表 9.3）證明 OWL top1 score 是最佳的 gate 訊號（無目標可分性 0.82）。
+但「最佳的單一分數」不等於「最佳的 gate」。OWL 的無目標分數尾巴與 target 分數高度重疊，
+任何單一閾值都切不乾淨。一個自然的問題：用多個 frozen 訊號餵一個 learned gate，能不能
+比單一分數閾值更好地分離「該答 / 該棄」，從而在更嚴格的 budget 下進入可行域？
+
+約束仍是 frozen：gate 的輸入特徵全部來自 frozen detector 的副產品，不更新任何 detector 權重；
+learned 的只是 gate 這個薄薄的 decision 層。
+
+## 9c.2 方法：21-dim 可解釋 white-box gate
+
+**特徵（21 維，全 frozen，無 GT 洩漏）**：OWL×7（top1/margin/entropy/mean-topk 等）+
+GDINO×7（對稱的分數統計）+ expr×5（純語法：長度、token 數等）+ cross×2（跨 detector 一致性）。
+**禁用特徵**：no_target、n_gt、gt_boxes（任何 GT 衍生量），以及 decomposition 旗標
+（會洩漏 has_target，見第 9b 章）。
+
+**模型**：EBM（Explainable Boosting Machine，additive，`interactions=0`）——每個特徵一條可畫出的
+shape function，gate 決策完全可解釋，符合「白箱」定位。
+
+**防洩漏 3-way disjoint split**（本章最關鍵的協議）：val 內部以 `ref_id mod 3` 切成三段互斥子集——
+gate_train（fit 模型）/ ltt_calib（搜門檻）/ test（評估），且 ref_id + image **雙重 disjoint**，
+腳本內硬 assertion 強制。scaler 與模型只 fit gate_train。這修補了早期版本「在全 val 訓練後
+又在 val 子集測試」導致 in-sample AUROC 0.99 的洩漏，修補後結果存活。
+
+## 9c.3 主結果一：HB certificate（最大實質收益，免費）
+
+在動 gate 之前，先換 certificate。把 Hoeffding 換成 Hoeffding–Bentkus（HB = min(Hoeffding, e·Binomial-tail)），
+**同切分、同 grid、同 Bonferroni，只換 p-value**：
+
+**表 9c.1　bound 對照（image-disjoint α=0.20）**
+
+| bound | #feas | set size | status |
+|---|---:|---:|---|
+| Hoeffding | 22 | 5.07 | appendix sensitivity |
+| **HB** | **69** | **3.72** | main certificate |
+| Bernstein | 46 | 3.72 | appendix sensitivity |
+
+可行區 ×3（22→69），set size 5.07→3.72，**完全免費**（不補任何 dump、不訓練）。
+健全性四項全過（Bentkus 含 e 常數、p-value 單調、HB⊆Hoeffding superset、test 零違反）。
+採用原則：主表用 HB，附錄報 Hoeffding/Bernstein 的 sensitivity。這是 certificate 維度的實例化，
+與 gate、pool 正交。
+
+## 9c.4 主結果二：WB-21 gate 讓 infeasible 變 feasible
+
+協議：α=0.3、β=0.2、γ=0.3，HB certificate，3-split disjoint。rule 與 WB 同等套 HB：
+
+**表 9c.2　WB-Gate 主表**
+
+| method | gate | bound | #feas | certified UCB R1/R2/R3 | test R1/R2/R3 | set size |
+|---|---|---|---:|---|---|---:|
+| rule + HB | OWL top1 | HB | **INFEASIBLE** | — | — | — |
+| **WB-21 + HB** | WB-21 EBM | HB | **115** | 0.220/0.032/0.089 | 0.159/0.016/0.075 | 3.68 |
+
+**核心 claim**：單一 OWL top1 gate 在 α=0.3 三 split 全部 **infeasible**；換成 WB-21 learned gate
+後 feasible（#feas=115）。certified UCB 全部守在 target 內，test empirical risk 更低
+（R1/R2/R3 = 0.159/0.016/0.075）。這證明 gate 軸確實可改善可行性與 R2/R3 trade-off。
+
+## 9c.5 主結果三：WB × Decomp 互補（兩維度疊加）
+
+把 gate 維度（WB）與 pool 維度（Decomp）疊加。2×2：gate(OWL/WB) × pool(full/decomp)，
+gate 特徵永遠用 full-pool，只換 box 候選池：
+
+**表 9c.3　WB-Gate × Decomp 2×2**
+
+| version | gate | pool | #feas | test R1 | test R3 | set size |
+|---|---|---|---:|---:|---:|---:|
+| Rule | OWL | full | INFEASIBLE | — | — | — |
+| Decomp | OWL | decomp | **INFEASIBLE** | — | — | — |
+| WB-Gate | WB | full | 115 | 0.159 | 0.075 | 3.68 |
+| WB+Decomp | WB | decomp | 119 | 0.248 | **0.028** | **2.37** |
+
+**互補鐵證**：decomp 候選池單獨配 OWL gate **仍 INFEASIBLE**——pool 改善需要 gate 改善才能被 CRS
+安全使用。只有 WB+Decomp 同時動兩個維度，才把 set size 從 3.68 壓到 2.37（−36%）、R3 從 0.075 降到 0.028。
+代價是 R1 從 0.159 升到 0.248（pool 聚焦 + 門檻趨嚴的 trade-off）。這正面回答「兩個改善會不會互相
+抵銷」：它們攻不同 risk，疊加得到 Pareto 移動而非抵銷。
+
+**query-adaptive λ（附錄）**：decomp box score 比 passthrough 高約 7×，故分組設不同 λ 可救回 R1
+（0.208→0.173），但 R3 上升（0.106→0.196）——R1 與 R3 在此系統中對抗，三方法是同一 Pareto
+frontier 的不同操作點。
+
+## 9c.6 核心 negative finding：learned gate 不跨分布轉移
+
+這是本章最重要、也最誠實的發現。固定門檻的 pass-rate 分析揭露：learned gate boundary
+**不跨 gRefCOCO split 轉移**。
+
+**表 9c.4　has-target pass rate（rule vs WB，三 tau 操作點一致）**
+
+| split | rule pass\|tp | WB pass\|tp |
+|---|---:|---:|
+| val | 0.881 | 0.893 |
+| testA | 0.861 | **0.388** |
+| testB | 0.805 | **0.345** |
+
+rule gate 跨 split 幾乎穩定（0.88→0.81），WB gate **崩塌**（0.89→0.35），三個 tau 操作點一致。
+也就是說：**learned target-presence boundary 在 val 有效、在 testA/testB 不對齊**。
+learned signal 比 frozen rule score 更受分布影響。
+
+**真因經三輪排除**（這是本章的方法嚴謹度所在）：
+- ❌ no-target prior shift：R2/R3 是 conditional risk，對群組比例免疫（resample 20–70%，range 0.001）。
+- ❌ GDINO box scoring shift：GT-cover 分數 testA/testB 反而**更高**（val 0.145 / testA 0.173 / testB 0.159），box scoring 沒退化。
+- ✅ **真因（兩機制並存）**：(1) OWL no-target 高分尾巴右移（傷 R2，q90 0.155→0.204）；(2) **WB learned boundary 不轉移（傷 R3，主導）**。
+
+**封板定位（收緊 claim）**：WB-Gate = **in-distribution** interpretable gate improvement；
+cross-dataset transfer 是 open limitation。同分布結果鐵打，跨資料集 WB 反而比無訓練 rule gate 更不穩。
+
+## 9c.7 negative finding 的研究價值
+
+> A learned gate improves in-distribution selective risk control but may overfit dataset-specific
+> target-presence cues; the untrained rule gate is weaker in-distribution yet more robust to
+> distribution shift. **學一個更強的可靠性訊號 ≠ 更可靠的跨分布轉移。**
+
+這是 selective prediction 領域一個有意思的誠實教訓，呼應全篇主線「何時該信模型」：
+正是當我們訓練出一個「更會判斷該不該信」的 gate 時，它對分布變化反而更脆。這不是修復對象，
+而是一個有價值的 negative finding，放 discussion。
+
+## 9c.8 其他負結果（界線，appendix）
+
+- **Feature 擴張 = 沒用**：語法 compositional features AUROC +0.0002（null）；cross-prompt response
+  profile AUROC +0.003 但 inner feature-selection 三 split 選三個不同 group → 增益被 split 雜訊淹沒，
+  降 appendix。結論：gate 判斷力幾乎全來自 detector scores，feature 層近天花板。
+- **Candidate-level utility = per-box trap**：per-box 7-dim EBM utility 取代 score threshold，
+  R1 沒改善、set size 2–3× 大、per-box AUROC 僅 0.76。與 evidence-detector 同坑
+  （per-box relevance ≠ set-level coverage）。確認 box selection 不可做 per-box classifier。
+- **Multi-crop = 診斷否決**：R1 audit 顯示 98.8% query 池中每個 GT 都已有 box cover，
+  但 40.7% cover GT 的框 score<0.1（被 λ 濾掉）。R1 瓶頸是 frozen GDINO 的 **scoring**，
+  非候選池 coverage；multi-crop 只擴池不改分數 → 解錯問題，不值得跑。
+- **Prior-shift = 推翻錯誤歸因**：推翻早期「val→testA/testB 失守 = prior shift」的歸因
+  （R2/R3 對群組比例免疫）。
+
+## 9c.9 小結
+
+WB-Gate CRS 證明 gate score 是第三個正交可改善維度：可解釋的 21-dim white-box gate（EBM）
+在同分布下把單一 OWL 分數 infeasible 的設定變 feasible，大幅改善 R2/R3，並與 Decomp 互補疊加。
+HB certificate 是最大的免費收益。但 learned gate boundary cross-dataset 不轉移
+（rule 0.88→0.81 穩 vs WB 0.89→0.35 崩），WB-Gate 的優勢限於 in-distribution——
+這是本章最誠實、也最有研究價值的 negative finding。
+
+---
+
+# 第 9d 章　統一框架：三正交維度與 frozen detector frontier
+
+> 前三章（9 / 9b / 9c）各自證明一個維度可改善。本章把它們收斂成一個 coherent system：
+> 在完全 frozen 的 base detector 上，用 post-hoc、LTT-certified 的方式把 referring expression
+> grounding 轉成 risk-controlled referring set，並系統性地測繪「候選池 / 閘 / 憑證」三個
+> 可改善維度的可達邊界。
+
+## 9d.1 一句話框架
+
+> **不訓練任何 detector 權重。所有改善都在 frozen 輸出之上的 decision/calibration 層。**
+
+系統把 grounding 轉成 risk-controlled referring set，並釘出三個可改善維度的可達邊界與天花板。
+
+## 9d.2 系統的三個可改善維度
+
+```
+Image + Referring Expression
+        │
+        ▼
+┌──────────────────────────┐
+│  Frozen base detectors    │  OWL-ViT (gate signal) + GroundingDINO (boxes)
+│  — 權重全凍結，不訓練      │  ← 能力天花板由此決定
+└──────────────────────────┘
+        │
+   ┌────┴──────────────────────────────────┐
+   │  維度 1: CANDIDATE POOL（第 9b 章）     │  ← Decomp CRS（主攻 R1）
+   │    full-expr pool  /  decomp-union pool │
+   └────┬──────────────────────────────────┘
+        │
+   ┌────┴──────────────────────────────────┐
+   │  維度 2: GATE SCORE（第 9c 章）         │  ← WB-Gate CRS（主攻 R2/R3/feasibility）
+   │    OWL top1  /  WB-21 interpretable gate│
+   └────┬──────────────────────────────────┘
+        │
+   ┌────┴──────────────────────────────────┐
+   │  維度 3: CERTIFICATE（第 9c 章）        │  ← HB-LTT（主攻 feasible region）
+   │    Hoeffding  /  Hoeffding-Bentkus      │
+   └────┬──────────────────────────────────┘
+        │
+        ▼
+   Risk-controlled referring set  +  R1/R2/R3 certificate (or defer)
+```
+
+三個維度**正交且可獨立替換**，這是本論文的核心結構發現。
+
+## 9d.3 三貢獻的分工（互不打架）
+
+**表 9d.1　三維度分工**
+
+| 維度 | 貢獻 | 改什麼 | 主攻 | 同分布結果 | 邊界 |
+|---|---|---|---|---|---|
+| pool | Decomp CRS | candidate pool | R1 / multi-target recall | R1 三 split 全 ≤ frozen；frontier rec@sz3 0.91 vs 0.69 | over-decomp 反例（n_gt=1 退步一半是自身錯） |
+| gate | WB-Gate CRS | gate score | R2/R3 / feasibility | rule INFEASIBLE→WB feasible；R2 0.016 R3 0.075 | cross-dataset learned gate 不轉移（0.89→0.35） |
+| cert | HB-LTT | bound | feasible region | #feas ×3，set size 5.07→3.72 | （免費，無邊界） |
+
+**互補的鐵證**：
+- decomp-pool 配 OWL-gate **仍 INFEASIBLE**；配 WB-gate 才 feasible → pool 改善需要 gate 改善才能被 CRS 安全使用。
+- WB-Gate 主攻 R2/R3，R1 幾乎不動；Decomp 主攻 R1，R2/R3 持平 → 兩者攻不同 risk，疊加得 Pareto 移動而非互相抵銷。
+
+## 9d.4 統一評估協議（所有貢獻共用）
+
+- frozen base：OWL-ViT gate + GroundingDINO box，零訓練。
+- 三風險 LTT：R1 answered-target FNR / R2 no-target false-sel / R3 target deferral。
+- certificate：HB bound（主），Hoeffding/Bernstein（附錄 sensitivity）。
+- 切分：calib/test 互斥；robustness = parity / random5 / image-disjoint。
+- 防洩漏：calib-only grid；learned 模組三段互斥切分（gate_train/calib/test）。
+
+任何 (pool, gate, bound) 組合都套同一協議，所以四個版本（Rule / Decomp / WB-Gate / WB+Decomp）
+可在同一張表比較。
+
+## 9d.5 整體 claim（三層）
+
+**L1 base claim（CRS，第 9 章）**
+> Frozen base + post-hoc LTT 即可把 grounding 轉成有限樣本風險保證的 referring set，無需訓練。
+
+**L2 dimension claims（第 9b / 9c 章）**
+> - Decomp：改善 candidate pool 在同分布下降低 R1（multi-target recall），且贏過所有 full-pool consolidation（NMS/top-K），非 matched 指標假象。
+> - WB-Gate：可解釋 learned gate 在同分布下把 infeasible 設定變 feasible，大幅改善 R2/R3。
+> - HB：更緊的 certificate 免費擴大 feasible region。
+
+**L3 unifying claim（本章）**
+> 三維度正交可組合；在 frozen detector 給定下，(pool, gate, bound) 三軸共同決定可達的
+> risk-cost frontier。我們測繪了此 frontier 並釘出天花板。
+
+## 9d.6 全景 limitation / negative findings（誠實層）
+
+**表 9d.2　全景限制**
+
+| 項目 | 內容 |
+|---|---|
+| 天花板 | frozen OWL+GDINO 的 scoring 決定上限；不碰 detector 的手段無法突破 |
+| WB-Gate 泛化 | learned gate boundary cross-dataset 不轉移，比無訓練 rule gate 脆弱 |
+| Decomp 反例 | n_gt=1 退步一半是 over-decomposition（自身錯），非全資料集模糊 |
+| Decomp 成本 | training-free 但非 compute-free（每 target-present +1 VLM call） |
+| 已否決 | candidate-level utility（per-box trap）、multi-crop（pool 非瓶頸）、prompt-template（不穩） |
+| 已修正歸因 | cross-dataset 失守 ≠ no-target prior shift（受控實驗推翻） |
+
+## 9d.7 天花板定性
+
+整條線證明：**在不碰 frozen detector 的前提下，系統能力上限由 frozen OWL-ViT（gate）+
+GroundingDINO（box scoring）決定。** 我們做的一切（白箱 gate、HB、Decomp、adaptive λ）都是在
+榨乾這兩個 frozen 模型已產出的資訊，並把可達的 risk-cost frontier 完整測繪出來。
+
+要抬此天花板，唯一有效方向是換更強的 frozen detector（DINO-X / GD-1.5，不違反 frozen，但 API-gated）。
+multi-crop / 加 feature / candidate-level 等「不碰 detector」的手段已證明無法突破。
+
+## 9d.8 future work（不在本研究範圍）
+
+- 換更強 frozen detector（DINO-X / GD-1.5）：不違 frozen，抬天花板，API-gated。
+- trained scoring head：僅作 upper-bound diagnostic，不進主線。
+- WB-Gate cross-dataset 泛化修復（weighted conformal 等）：開新題，暫不做——這是第 9c 章
+  negative finding 的自然延伸，可能獨立成一篇「learned reliability signal 為何不轉移」的研究。
+- decomp over-decomposition 抑制（更保守的 VLM router）。
+
+## 9d.9 小結
+
+本論文的三條 contribution 不是三個獨立技巧，而是同一個 frozen selective grounding 系統的
+三個正交維度。CRS 給出 base claim（frozen + LTT = 有保證的 referring set）；Decomp、WB-Gate、HB
+分別在 pool、gate、certificate 三軸上把可達 frontier 往有用方向推；互補性論證證明它們攻不同 risk、
+可疊加。我們不只給保證，還測繪了在 frozen detector 給定下的整個 risk-cost frontier，並誠實釘出
+天花板與每個維度的邊界——這是本論文相對於任何單點方法的結構性貢獻。
 
 ---
 
@@ -902,7 +1337,6 @@ base-invariant 是有限定的。三個誠實的限制必須寫明，否則過�
 
 C4 把跨基礎模型轉移從「一個數字」升級成一個有機制、有結構的發現：定位不確定性的**難度排序結構是 base-invariant 的**（同一訊號在兩個準度迥異的凍結基礎模型上同向預測錯誤、同向標出 hard sample），但其判別強度、逐樣本一致性與校準權重是 base-specific 的——**結構可轉移，校準不可轉移**。這是本研究最接近科學發現的貢獻，也是對 per-pipeline 驗證方法唯一站得住的真區辨；同時為 CRS 的跨基礎模型組合與未來的 label-efficiency 命題提供了訊號基礎。
 
-
 ---
 
 # 第 11 章　Cost–Risk Pareto：讓「輕量」成為實驗主張
@@ -954,7 +1388,6 @@ reliability 為 val split 點估計（CI 見各章 bootstrap 節）：
 
 Cost–Risk Pareto 把「輕量」從形容詞變成可量測主張：在 1× 推論成本、零或極小訓練成本下，凍結基礎模型 + 事後校準器即取得 no-target AUROC 0.824 與相對隨機降 22.6% 的選擇性風險改善；額外的 4× 前向成本買到的是跨基礎模型可轉移性，而非更高的 within-base 準度。相對於 HieA2G（全監督）與 VIRO（重型 neuro-symbolic pipeline），本研究穩居成本—可靠性光譜的最輕量端。這條成本軸也是 CRS（第 9 章）的背景：CRS 的跨基礎模型組合需要兩個基礎模型各一次前向，仍在這個輕量光譜內，卻換來三風險的分布無關保證。
 
-
 ---
 
 # 第 12 章　結論與限制
@@ -974,7 +1407,13 @@ Cost–Risk Pareto 把「輕量」從形容詞變成可量測主張：在 1× �
 
 主結果 **CRS（跨基礎模型保形組合指稱集合）** 讓 `π` 輸出基數可為 0／1／多的風險受控集合，以 Learn-then-Test（+ Bonferroni）在校準 split 上聯合校準三個有界風險（R1 已作答目標漏檢率、R2 無目標誤選率、R3 目標棄答率）並給出有限樣本保證，再把代價因式分解為 gate（OWL-ViT）與 box（GroundingDINO）兩個正交瓶頸。在 α=β=0.3 下，COMPOSE 於 val/testA/testB 輸出 **3.24 / 2.02 / 3.50** 個框，三風險全守、集合大小信賴區間與純 OWL-ViT 完全分離（公平比較下縮小 2.0–4.5 倍）；2×2 消融證明唯有對角線組合能同時守三風險並產生緊緻集合，因此這是 factorization 而非單純集成。
 
-綜合而言，本論文的貢獻不在於一個更準的定位器，而在於把「凍結基礎模型的不確定性結構」量化為可靠性、成本、跨基礎模型可轉移性與 oracle gap，並在點預測撞牆之處給出有分布無關保證的集合化解法。
+在 CRS 的 base claim 之上，本論文進一步把系統拆成**三個正交、可獨立替換的可改善維度**，並各給出實例化（第 9b–9d 章）：
+
+- **Decomp CRS（候選池維度）** 以凍結 VLM router 的 decomposition-union pool 取代原生候選池，同一 LTT 協議下只換候選池，R1 三 split 全 ≤ frozen（0.165/0.244/0.163），R2／set size 持平，且贏過所有 full-pool consolidation——純賺 R1 的第二主結果。
+- **WB-Gate CRS（閘分數維度）** 以 21 維凍結特徵上的可解釋 EBM 閘取代單一分數閘，同分布下把 infeasible 變 feasible（#feas=115）、大幅改善 R2/R3，與 Decomp 互補疊加（set size 3.68→2.37）；**憑證維度** 以 HB 免費把可行區 ×3（set size 5.07→3.72）。
+- **統一框架** 證明三維度正交可組合，共同決定 frozen detector 給定下可達的 risk–cost frontier，並釘出天花板（frozen OWL+GDINO scoring 上限）。
+
+綜合而言，本論文的貢獻不在於一個更準的定位器，而在於把「凍結基礎模型的不確定性結構」量化為可靠性、成本、跨基礎模型可轉移性與 oracle gap，在點預測撞牆之處給出有分布無關保證的集合化解法，並沿三個正交維度測繪出此解法在 frozen detector 給定下的完整可達邊界。
 
 ## 12.2 限制
 
@@ -986,18 +1425,20 @@ Cost–Risk Pareto 把「輕量」從形容詞變成可量測主張：在 1× �
 
 此外，本論文的「保證」一律僅指 LTT 的有限樣本檢定，bootstrap CI 僅為經驗穩定度；CRS 不宣稱解決完整 GREC 的 exact-match，而是把評測從點預測 pivot 到集合預測。這些界定在前面各章已逐一聲明。
 
+**3. WB-Gate 的 learned 閘不跨資料集轉移（第 9c 章核心 negative finding）。** 固定門檻的目標通過率在 testA/testB 崩塌（0.89→0.35），而無訓練的規則閘穩定（0.88→0.81），三個 tau 操作點一致。真因經三輪排除（非 no-target prior shift、非 GDINO box scoring 退化），確認為 learned target-presence boundary 不對齊。WB-Gate 的優勢限於 in-distribution；這不是修復對象，而是一個有價值的誠實教訓——「學一個更強的可靠性訊號 ≠ 更可靠的跨分布轉移」。
+
+**4. Decomp 的 over-decomposition 與 compute cost。** 單目標語句的退步約半數源於 VLM router 過度拆解（自身錯，非全資料集模糊）；且 Decomp 雖 training-free、weight-frozen，但**非 compute-free**——每個目標語句多一次 VLM router 呼叫（val 0.37 / testA 0.77 / testB 0.71 calls/query）。
+
 ## 12.3 未來工作
 
 以下方向均為**尚未進行**的延伸，列為後續可能：
 
-- **標籤效率（label-efficiency）**：量化 CRS 校準所需的標註量下界，以及在少量校準資料下三風險保證的退化曲線。第 10 章已埋入前向指標，但完整 sweep 未做。
-- **KEEP 風險網格 sweep**：對 (α, β, γ) 三維操作點做更細的網格掃描，描繪可行域的完整邊界與 Pareto front。
-- **更換 encoder／gate 基礎模型**：以對長句更穩的基礎模型替換 OWL-ViT gate，檢驗限制 2 是否可被緩解；以及把 CRS 組合推廣到第三、第四個凍結基礎模型。
-- **候選對比式介入（Variant B）**：在不主張 verification novelty 的前提下，量化在歧義子集上的重排 lift，作為上限分析。
-- **OOD／egocentric 穩健性**：以 RefAdv（adversarial OOD）、RefEgo（egocentric video，含 no-target）評測 CRS 的分布外穩健性。
+- **抬天花板——更強 frozen detector**：以 DINO-X / GD-1.5 等更強凍結偵測器替換 OWL-ViT / GroundingDINO（不違反 frozen，但 API-gated），檢驗三維度可達 frontier 是否整體上移。multi-crop / 加 feature / candidate-level 等「不碰 detector」手段已證無法突破天花板。
+- **WB-Gate cross-dataset 泛化修復**：以 weighted conformal / domain adaptation 嘗試救回 learned 閘的跨分布轉移。這是第 9c 章 negative finding 的自然延伸，可能獨立成一篇「learned reliability signal 為何不轉移」的研究。
+- **Decomp over-decomposition 抑制**：更保守的 VLM router，降低單目標語句的過度拆解。
+- **trained scoring head（僅作上界診斷）**：輕量訓練 detector 的 scoring head 以量化天花板上界，不進主線（碰 frozen 紅線）。
+- **標籤效率與風險網格 sweep**：量化 CRS 校準所需的標註量下界；對 (α, β, γ) 做更細的網格掃描，描繪可行域完整邊界。
+- **OOD／egocentric 穩健性**：以 RefAdv、RefEgo 評測 CRS 的分布外穩健性。
 
 這些方向都建立在本論文已確立的地基上：凍結基礎模型的不確定性結構可被事後、低成本地校準成有保證的決策，且這種結構在基礎模型之間是可重用的。
-
-
----
 

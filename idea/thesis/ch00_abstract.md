@@ -20,4 +20,8 @@
 
 我們亦誠實標註兩項限制：影像層級分群評估在 testA/testB 上樣本量不足而留空；長指稱語句下 R2（無目標誤選）會退化，反映 OWL-ViT 閘對長句的弱點。
 
+在 CRS 確立「凍結基礎模型 + 事後 LTT = 有保證的指稱集合」這個基礎主張之後，我們進一步指出此系統有**三個正交、可獨立替換的可改善維度**——候選池（candidate pool）、閘分數（gate score）、憑證（certificate）——並各給出實例化。**Decomp CRS（候選池維度）** 以凍結 VLM router 把目標語句拆成子部件、各跑 GroundingDINO 後取聯集候選池；同一 LTT 協議下只換候選池，多目標漏檢率 R1 在三個 split 全部 ≤ frozen（0.165/0.244/0.163 vs 0.191/0.260/0.168）而 R2／集合大小持平，且贏過所有 full-pool 整理（NMS／top-K），是純賺 R1 而不付代價的第二主結果。**WB-Gate CRS（閘分數維度）** 以 21 維凍結特徵上的可解釋白箱閘（EBM）取代單一分數閘，在同分布下把原本 infeasible 的設定變 feasible（rule INFEASIBLE → 可行集 #feas=115）並大幅改善 R2/R3，與 Decomp 互補疊加（集合大小 3.68→2.37）；**憑證維度** 則以 Hoeffding→Hoeffding-Bentkus 免費把可行區擴大三倍（集合大小 5.07→3.72）。三維度正交可組合，共同決定凍結偵測器給定下可達的 risk–cost frontier，我們測繪此 frontier 並釘出天花板。
+
+我們對這兩個額外主結果也誠實標註三項新限制：(1) WB-Gate 的 learned 閘邊界**不跨資料集轉移**——固定門檻下目標通過率在 testA/testB 崩塌（0.89→0.35），而無訓練的規則閘反而穩定（0.88→0.81），顯示「學一個更強的可靠性訊號 ≠ 更可靠的跨分布轉移」，這是 selective prediction 的誠實教訓；(2) Decomp 的 over-decomposition——單目標語句的退步約半數源於 router 過度拆解（自身錯）；(3) Decomp 雖 training-free 但**非 compute-free**，每個目標語句多一次 VLM router 呼叫。
+
 **關鍵詞**：指稱語表達理解、廣義 REC、選擇性預測、棄答、保形預測、Learn-then-Test、風險控制、凍結基礎模型、不確定性校準、跨模型轉移。
