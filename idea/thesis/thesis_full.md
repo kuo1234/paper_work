@@ -26,9 +26,6 @@
 
 ---
 
-
----
-
 # 摘要
 
 指稱語表達理解（Referring Expression Comprehension, REC）要求模型依據一段自然語言描述，在影像中定位出被指稱的物件。近年凍結式（frozen）的視覺—語言基礎模型（如 CLIP-VG、OWL-ViT）已能在零樣本或輕量微調下達到可用的定位準確率，但它們**始終輸出一個點預測**：對每個查詢都吐出一個（或經 argmax 選出的一個）框，既無法在「描述其實沒有對應物件」（no-target）時棄答，也無法在多個候選同樣合理時表達不確定。當這類模型被放進需要可靠性保證的下游系統時，這種「永遠給答案、且不標示信心」的行為構成一道實際的可靠性缺口。
@@ -831,16 +828,23 @@ set size 三模式幾乎重合（random std 僅 0.03–0.11），image-disjoint 
 
 **formal-validity 穩健性**：針對 LTT 保證的三個深層形式問題各做一個對照協議。
 
+> **formal validity 定調（必讀）**：主表（表 9.2/9.4）報的是 **implementation operating-point**
+> 版本——R1 用 answered subset 的 Hoeffding，其分母 n1 隨 (τ,λ) 變動。這個版本方便、且與
+> ratio-free 版數字幾乎一致，但**嚴格的 distribution-free 保證由 (C) ratio-free 條件風險檢定
+> 承擔**（R1 改寫成固定分母=target-present 全數的 bounded 變數，見下）。R2/R3 的分母（no-target /
+> target-present）本就固定，Hoeffding p-value 直接給有限樣本保證。因此本論文的 formal claim
+> 以 ratio-free R1 為準，operating-point 版僅為等價的實作呈現。
+
 **表 9.6　formal-validity 對照（COMPOSE，α=β=0.3 / γ=0.5）**
 
 | 協議 | val | testA | testB | 結論 |
 |---|---|---|---|---|
-| baseline（parity, Hoeffding R1） | 3.24 | 2.02 | 3.50 | — |
-| (C) ratio-free R1（fixed-n 條件風險檢定） | 3.25 | 2.02 | 3.51 | 幾乎完全重現 |
+| operating-point（parity, answered-subset Hoeffding R1） | 3.24 | 2.02 | 3.50 | 實作呈現版 |
+| **(C) ratio-free R1（fixed-n 條件風險檢定）= formal 防線** | 3.25 | 2.02 | 3.51 | **幾乎完全重現，formal claim 以此為準** |
 | (A) three-way split（grid/calib/eval image-disjoint 三分） | 3.36 | 3.31 | 3.35 | 三 split 全 feasible |
 | (B) image-cluster（image=calib unit，最嚴格） | 3.24 (n=28) | EMPTY | EMPTY | 見下方誠實邊界 |
 
-- **(C) ratio-free R1**：R1 是條件風險，原 Hoeffding 用 answered subset 的 random denominator。改用 `E[L|A]≤α ⟺ E[A(L−α)]≤0` 對 bounded fixed-n 變數 `Z=A(L−α)∈[−α,1−α]` 做 Hoeffding，分母固定為 target-present 全數。三個 split 與 baseline 幾乎完全一致 → random-denominator 質疑實務上不影響結論。
+- **(C) ratio-free R1（formal validity 主防線）**：R1 是條件風險，operating-point 版的 Hoeffding 用 answered subset 的 random denominator（n1 隨 config 變）。formal 版改用 `E[L|A]≤α ⟺ E[A(L−α)]≤0` 對 bounded fixed-n 變數 `Z=A(L−α)∈[−α,1−α]` 做 Hoeffding，分母固定為 target-present 全數，因此 p-value 的有限樣本保證不依賴 data-dependent 分母。三個 split 與 operating-point 版幾乎完全一致 → random-denominator 質疑實務上不影響結論，且 distribution-free 保證在 ratio-free 版上嚴格成立。
 - **(A) data-dependent grid**：grid 從 calib scores 建、又在同 calib 上做 LTT，理論上可質疑。three-way split（grid-design / calib / eval 三個 image-disjoint 子集）下三 split 仍 feasible，set size 3.31–3.36（略升因 eval 全新 image + 樣本變少），結論不變。
 - **combined protocol**：把最嚴格的兩個協議疊加（three-way + ratio-free R1）——val sz=3.36 仍 feasible（n_feas=112），且 three-way 的 5 seeds robustness：val 5/5 feasible，sz=3.29±0.11，非 seed=0 僥倖。
 
@@ -1126,9 +1130,12 @@ cross-dataset transfer 是 open limitation。同分布結果鐵打，跨資料�
 
 ## 9c.8 其他負結果（界線，appendix）
 
-- **Feature 擴張 = 沒用**：語法 compositional features AUROC +0.0002（null）；cross-prompt response
-  profile AUROC +0.003 但 inner feature-selection 三 split 選三個不同 group → 增益被 split 雜訊淹沒，
-  降 appendix。結論：gate 判斷力幾乎全來自 detector scores，feature 層近天花板。
+- **Feature 擴張 = 沒用（故 final method = WB-21 + HB，非 feature-extended）**：語法 compositional
+  features AUROC +0.0002（null）；cross-prompt response profile AUROC +0.003 但 inner feature-selection
+  三 split 選三個不同 group（mod3=B / imagedisj=A / random5=C）→ 增益被 split 雜訊淹沒、不穩定 dominate。
+  因此本章的 final positive result 明確定為 **WB-21 + HB**；feature/prompt response-profile 擴張僅為
+  exploratory（可能改善某些操作點，但非穩定優於 WB-21），降為 appendix。結論：gate 判斷力幾乎全來自
+  detector scores，feature 層近天花板。
 - **Candidate-level utility = per-box trap**：per-box 7-dim EBM utility 取代 score threshold，
   R1 沒改善、set size 2–3× 大、per-box AUROC 僅 0.76。與 evidence-detector 同坑
   （per-box relevance ≠ set-level coverage）。確認 box selection 不可做 per-box classifier。

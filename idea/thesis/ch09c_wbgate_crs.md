@@ -123,9 +123,12 @@ cross-dataset transfer 是 open limitation。同分布結果鐵打，跨資料�
 
 ## 9c.8 其他負結果（界線，appendix）
 
-- **Feature 擴張 = 沒用**：語法 compositional features AUROC +0.0002（null）；cross-prompt response
-  profile AUROC +0.003 但 inner feature-selection 三 split 選三個不同 group → 增益被 split 雜訊淹沒，
-  降 appendix。結論：gate 判斷力幾乎全來自 detector scores，feature 層近天花板。
+- **Feature 擴張 = 沒用（故 final method = WB-21 + HB，非 feature-extended）**：語法 compositional
+  features AUROC +0.0002（null）；cross-prompt response profile AUROC +0.003 但 inner feature-selection
+  三 split 選三個不同 group（mod3=B / imagedisj=A / random5=C）→ 增益被 split 雜訊淹沒、不穩定 dominate。
+  因此本章的 final positive result 明確定為 **WB-21 + HB**；feature/prompt response-profile 擴張僅為
+  exploratory（可能改善某些操作點，但非穩定優於 WB-21），降為 appendix。結論：gate 判斷力幾乎全來自
+  detector scores，feature 層近天花板。
 - **Candidate-level utility = per-box trap**：per-box 7-dim EBM utility 取代 score threshold，
   R1 沒改善、set size 2–3× 大、per-box AUROC 僅 0.76。與 evidence-detector 同坑
   （per-box relevance ≠ set-level coverage）。確認 box selection 不可做 per-box classifier。
